@@ -5,7 +5,7 @@ class HistoryHolder():
 	FOLDER_NAME_RESULTS="Results"
 	FOLDER_NAME_FIGURES="Figures"
 	FOLDER_NAME_PLOTS="Plots"
-	RELATIVE_PATH_DEFAULT = ".."
+	RELATIVE_PATH_DEFAULT = "."
 	#END_OF_CONSTANTS
 	#FIELDS:
 	dir_abs_path='' # After init is /FOLDER_NAME_RESULTS/
@@ -52,6 +52,7 @@ class HistoryHolder():
 			path_to_be_created += '/' + folder
 			if not os.path.exists(path_to_be_created):
 				os.mkdir(path_to_be_created)
+	## TODO: create a funciton to store the state in the results folder at the time its called
 if __name__ == '__main__':
     hh = HistoryHolder(experiment_name="test_hh")
     hh.plot_container.create_random_plots()
