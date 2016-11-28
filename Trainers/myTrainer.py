@@ -12,6 +12,7 @@ from Models.vgg16_zisserman import VGG16
 from Metrics import myMetrics
 from CallBacks.plotMetrics import PlotMetrics
 
+cpu_debug=True
 
 def dataset_stats(generator):
 	sum = 0
@@ -36,7 +37,8 @@ def train(model, dataset_abs_path, optimizer, batch_size, epoch_nb):
 	validation_abs_path = os.path.join(dataset_abs_path, "validation")
 
 	imdg.mean = np.array([[[116]], [[110]], [[102]]])
-
+	if cpu_debug:
+		batch_size=2
 	train_generator = imdg.flow_from_directory(directory=training_abs_path, target_size=model.input_shape[2:],
 	                                           batch_size=batch_size, seed=0)
 
@@ -44,14 +46,21 @@ def train(model, dataset_abs_path, optimizer, batch_size, epoch_nb):
 	                                                batch_size=batch_size, seed=0)
 	# mean_training = dataset_stats(train_generator)
 
+	if cpu_debug:
+		samples_per_epoch_training = 6
+		samples_per_epoch_validation = 6
+	else:
+		samples_per_epoch_training = train_generator.nb_sample
+		samples_per_epoch_validation = validation_generator.nb_sample
 
 	if use_costum_training:
 		trainer_from_generator(train_generator, batch_size, model)
 		validation_from_generator(validation_generator, batch_size, model)
 	else:
 		##TODO: change samples per epoch to trainer_from_generator.nbsamples
-		model.fit_generator(generator=train_generator, samples_per_epoch=train_generator.nb_sample, nb_epoch=epoch_nb,
-		                    validation_data=validation_generator, nb_val_samples=validation_generator.nb_sample,
+		model.fit_generator(generator=train_generator, samples_per_epoch=samples_per_epoch_training,
+		                    nb_epoch=epoch_nb,
+		                    validation_data=validation_generator, nb_val_samples=samples_per_epoch_validation,
 		                    callbacks=[reduce_lr,PlotMetrics()])
 
 

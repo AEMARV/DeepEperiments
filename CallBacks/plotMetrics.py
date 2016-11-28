@@ -1,9 +1,7 @@
 from matplotlib import pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib
 from keras.callbacks import Callback
 from ResultManager.plotContainer import PlotContainer
-import numpy as np
+from ResultManager.history_holder import HistoryHolder
 class PlotMetrics(Callback):
 	""" Plot the metrics for model using mtaplotlib"""
 	TRAIN_LABEL = 'train'
@@ -14,7 +12,8 @@ class PlotMetrics(Callback):
 	labels=None
 	def __init__(self):
 		plt.ion()
-		self.plot_manager = PlotContainer()
+		self.history_holder = HistoryHolder(experiment_name="Testing")
+		self.plot_manager = self.history_holder.plot_container
 		self.labels = [self.TRAIN_LABEL,self.VALIDATION_LABEL]
 	def on_train_begin(self, logs={}):
 		self.metrics =[]
@@ -23,7 +22,6 @@ class PlotMetrics(Callback):
 				self.metrics+=[metric_name]
 		self.plot_manager.add_fig_lines_from_list(self.metrics,self.labels)
 	def on_epoch_end(self, epoch, logs={}):
-		metrics_iterator = logs.iteritems()
 		for metric in self.params['metrics']: # metric is a string eg. val_acc  but metric name is the general metric
 			#  name e.g. "acc"
 			y = logs.get(metric)
@@ -34,6 +32,12 @@ class PlotMetrics(Callback):
 			name_figure = metric.replace('val_','')
 			self.plot_manager.line_append_point(name_figure,label,x=epoch,y=y)
 			plt.pause(.001)
+		print("helllooooooooooooo")
+		self.plot_manager.save_all_fig()
+
+		print self.plot_manager.result_dir_abs_path
+		print "hellowww222"
+		plt.pause(.1)
 
 
 
