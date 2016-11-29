@@ -32,11 +32,9 @@ class PlotMetrics(Callback):
 			name_figure = metric.replace('val_','')
 			self.plot_manager.line_append_point(name_figure,label,x=epoch,y=y)
 			plt.pause(.001)
-		print("helllooooooooooooo")
 		self.plot_manager.save_all_fig()
-
-		print self.plot_manager.result_dir_abs_path
-		print "hellowww222"
+		# visualize layer
+		self.history_holder.visualizer.visualize_layer(2,self.model)
 		plt.pause(.1)
 
 

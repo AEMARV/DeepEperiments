@@ -1,4 +1,5 @@
 from plotContainer import PlotContainer
+from visualizer import Visualizer
 import os
 class HistoryHolder():
 	#CONSTANTS
@@ -11,6 +12,7 @@ class HistoryHolder():
 	dir_abs_path='' # After init is /FOLDER_NAME_RESULTS/
 	plots_abs_path=''
 	plot_container=None
+	visualizer = None
 	experiment_name = "TEST"
 	experiment_index = '0'
 	#END_OF_FIELDS
@@ -19,6 +21,7 @@ class HistoryHolder():
 		self.relative_result_path = os.path.join(relative_result_path, self.FOLDER_NAME_RESULTS, experiment_name)
 		self.folder_creation_wrapper()
 		self.plot_container=PlotContainer(self.plots_abs_path,self.experiment_index)
+		self.visualizer =Visualizer()
 	def folder_creation_wrapper(self):
 		self.dir_abs_path = os.path.abspath(self.relative_result_path)
 		self.create_main_folder_hierachy(self.relative_result_path)
