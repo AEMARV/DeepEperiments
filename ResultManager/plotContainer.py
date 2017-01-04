@@ -15,7 +15,12 @@ class PlotContainer(FigureContainer):
 		# type: (object, object) -> object
 		super(PlotContainer,self).__init__(result_dir_abs_path,container_id_string)
 
-
+	def figure_add(self, name_fig):
+		assert self.figure_handles.get(name_fig) == None
+		self.figure_handles[name_fig] = {
+			self.FIG_Handle: plt.figure(name_fig),
+			self.LINE_HANDLES_DICT: {}
+			}
 	def line_add(self, name_fig, name_label):
 		""" selects the figure and add a legend to it"""
 		assert self.figure_handles[name_fig][self.LINE_HANDLES_DICT].get(name_label) == None

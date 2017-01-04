@@ -9,9 +9,9 @@ class FigureContainer(object):
 	# fig_handles[some_fig_name][FIG_HANDLE|LINE_HANDLE_DICT]
 
 	#FIELDS:
-	result_dir_abs_path = ''
-	figure_handles = {}
-	container_id_string = ''
+	# result_dir_abs_path = ''
+	# figure_handles = {}
+	# container_id_string = ''
 	#END_OF_FIELDS
 
 
@@ -19,6 +19,7 @@ class FigureContainer(object):
 		# type: (object, object) -> object
 		self.result_dir_abs_path = result_dir_abs_path
 		self.container_id_string=container_id_string
+		self.figure_handles={}
 		assert os.path.exists(self.result_dir_abs_path)
 		plt.ion()
 
@@ -26,8 +27,12 @@ class FigureContainer(object):
 		assert self.figure_handles.get(name_fig) == None
 		self.figure_handles[name_fig] = {
 			self.FIG_Handle: plt.figure(name_fig),
-			self.LINE_HANDLES_DICT: {}
 			}
+	def exist_figure(self,name_fig):
+		if self.figure_handles.get(name_fig) != None:
+			return True
+		else:
+			return False
 
 	def figure_select(self, name_fig):
 		"""return figure with name from figure_handles dict and selects the figure as current figure"""
