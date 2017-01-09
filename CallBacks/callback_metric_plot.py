@@ -34,11 +34,11 @@ class PlotMetrics(Callback):
 				label = self.VALIDATION_LABEL
 			name_figure = metric.replace('val_', '')
 			self.plot_manager.line_append_point(name_figure, label, x=epoch, y=y)
-			plt.pause(.001)
+			# plt.pause(.001)
 		self.plot_manager.save_all_fig()
 		# visualize layer
-		self.history_holder.weight_visualizer_container.visualize_layer_weights(layer_index_list=[2,4],
-		                                                                        model=self.model,
-		                                                                        filter_channel_index=[(1, 1, 1, 1)
-			                                                                        , (1, 2, 3, 4)])
-		plt.pause(.1)
+		# self.history_holder.weight_visualizer_container.visualize_layer_weights(layer_index_list=[2,4],
+		#                                                                         model=self.model,
+		#                                                                         filter_channel_index=[(1, 1, 1, 1)
+		# 	                                                                        , (1, 2, 3, 4)])
+		# plt.pause(.1)
