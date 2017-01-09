@@ -21,6 +21,8 @@ class PlotMetrics(Callback):
 			if metric_name.find('val_') == -1:
 				self.metrics += [metric_name]
 		self.plot_manager.add_fig_lines_from_list(self.metrics, self.labels)
+		self.history_holder.model_plot(self.model)
+
 
 	def on_epoch_end(self, epoch, logs={}):
 		for metric in self.params['metrics']:  # metric is a string eg. val_acc  but metric name is the general metric

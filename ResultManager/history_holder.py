@@ -1,5 +1,6 @@
 from plotContainer import PlotContainer
 from visualizer_container import VisualizerContainer
+from keras.utils.visualize_util import plot
 import os
 class HistoryHolder():
 	#CONSTANTS
@@ -44,8 +45,6 @@ class HistoryHolder():
 		self.dir_abs_path = os.path.join(abs_path,self.experiment_index)
 
 
-
-
 	def create_main_folder_hierachy(self,relative_result_path):
 		abs_path = os.path.abspath(relative_result_path)
 		self.createFolderPath(abs_path)
@@ -58,6 +57,8 @@ class HistoryHolder():
 			path_to_be_created += '/' + folder
 			if not os.path.exists(path_to_be_created):
 				os.mkdir(path_to_be_created)
+	def model_plot(self,model):
+		plot(model, to_file=self.dir_abs_path+'/model.png')
 	## TODO: create a funciton to store the state in the results folder at the time its called
 if __name__ == '__main__':
     hh = HistoryHolder(experiment_name="test_hh")
