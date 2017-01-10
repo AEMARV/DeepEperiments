@@ -1,9 +1,11 @@
-import numpy as np
-from keras.layers import Input,Flatten,Dense,Dropout,MaxPooling2D,AveragePooling2D,Activation
+
+from keras.layers import Input,Flatten,Dense,Dropout,Activation,AveragePooling2D,MaxPooling2D
 from keras.optimizers import SGD
-from keras.utils.visualize_util import plot
-from keras.models import Model
 from Layers.gate_layer import gate_layer,gated_layers_sequence
+from keras.engine import Model
+import numpy as np
+from keras.utils.visualize_util import plot
+
 def gated_net_functional_model(nb_filter = 4,filter_size=3,depth =5 , input_shape=(3,224,224),
                                input_tensor=None,
                                 include_top=True,initialization = 'glorot_normal'):
@@ -18,8 +20,8 @@ def gated_net_functional_model(nb_filter = 4,filter_size=3,depth =5 , input_shap
 
 	# out2 = gated_layers_sequence(input_tensor=img_input,total_layers=depth,nb_filter=nb_filter,filter_size=filter_size,
 	#                              input_shape=input_shape)
-	x = gate_layer(img_input,32,5,input_shape)
-	x = MaxPooling2D(pool_size=(2,2))(x)
+	x = gate_layer(img_input, 32, 5, input_shape)
+	x = MaxPooling2D(pool_size=(2, 2))(x)
 	x = Activation('sigmoid')(x)
 	x = gate_layer(x, 32, 5)
 	x = AveragePooling2D(pool_size=(2, 2))(x)
