@@ -9,9 +9,9 @@ class PlotMetrics(Callback):
 	TRAIN_LABEL = 'train'
 	VALIDATION_LABEL = 'validation'
 
-	def __init__(self):
+	def __init__(self,opts):
 		plt.ion()
-		self.history_holder = HistoryHolder(experiment_name="Testing")
+		self.history_holder = HistoryHolder(experiment_name=opts['experiment_name'],opts=opts)
 		self.plot_manager = self.history_holder.metric_plot_container
 		self.labels = [self.TRAIN_LABEL, self.VALIDATION_LABEL]
 		self.metrics = []
@@ -22,6 +22,7 @@ class PlotMetrics(Callback):
 				self.metrics += [metric_name]
 		self.plot_manager.add_fig_lines_from_list(self.metrics, self.labels)
 		self.history_holder.model_plot(self.model)
+		self.history_holder.store_opts()
 
 
 	def on_epoch_end(self, epoch, logs={}):
