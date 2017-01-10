@@ -6,7 +6,7 @@ from keras.engine import Model
 import numpy as np
 from keras.utils.visualize_util import plot
 
-def gated_net_functional_model(nb_filter = 4,filter_size=3,depth =5 , input_shape=(3,224,224),
+def gated_net_functional_model(opts,nb_filter = 4,filter_size=3,depth =5 , input_shape=(3,224,224),
                                input_tensor=None,
                                 include_top=True,initialization = 'glorot_normal'):
 	if include_top:
@@ -20,18 +20,18 @@ def gated_net_functional_model(nb_filter = 4,filter_size=3,depth =5 , input_shap
 
 	# out2 = gated_layers_sequence(input_tensor=img_input,total_layers=depth,nb_filter=nb_filter,filter_size=filter_size,
 	#                              input_shape=input_shape)
-	x = gate_layer(img_input, 32, 5, input_shape)
+	x = gate_layer(img_input, 32, 5, input_shape=input_shape,opts=opts)
 	x = MaxPooling2D(pool_size=(2, 2))(x)
 	x = Activation('sigmoid')(x)
-	x = gate_layer(x, 32, 5)
+	x = gate_layer(x, 32, 5,input_shape=(32,112,112),opts=opts)
 	x = AveragePooling2D(pool_size=(2, 2))(x)
 	x = Activation('sigmoid')(x)
-	x = gate_layer(x, 64, 5)
+	x = gate_layer(x, 64, 5,input_shape=(32,56,56),opts=opts)
 	x = AveragePooling2D(pool_size=(2, 2))(x)
 	x = Activation('sigmoid')(x)
-	x = gate_layer(x, 64, 5)
+	x = gate_layer(x, 64, 5,input_shape=(64,28,28),opts=opts)
 	x = Activation('sigmoid')(x)
-	x = gate_layer(x, 64, 5)
+	x = gate_layer(x, 64, 5,input_shape=(64,28,28),opts=opts)
 	if not include_top:
 		model = Model(input=img_input,output=x)
 	else:
@@ -42,6 +42,7 @@ def gated_net_functional_model(nb_filter = 4,filter_size=3,depth =5 , input_shap
 		x = Dropout(p=.5)(x)
 		x = Dense(20,activation='softmax',name='prediction',init=initialization)(x)
 		model = Model(input=img_input,output=x)
+		model.summary()
 	return model
 if __name__ == '__main__':
     model = gated_net_functional_model(include_top=True)
