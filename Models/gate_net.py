@@ -10,7 +10,7 @@ def gated_net_functional_model(opts,nb_filter = 4,filter_size=3,depth =5 , input
                                input_tensor=None,
                                 include_top=True,initialization = 'glorot_normal'):
 	if include_top:
-		input_shape=(3,224,224)
+		input_shape=input_shape
 	else:
 		input_shape=(3,None,None)
 	if input_tensor==None:
@@ -18,29 +18,40 @@ def gated_net_functional_model(opts,nb_filter = 4,filter_size=3,depth =5 , input
 	else:
 		img_input = input_tensor
 
-	# out2 = gated_layers_sequence(input_tensor=img_input,total_layers=depth,nb_filter=nb_filter,filter_size=filter_size,
-	#                              input_shape=input_shape)
-	x = gate_layer(img_input, 32, 5, input_shape=input_shape,opts=opts)
+	x = gate_layer(img_input, 32, 3, input_shape=input_shape,opts=opts,border_mode='same')
+	x = Activation('relu')(x)
+
+	x = gate_layer(x, 32, 3,input_shape=(32,(input_shape[1]-2),(input_shape[2])-2),opts=opts)
+	x = Activation('relu')(x)
 	x = MaxPooling2D(pool_size=(2, 2))(x)
-	x = Activation('sigmoid')(x)
-	x = gate_layer(x, 32, 5,input_shape=(32,112,112),opts=opts)
-	x = AveragePooling2D(pool_size=(2, 2))(x)
-	x = Activation('sigmoid')(x)
-	x = gate_layer(x, 64, 5,input_shape=(32,56,56),opts=opts)
-	x = AveragePooling2D(pool_size=(2, 2))(x)
-	x = Activation('sigmoid')(x)
-	x = gate_layer(x, 64, 5,input_shape=(64,28,28),opts=opts)
-	x = Activation('sigmoid')(x)
-	x = gate_layer(x, 64, 5,input_shape=(64,28,28),opts=opts)
+	x = Dropout(0.25)(x)
+
+	x = gate_layer(x, 64, 3,input_shape=(32,(input_shape[1]-2)/2,(input_shape[2]-2)/2),opts=opts,border_mode='same')
+	x = Activation('relu')(x)
+
+	x = gate_layer(x, 64, 3,input_shape=(64,((input_shape[1]-2)/2)-2,((input_shape[2]-2)/2)-2),opts=opts,
+	               border_mode='valid')
+	x = Activation('relu')(x)
+	x = MaxPooling2D(pool_size=(2, 2))(x)
+	x = Dropout(0.25)(x)
 	if not include_top:
 		model = Model(input=img_input,output=x)
 	else:
-		x = Flatten(name='flatten')(x)
-		x = Dense(1024,activation='relu',init=initialization)(x)
-		x = Dropout(p=.5)(x)
-		x = Dense(512,activation='relu',init=initialization)(x)
-		x = Dropout(p=.5)(x)
-		x = Dense(20,activation='softmax',name='prediction',init=initialization)(x)
+		if opts['dataset']=='cifar10':
+			x = Flatten(name='flatten')(x)
+			x = Dense(512)(x)
+			x = Activation('relu')(x)
+			x = Dropout(.5)(x)
+
+			x= Dense(10)(x)
+			x= Activation('softmax')(x)
+		else:
+			x = Flatten(name='flatten')(x)
+			x = Dense(1024,activation='relu',init=initialization)(x)
+			x = Dropout(p=.5)(x)
+			x = Dense(512,activation='relu',init=initialization)(x)
+			x = Dropout(p=.5)(x)
+			x = Dense(20,activation='softmax',name='prediction',init=initialization)(x)
 		model = Model(input=img_input,output=x)
 		model.summary()
 	return model

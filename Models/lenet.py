@@ -9,7 +9,7 @@
 from __future__ import print_function
 
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Input, Activation
+from keras.layers import Flatten, Dense, Input, Activation,Dropout
 from keras.layers import Convolution2D, MaxPooling2D,AveragePooling2D
 from keras import backend as K
 
@@ -45,25 +45,50 @@ def lenet_model(weights=None,
     #         input_shape = (32, 32, 3)
     #
     # if input_tensor is None:
-    #     img_input = Input(shape=input_shape)
+    #     input_tensor = Input(shape=input_shape)
     # else:
     #     if not K.is_keras_tensor(input_tensor):
-    #         img_input = Input(tensor=input_tensor)
+    #         input_tensor = Input(tensor=input_tensor)
     #     else:
-    #         img_input = input_tensor
+    #         input_tensor = input_tensor
     model = Sequential()
-    model.add(Convolution2D(32, 5, 5, input_shape=(input_tensor), border_mode='same'))
+    # model.add(Convolution2D(32, 5, 5, input_shape=(3,32,32), border_mode='same'))
+    # model.add(Activation('relu'))
+    # model.add(MaxPooling2D((2, 2)))
+    # model.add(Convolution2D(32, 3, 3, border_mode='same'))
+    # model.add(Activation('relu'))
+    # model.add(AveragePooling2D())
+    # model.add(Convolution2D(64, 3, 3, border_mode='same'))
+    # model.add(Activation('relu'))
+    # model.add(AveragePooling2D())
+    # model.add(Convolution2D(64, 3, 3, border_mode='valid'))
+    # model.add(Activation('relu'))
+    # model.add((Flatten()))
+    # model.add(Dense(nb_classes))
+    # model.add(Activation('softmax'))
+
+    # v2
+    model.add(Convolution2D(32, 3, 3, border_mode='same',
+                            input_shape=(3,32,32)))
     model.add(Activation('relu'))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(Convolution2D(32, 3, 3, border_mode='same'))
+
+    model.add(Convolution2D(32, 3, 3))
     model.add(Activation('relu'))
-    model.add(AveragePooling2D())
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.25))
+
     model.add(Convolution2D(64, 3, 3, border_mode='same'))
     model.add(Activation('relu'))
-    model.add(AveragePooling2D())
-    model.add(Convolution2D(64, 3, 3, border_mode='valid'))
+
+    model.add(Convolution2D(64, 3, 3))
     model.add(Activation('relu'))
-    model.add((Flatten()))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.25))
+
+    model.add(Flatten())
+    model.add(Dense(512))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
     model.add(Dense(nb_classes))
     model.add(Activation('softmax'))
 

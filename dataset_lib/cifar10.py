@@ -7,7 +7,7 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.optimizers import SGD
 from keras.utils import np_utils
-
+from keras.callbacks import TensorBoard
 batch_size = 32
 nb_classes = 10
 nb_epoch = 200
@@ -95,4 +95,4 @@ else:
                         batch_size=batch_size),
                         samples_per_epoch=X_train.shape[0],
                         nb_epoch=nb_epoch,
-                        validation_data=(X_test, Y_test))
+                        validation_data=(X_test, Y_test),callbacks=[TensorBoard()])
