@@ -26,7 +26,7 @@ class FigureContainer(object):
 	def figure_add(self, name_fig):
 		assert self.figure_handles.get(name_fig) == None
 		self.figure_handles[name_fig] = {
-			self.FIG_Handle: plt.figure(name_fig),
+			self.FIG_Handle: plt.figure(name_fig,frameon=False),
 			}
 	def exist_figure(self,name_fig):
 		if self.figure_handles.get(name_fig) != None:

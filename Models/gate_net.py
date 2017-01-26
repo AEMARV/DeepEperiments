@@ -19,25 +19,25 @@ def gated_net_functional_model(opts,nb_filter = 4,filter_size=3,depth =5 , input
 		img_input = input_tensor
 
 	x = gate_layer(img_input, 32, 3, input_shape=input_shape,opts=opts,border_mode='same')
-	x = Activation('relu')(x)
+	# x = Activation('relu')(x)
 
 	x = gate_layer(x, 32, 3,input_shape=(32,(input_shape[1]-2),(input_shape[2])-2),opts=opts)
-	x = Activation('relu')(x)
+	# x = Activation('relu')(x)
 	x = MaxPooling2D(pool_size=(2, 2))(x)
 	x = Dropout(0.25)(x)
 
 	x = gate_layer(x, 64, 3,input_shape=(32,(input_shape[1]-2)/2,(input_shape[2]-2)/2),opts=opts,border_mode='same')
-	x = Activation('relu')(x)
+	# x = Activation('relu')(x)
 
 	x = gate_layer(x, 64, 3,input_shape=(64,((input_shape[1]-2)/2)-2,((input_shape[2]-2)/2)-2),opts=opts,
 	               border_mode='valid')
-	x = Activation('relu')(x)
+	# x = Activation('relu')(x)
 	x = MaxPooling2D(pool_size=(2, 2))(x)
 	x = Dropout(0.25)(x)
 	if not include_top:
 		model = Model(input=img_input,output=x)
 	else:
-		if opts['dataset']=='cifar10':
+		if opts['training_opts']['dataset']=='cifar10':
 			x = Flatten(name='flatten')(x)
 			x = Dense(512)(x)
 			x = Activation('relu')(x)

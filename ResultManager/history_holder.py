@@ -23,7 +23,7 @@ class HistoryHolder():
 		self.experiment_name = experiment_name
 		self.relative_result_path = os.path.join(relative_result_path, self.FOLDER_NAME_RESULTS, experiment_name)
 		self.folder_creation_wrapper()
-		self.metric_plot_container=PlotContainer(self.plots_abs_path, self.experiment_index)
+		# self.metric_plot_container=PlotContainer(self.plots_abs_path, self.experiment_index)
 		self.weight_visualizer_container =VisualizerContainer(self.figure_abs_path, self.experiment_index)
 		self.opts=opts
 	def folder_creation_wrapper(self):
@@ -64,8 +64,12 @@ class HistoryHolder():
 	def store_opts(self):
 		with open(self.dir_abs_path+'/opts.pkl', 'wb') as f:
 			pickle.dump(self.opts, f, 0)
-	## TODO: create a funciton to store the state in the results folder at the time its called
+		with open(self.dir_abs_path+'/opts.txt', 'w') as g:
+			g.write(str(self.opts))
+def test_HH(opts):
+	hh = HistoryHolder(experiment_name="test_hh", opts=opts)
+	# hh.metric_plot_container.create_random_plots()
 if __name__ == '__main__':
-    hh = HistoryHolder(experiment_name="test_hh")
-    hh.metric_plot_container.create_random_plots()
+    hh = HistoryHolder(experiment_name="test_hh",opts=None)
+    # hh.metric_plot_container.create_random_plots()
     print hh.relative_result_path

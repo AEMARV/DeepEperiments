@@ -18,7 +18,7 @@ class PlotContainer(FigureContainer):
 	def figure_add(self, name_fig):
 		assert self.figure_handles.get(name_fig) == None
 		self.figure_handles[name_fig] = {
-			self.FIG_Handle: plt.figure(name_fig),
+			self.FIG_Handle: plt.figure(name_fig,frameon=False),
 			self.LINE_HANDLES_DICT: {}
 			}
 	def line_add(self, name_fig, name_label):

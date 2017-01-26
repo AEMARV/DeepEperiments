@@ -54,7 +54,7 @@ def lenet_model(weights=None,
     model = Sequential()
     # model.add(Convolution2D(32, 5, 5, input_shape=(3,32,32), border_mode='same'))
     # model.add(Activation('relu'))
-    # model.add(MaxPooling2D((2, 2)))
+    # model.add(MaxPooling2D((2-finished, 2-finished)))
     # model.add(Convolution2D(32, 3, 3, border_mode='same'))
     # model.add(Activation('relu'))
     # model.add(AveragePooling2D())
