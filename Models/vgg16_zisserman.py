@@ -117,15 +117,14 @@ def VGG16(include_top=True, weights='imagenet',
     if include_top:
         # Classification block
         x = Flatten(name='flatten')(x)
-        x = Dense(4096, activation='relu', name='fc1',init=initialization)(x)
+        x = Dense(1024, activation='relu', name='fc1',init=initialization)(x)
         x = Dropout(p=.5)(x)
-        x = Dense(4096, activation='relu', name='fc2',init=initialization)(x)
+        x = Dense(256, activation='relu', name='fc2',init=initialization)(x)
         x = Dropout(p=.5)(x)
         x = Dense(20, activation='softmax', name='predictions',init=initialization)(x)
 
     # Create model
     model = Model(img_input, x)
-    model.summary()
     # load weights
     if weights == 'imagenet':
         print('K.image_dim_ordering:', K.image_dim_ordering())

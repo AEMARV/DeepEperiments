@@ -11,7 +11,8 @@ class PlotMetrics(Callback):
 
 	def __init__(self,opts):
 		plt.ion()
-		self.history_holder = HistoryHolder(experiment_name=opts['experiment_name'],opts=opts)
+		self.history_holder = HistoryHolder(experiment_name=opts['experiment_name'],opts=opts,
+		                                    )
 		# self.plot_manager = self.history_holder.metric_plot_container
 		self.labels = [self.TRAIN_LABEL, self.VALIDATION_LABEL]
 		self.metrics = []

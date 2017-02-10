@@ -18,7 +18,7 @@ class StochSigmoidActivation(Layer):
         Same shape as input.
     """
 
-    def __init__(self, activation=None,**kwargs):
+    def __init__(self,**kwargs):
         self.supports_masking = True
         self.activation = sigmoid_stoch
         super(StochSigmoidActivation, self).__init__(**kwargs)

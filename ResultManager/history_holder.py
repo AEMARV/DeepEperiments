@@ -21,7 +21,8 @@ class HistoryHolder():
 	#END_OF_FIELDS
 	def __init__(self,experiment_name,opts,relative_result_path=RELATIVE_PATH_DEFAULT):
 		self.experiment_name = experiment_name
-		self.relative_result_path = os.path.join(relative_result_path, self.FOLDER_NAME_RESULTS, experiment_name)
+		self.relative_result_path = os.path.join(relative_result_path, self.FOLDER_NAME_RESULTS,opts['experiment_tag'],
+		experiment_name)
 		self.folder_creation_wrapper()
 		# self.metric_plot_container=PlotContainer(self.plots_abs_path, self.experiment_index)
 		self.weight_visualizer_container =VisualizerContainer(self.figure_abs_path, self.experiment_index)

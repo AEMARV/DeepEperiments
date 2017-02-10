@@ -15,7 +15,7 @@ from keras.regularizers import l1,l2,l1l2
 from keras import backend as K
 
 
-def lenet_model(opts,weights=None,
+def fmp(opts,weights=None,
           input_tensor=(32,32,3),nb_classes=10):
     '''Instantiate the VGG16 architecture,
     optionally loading weights pre-trained
@@ -77,19 +77,19 @@ def lenet_model(opts,weights=None,
         w_reg = None
     if w_regularizer_str == 'l2':
         w_reg = l2(opts['model_opts']['param_dict']['w_regularizer']['value'])
-    model.add(Convolution2D(int(32*channel_expand_ratio), 3, 3, border_mode='same',
+    model.add(Convolution2D(32*channel_expand_ratio, 3, 3, border_mode='same',
                             input_shape=(3,32,32),W_regularizer=w_reg))
     model.add(Activation('relu'))
 
-    model.add(Convolution2D(int(32 * channel_expand_ratio), 3, 3, W_regularizer=w_reg))
+    model.add(Convolution2D(32 * channel_expand_ratio, 3, 3, W_regularizer=w_reg))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.25))
 
-    model.add(Convolution2D(int(64*channel_expand_ratio), 3, 3, border_mode='same',W_regularizer=w_reg))
+    model.add(Convolution2D(64*channel_expand_ratio, 3, 3, border_mode='same',W_regularizer=w_reg))
     model.add(Activation('relu'))
 
-    model.add(Convolution2D(int(64*channel_expand_ratio), 3, 3,W_regularizer=w_reg))
+    model.add(Convolution2D(64*channel_expand_ratio, 3, 3,W_regularizer=w_reg))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.25))
