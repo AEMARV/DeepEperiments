@@ -1,16 +1,15 @@
 import numpy as np
-from keras.layers import Convolution2D,Activation
+from keras.layers import Convolution2D,Activation,Dropout
 from keras.layers import merge
 from Activation.activations import sigmoid_stoch
 from Layers.sigmoid_stoch import StochSigmoidActivation
 from keras.regularizers import l1,l2
-from utils.opt_utils import *
 
 from Regularizer.activity_regularizers import VarianceSpatialActivityRegularizer, NormalizeActivityRegularizer
 
-
-def gate_layer(input_tensor, nb_filter, filter_size, opts, input_shape=(None, None, None), border_mode='valid',
-               activity_reg_weight=1,average_reg=.5,stride = (2,2)):
+def droupout_gated_layer(input_tensor, filter_size, opts, input_shape=(None, None, None),
+                         border_mode='same',
+               activity_reg_weight=1,average_reg=0):
 	''' Layer used to gate the convolution output. it will gate the output of a convolutional layer'''
 	w_regularizer_str = opts['model_opts']['param_dict']['w_regularizer']['method']
 	if w_regularizer_str == 'l1':
@@ -28,21 +27,23 @@ def gate_layer(input_tensor, nb_filter, filter_size, opts, input_shape=(None, No
 	# stochActive = StochSigmoidActivation()
 	reg_opt_dict = opts['model_opts']['param_dict']['gate_layer']['gate_activity_regularizer']['param_dict']
 	gate_activation = opts['model_opts']['param_dict']['gate_layer']['gate_activation']['method']
-	data_activation = opts['model_opts']['param_dict']['data_layer']['data_activation']['method']
 	if opts['model_opts']['param_dict']['gate_layer']['gate_activity_regularizer'] == 'variance_spatial':
-		reg_opt_dict['shape'] = (nb_filter, input_shape[1], input_shape[2])
-	# if activity_regularizer== None:
-	# 	gate_output = Convolution2D(nb_filter, filter_size, filter_size, activation=gate_activation,
-	# 	                            input_shape=input_shape,
-	# 	                            border_mode=border_mode,W_regularizer=w_reg)(input_tensor)
-	# else:
-	# 	gate_output = Convolution2D(nb_filter, filter_size, filter_size, activation=gate_activation,
-	# 	                            input_shape=input_shape,
-	# 	                            border_mode=border_mode,
-	# 	                            activity_regularizer=activity_regularizer(reg_opt_dict,activity_reg_weight,
-	# 	                                                                      average_reg),
-	# 	                            W_regularizer=w_reg)(input_tensor)
-	# gate_output= StochSigmoidActivation()(gate_output)
+		reg_opt_dict['shape'] = (input_shape[1], input_shape[2], input_shape[3])
+		## changed the shape index from 0 1 2 to 1 2 3 ( i dont remember why it was 0 1 2 Maybe a mistake)
+	if activity_regularizer== None:
+		gate_output = Convolution2D(input_shape[1], filter_size, filter_size, activation=gate_activation,
+		                            input_shape=input_shape,
+		                            border_mode=border_mode,W_regularizer=w_reg)(input_tensor)
+	else:
+		gate_output = Convolution2D(input_shape[1], filter_size, filter_size, activation=gate_activation,
+		                            input_shape=input_shape,
+		                            border_mode=border_mode,
+		                            activity_regularizer=activity_regularizer(reg_opt_dict,activity_reg_weight,
+		                                                                      average_reg),
+		                            W_regularizer=w_reg)(input_tensor)
+	gate_output = Activation(gate_activation)(input_tensor)
+	gate_output= StochSigmoidActivation()(gate_output)
+	# gate_output = Dropout(0.25)(gate_output)
 	# gate_output = StochSigmoidActivation()(gate_output)
 	# if opts['model_opts']['regularizer'] == 'variance_spatial':
 	# 	gate_output = Convolution2D(nb_filter, filter_size, filter_size, activation='sigmoid',
@@ -56,18 +57,7 @@ def gate_layer(input_tensor, nb_filter, filter_size, opts, input_shape=(None, No
 	# 	gate_output = Convolution2D(nb_filter, filter_size, filter_size, activation='softplus',
 	# 	                            input_shape=input_shape,
 	# 	                            border_mode=border_mode, )(input_tensor)
-	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=data_activation, input_shape=input_shape,
-	                          border_mode=border_mode,W_regularizer=w_reg)(input_tensor)
-
-	gate_output = Activation(activation=gate_activation)(data_conv)
-	if get_stoc(opts):
-		gate_output = StochSigmoidActivation()(gate_output)
-	merged = merge([data_conv, gate_output], mode='mul')
+	merged = merge([input_tensor, gate_output], mode='mul')
 	return merged
 
 
-def gated_layers_sequence(input_tensor, total_layers, nb_filter, filter_size, input_shape=(None, None, None)):
-	out = input_tensor
-	for i in np.arange(0, total_layers):
-		out = gate_layer(out, nb_filter, filter_size, input_shape)
-	return out
