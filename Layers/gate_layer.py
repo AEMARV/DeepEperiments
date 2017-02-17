@@ -2,9 +2,10 @@ import numpy as np
 from keras.layers import Convolution2D,Activation
 from keras.layers import merge
 from Activation.activations import sigmoid_stoch
-from Layers.sigmoid_stoch import StochSigmoidActivation
+from Layers.sigmoid_stoch import StochSigmoidActivation,Inverter
 from keras.regularizers import l1,l2
 from utils.opt_utils import *
+import keras.backend as K
 
 from Regularizer.activity_regularizers import VarianceSpatialActivityRegularizer, NormalizeActivityRegularizer
 
@@ -58,11 +59,25 @@ def gate_layer(input_tensor, nb_filter, filter_size, opts, input_shape=(None, No
 	# 	                            border_mode=border_mode, )(input_tensor)
 	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=data_activation, input_shape=input_shape,
 	                          border_mode=border_mode,W_regularizer=w_reg)(input_tensor)
-
 	gate_output = Activation(activation=gate_activation)(data_conv)
 	if get_stoc(opts):
-		gate_output = StochSigmoidActivation()(gate_output)
-	merged = merge([data_conv, gate_output], mode='mul')
+		# Stoch tanh
+		# gate_output = Activation(activation=gate_activation)(data_conv)
+		# gate_output = StochSigmoidActivation(opts,tan=True)(gate_output)
+		# data_conv = merge([data_conv, gate_output], mode='mul')
+		gate_output = Activation(activation=gate_activation)(data_conv)
+		gate_output = StochSigmoidActivation(opts,tan=False)(gate_output)
+		gate_output_inv = Inverter()(gate_output)
+		inv_pas = merge([gate_output_inv, data_conv], mode='mul')
+		pas = merge([gate_output, data_conv], mode='mul')
+		# Concatt Experiment
+		# one = K.ones_like(gate_output)
+		# gate_inverted = one-gate_output
+		# gate_output = merge([gate_output, gate_inverted], mode='concat', concat_axis=1)
+		# data_conv= merge([data_conv,data_conv],mode='concat',concat_axis=1)
+		# gate_output = K.concatenate([gate_output,gate_output],axis=1)
+		# data_conv = K.concatenate([data_conv, data_conv], axis=1)
+	merged = merge([inv_pas, pas], mode='concat',concat_axis=1)
 	return merged
 
 

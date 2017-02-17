@@ -8,13 +8,12 @@
 '''
 from __future__ import print_function
 
-from keras.models import Sequential
 from keras.layers import Flatten, Dense, Input, Activation,Dropout
 from keras.layers import Convolution2D, MaxPooling2D,AveragePooling2D
 from keras.regularizers import l1,l2,l1l2
-from keras import backend as K
 from keras.engine import Model
-
+from utils.opt_utils import get_data_activation,get_filter_size
+import numpy as np
 def lenet_amir_model(opts,weights=None,
           input_tensor=None,nb_classes=10,input_shape=(3,32,32)):
     '''Instantiate the VGG16 architecture,
@@ -52,27 +51,34 @@ def lenet_amir_model(opts,weights=None,
         img_input = Input(shape=input_shape, name='image_batch')
     else:
         img_input = input_tensor
-
+    filter_size = get_filter_size(opts)
+    if filter_size==-1:
+        f_size = [5,3,5,4]
+    else:
+        f_size = np.min([[32,16,7,3],[filter_size,filter_size,filter_size,filter_size]],0)
+    data_activation = get_data_activation(opts)
 	#							Layer 1 Conv 5x5 32ch  border 'same' Max Pooling 3x3 stride 2 border valid
-    x =Convolution2D(int(32*channel_expand_ratio), 5, 5, border_mode='same',
-                            input_shape=(3,32,32),W_regularizer=w_reg,activation='relu')(img_input)
-    x =MaxPooling2D(pool_size=(3,3),strides=(2,2),border_mode='same')(x)
+    x =Convolution2D(int(32*channel_expand_ratio), f_size[0], f_size[0], border_mode='same',
+                            input_shape=(3,32,32),W_regularizer=w_reg,activation=None)(img_input)
+    x = Activation(data_activation)(x)
+    x = MaxPooling2D(pool_size=(3,3),strides=(2,2),border_mode='same')(x)
 
 
 	#                           Layer 2 Conv 5x5 32ch  border 'same' AveragePooling 3x3 stride 2
-    x=Convolution2D(int(64 * channel_expand_ratio), 3, 3, W_regularizer=w_reg,activation='relu',
+    x=Convolution2D(int(64 * channel_expand_ratio), f_size[1], f_size[1], W_regularizer=w_reg,activation=None,
                             border_mode='same')(x)
-    x=Activation('relu')(x)
+    x = Activation(data_activation)(x)
     x=AveragePooling2D(pool_size=(3, 3),strides=(2,2),border_mode='same')(x)
 
 	#                           Layer 3 Conv 5x5 128ch  border 'same' AveragePooling3x3 stride 2
-    x=Convolution2D(int(128*channel_expand_ratio), 5, 5, border_mode='same',W_regularizer=w_reg)(x)
-    x=Activation('relu')(x)
+    x=Convolution2D(int(128*channel_expand_ratio), f_size[2], f_size[2], border_mode='same',W_regularizer=w_reg,
+                    activation=None)(x)
+    x=Activation(data_activation)(x)
     x=AveragePooling2D(pool_size=(3,3),strides=(2,2),border_mode='same')(x)
 
     #                           Layer 4 Conv 4x4 64ch  border 'same' no pooling
-    x=Convolution2D(int(64*channel_expand_ratio), 4, 4,W_regularizer=w_reg)(x)
-    x=Activation('relu')(x)
+    x=Convolution2D(int(64*channel_expand_ratio), f_size[3], f_size[3],W_regularizer=w_reg,activation=None)(x)
+    x=Activation(data_activation)(x)
 
 
     #                            Layer 5 Softmax

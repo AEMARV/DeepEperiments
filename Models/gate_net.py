@@ -8,7 +8,7 @@ from keras.utils.visualize_util import plot
 
 from Layers.dropout_gated import droupout_gated_layer
 from Layers.gate_layer import gate_layer
-
+from utils.opt_utils import get_filter_size
 
 def vgg_gated(include_top=True, weights=None, input_tensor=None, opts=None, initialization='glorot_normal'):
 	'''Instantiate the VGG16 architecture,
@@ -119,27 +119,36 @@ def gatenet_amir(opts, input_shape, nb_classes, input_tensor=None, include_top=T
 		'param_dict'][
 		'average_reg_weight']
 	data_activation = opts['model_opts']['param_dict']['data_layer']['data_activation']['method']
-
+	filter_size = get_filter_size(opts)
+	if filter_size == -1:
+		f_size = [5, 3, 5, 4]
+	else:
+		f_size = np.min([[32, 16, 7, 3], [filter_size, (filter_size+1)/2, filter_size, filter_size-1]], 0)
 	#							Layer 1 Conv 5x5 32ch  border 'same' Max Pooling 3x3 stride 2 border valid
-	x = gate_layer(img_input, int(32 * expand_rate), 5, input_shape=input_shape, opts=opts, border_mode='same',
+	x = gate_layer(img_input, int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts, border_mode='same',
 	               activity_reg_weight=average_reg_weight_dict[0], average_reg=average_reg_dict[0])
+	### ADDED
+	# x = gate_layer(x, int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts, border_mode='same',
+	#                activity_reg_weight=average_reg_weight_dict[0], average_reg=average_reg_dict[0])
+	# x = gate_layer(x, int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts, border_mode='same',
+	#                activity_reg_weight=average_reg_weight_dict[0], average_reg=average_reg_dict[0])
 	# TODO add stride for conv layer
 	x = MaxPooling2D(pool_size=(3, 3), strides=(2,2),border_mode='same')(x)
 
 	#                           Layer 2 Conv 5x5 32ch  border 'same' AveragePooling 3x3 stride 2
-	x = gate_layer(x, int(64 * expand_rate), 3, input_shape=(32, (input_shape[1] - 2), (input_shape[2]) - 2),
+	x = gate_layer(x, int(32 * expand_rate), f_size[1], input_shape=(32, (input_shape[1] - 2), (input_shape[2]) - 2),
 	               opts=opts,
 	               activity_reg_weight=average_reg_weight_dict[1], average_reg=average_reg_dict[1],border_mode='same')
 	x = AveragePooling2D(pool_size=(3, 3), strides=(2,2))(x)
 
 	#                           Layer 3 Conv 5x5 128ch  border 'same' AveragePooling3x3 stride 2
-	x = gate_layer(x, int(64 * expand_rate), 3,
+	x = gate_layer(x, int(128 * expand_rate), f_size[2],
 	               input_shape=(32, (input_shape[1] - 2) / 2, (input_shape[2] - 2) / 2), opts=opts, border_mode='same',
 	               activity_reg_weight=average_reg_weight_dict[2], average_reg=average_reg_dict[2])
-	x = AveragePooling2D(pool_size=(3,3),strides=(2,2))(x)
+	x = AveragePooling2D(pool_size=(3,3),strides=(2,2),border_mode='same')(x)
 
 	#                           Layer 4 Conv 4x4 64ch  border 'same' no pooling
-	x = gate_layer(x, int(64 * expand_rate), 3,
+	x = gate_layer(x, int(64 * expand_rate), f_size[3],
 	               input_shape=(64, ((input_shape[1] - 2) / 2) - 2, ((input_shape[2] - 2) / 2) - 2), opts=opts,
 	               border_mode='valid', activity_reg_weight=average_reg_weight_dict[3],
 	               average_reg=average_reg_dict[3])
