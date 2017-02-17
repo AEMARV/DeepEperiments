@@ -2,8 +2,8 @@ from keras.layers import Layer
 from keras.layers.core import Activation
 import keras.backend as K
 from keras.layers import merge
-from Activation.activations import sigmoid_stoch
-class StochSigmoidActivation(Layer):
+from Activation.activations import stoch_activation_function
+class StochActivation(Layer):
     """Applies an activation function to an output.
 
     # Arguments
@@ -22,26 +22,18 @@ class StochSigmoidActivation(Layer):
 
     def __init__(self,opts,tan,**kwargs):
         self.supports_masking = True
-        self.activation = sigmoid_stoch
+        self.activation = stoch_activation_function
         self.opts = opts
         self.tan=tan
-        super(StochSigmoidActivation, self).__init__(**kwargs)
+        super(StochActivation, self).__init__(**kwargs)
 
     def call(self, x, mask=None):
-        if self.tan:
-            res = self.activation(x, self.opts, self.tan)
-            # res = self.activation(y, self.opts, self.tan)
-        else:
-            res = self.activation(x, self.opts, self.tan)
-        ## adding concat
-        # one = K.ones_like(res)
-        # inverted = one-res
-        # res = merge([res,inverted],mode='concat',concat_axis=1)
+        res = self.activation(x, self.opts, self.tan)
         return res
 
     def get_config(self):
         config = {'activation': self.activation.__name__}
-        base_config = super(StochSigmoidActivation, self).get_config()
+        base_config = super(StochActivation, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 class Inverter(Layer):
@@ -63,7 +55,7 @@ class Inverter(Layer):
 
     def __init__(self, **kwargs):
         self.supports_masking = True
-        self.activation = sigmoid_stoch
+        self.activation = stoch_activation_function
         super(Inverter, self).__init__(**kwargs)
 
     def call(self, x, mask=None):
@@ -73,6 +65,6 @@ class Inverter(Layer):
 
     def get_config(self):
         config = {'activation': self.activation.__name__}
-        base_config = super(StochSigmoidActivation, self).get_config()
+        base_config = super(Inverter, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 

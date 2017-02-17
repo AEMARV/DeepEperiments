@@ -1,14 +1,16 @@
 import numpy as np
 from keras import backend as K
 from keras.engine import Model
-from keras.layers import Input, Flatten, Dense, Dropout, Activation, AveragePooling2D, MaxPooling2D, Convolution2D
+from keras.layers import Input, Flatten, Dense, Dropout, Activation, AveragePooling2D, MaxPooling2D, Convolution2D, \
+	merge
 from keras.optimizers import SGD
 from keras.regularizers import l1, l2
 from keras.utils.visualize_util import plot
 
 from Layers.dropout_gated import droupout_gated_layer
-from Layers.gate_layer import gate_layer
+from Layers.gate_layer import gate_layer, gate_layer_on_list, maxpool_on_list, averagepool_on_list
 from utils.opt_utils import get_filter_size
+
 
 def vgg_gated(include_top=True, weights=None, input_tensor=None, opts=None, initialization='glorot_normal'):
 	'''Instantiate the VGG16 architecture,
@@ -96,6 +98,8 @@ def vgg_gated(include_top=True, weights=None, input_tensor=None, opts=None, init
 	return model
 
 
+
+
 def gatenet_amir(opts, input_shape, nb_classes, input_tensor=None, include_top=True, initialization='glorot_normal'):
 	if include_top:
 		input_shape = input_shape
@@ -123,8 +127,8 @@ def gatenet_amir(opts, input_shape, nb_classes, input_tensor=None, include_top=T
 	if filter_size == -1:
 		f_size = [5, 3, 5, 4]
 	else:
-		f_size = np.min([[32, 16, 7, 3], [filter_size, (filter_size+1)/2, filter_size, filter_size-1]], 0)
-	#							Layer 1 Conv 5x5 32ch  border 'same' Max Pooling 3x3 stride 2 border valid
+		f_size = np.min([[32, 16, 7, 3], [filter_size, (filter_size + 1) / 2, filter_size, filter_size - 1]], 0)
+	# Layer 1 Conv 5x5 32ch  border 'same' Max Pooling 3x3 stride 2 border valid
 	x = gate_layer(img_input, int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts, border_mode='same',
 	               activity_reg_weight=average_reg_weight_dict[0], average_reg=average_reg_dict[0])
 	### ADDED
@@ -133,19 +137,19 @@ def gatenet_amir(opts, input_shape, nb_classes, input_tensor=None, include_top=T
 	# x = gate_layer(x, int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts, border_mode='same',
 	#                activity_reg_weight=average_reg_weight_dict[0], average_reg=average_reg_dict[0])
 	# TODO add stride for conv layer
-	x = MaxPooling2D(pool_size=(3, 3), strides=(2,2),border_mode='same')(x)
+	x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), border_mode='same')(x)
 
 	#                           Layer 2 Conv 5x5 32ch  border 'same' AveragePooling 3x3 stride 2
 	x = gate_layer(x, int(32 * expand_rate), f_size[1], input_shape=(32, (input_shape[1] - 2), (input_shape[2]) - 2),
-	               opts=opts,
-	               activity_reg_weight=average_reg_weight_dict[1], average_reg=average_reg_dict[1],border_mode='same')
-	x = AveragePooling2D(pool_size=(3, 3), strides=(2,2))(x)
+	               opts=opts, activity_reg_weight=average_reg_weight_dict[1], average_reg=average_reg_dict[1],
+	               border_mode='same')
+	x = AveragePooling2D(pool_size=(3, 3), strides=(2, 2))(x)
 
 	#                           Layer 3 Conv 5x5 128ch  border 'same' AveragePooling3x3 stride 2
 	x = gate_layer(x, int(128 * expand_rate), f_size[2],
 	               input_shape=(32, (input_shape[1] - 2) / 2, (input_shape[2] - 2) / 2), opts=opts, border_mode='same',
 	               activity_reg_weight=average_reg_weight_dict[2], average_reg=average_reg_dict[2])
-	x = AveragePooling2D(pool_size=(3,3),strides=(2,2),border_mode='same')(x)
+	x = AveragePooling2D(pool_size=(3, 3), strides=(2, 2), border_mode='same')(x)
 
 	#                           Layer 4 Conv 4x4 64ch  border 'same' no pooling
 	x = gate_layer(x, int(64 * expand_rate), f_size[3],
@@ -194,7 +198,7 @@ def dropout_gated_lenet(opts, input_shape, nb_classes, input_tensor=None, includ
 	data_ready = MaxPooling2D(pool_size=(2, 2))(data_ready)
 	raw_conv = MaxPooling2D(pool_size=(2, 2))(raw_conv)
 	# x = Dropout(0.25)(x)
-	x = droupout_gated_layer(input_tensor=y, filter_size=3, opts=opts, input_shape=x._shape_as_list(),
+	x = droupout_gated_layer(input_tensor=x, filter_size=3, opts=opts, input_shape=x._shape_as_list(),
 	                         activity_reg_weight=1, average_reg=.75)
 
 	x = Convolution2D(64 * expand_rate, 3, 3, activation=data_activation, border_mode='same', W_regularizer=w_reg)(x)

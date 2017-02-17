@@ -1,8 +1,8 @@
 import numpy as np
 from keras.layers import Convolution2D,Activation,Dropout
 from keras.layers import merge
-from Activation.activations import sigmoid_stoch
-from Layers.sigmoid_stoch import StochSigmoidActivation
+from Activation.activations import stoch_activation_function
+from Layers.sigmoid_stoch import StochActivation
 from keras.regularizers import l1,l2
 
 from Regularizer.activity_regularizers import VarianceSpatialActivityRegularizer, NormalizeActivityRegularizer
@@ -42,7 +42,7 @@ def droupout_gated_layer(input_tensor, filter_size, opts, input_shape=(None, Non
 		                                                                      average_reg),
 		                            W_regularizer=w_reg)(input_tensor)
 	gate_output = Activation(gate_activation)(input_tensor)
-	gate_output= StochSigmoidActivation()(gate_output)
+	gate_output= StochActivation()(gate_output)
 	# gate_output = Dropout(0.25)(gate_output)
 	# gate_output = StochSigmoidActivation()(gate_output)
 	# if opts['model_opts']['regularizer'] == 'variance_spatial':
