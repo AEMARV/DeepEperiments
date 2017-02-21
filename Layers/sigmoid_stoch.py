@@ -28,7 +28,7 @@ class StochActivation(Layer):
         super(StochActivation, self).__init__(**kwargs)
 
     def call(self, x, mask=None):
-        res = self.activation(x, self.opts, self.tan)
+        res = self.activation(x)
         return res
 
     def get_config(self):
