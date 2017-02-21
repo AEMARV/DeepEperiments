@@ -10,7 +10,7 @@ from keras.utils.visualize_util import plot
 from Layers.gate_layer import gate_layer, gate_layer_on_list, maxpool_on_list, averagepool_on_list
 from utils.opt_utils import get_filter_size
 
-def gatenet_binary(opts, input_shape, nb_classes, input_tensor=None, include_top=True, initialization='glorot_normal'):
+def gatenet_binary(opts, input_shape, nb_classes, input_tensor=None, include_top=True, initialization='glorot_normal',output='model'):
 	if include_top:
 		input_shape = input_shape
 	else:
@@ -30,7 +30,7 @@ def gatenet_binary(opts, input_shape, nb_classes, input_tensor=None, include_top
 	x = gate_layer_on_list([img_input], int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts,
 	                       border_mode='same', merge_flag=False, layer_index=0)
 	# TODO add stride for conv layer
-	x = maxpool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same')
+	# x = maxpool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same')
 	#                           Layer 2 Conv 5x5 64ch  border 'same' AveragePooling 3x3 stride 2
 	x = gate_layer_on_list(x, int(64 * expand_rate / 2), f_size[1],
 	                       input_shape=(32, (input_shape[1] - 2), (input_shape[2]) - 2), opts=opts,
@@ -58,9 +58,13 @@ def gatenet_binary(opts, input_shape, nb_classes, input_tensor=None, include_top
 		x = Dense(nb_classes)(x)
 		x = Activation('softmax')(x)
 		model = Model(input=img_input, output=x)
-	return model
+	if output=='model':
+		return model
+	else:
+		return x
 
-def gatenet_binary_merged(opts, input_shape, nb_classes, input_tensor=None, include_top=True, initialization='glorot_normal'):
+def gatenet_binary_merged(opts, input_shape, nb_classes, input_tensor=None, include_top=True,
+                          initialization='glorot_normal',output='model'):
 	if include_top:
 		input_shape = input_shape
 	else:
@@ -81,7 +85,7 @@ def gatenet_binary_merged(opts, input_shape, nb_classes, input_tensor=None, incl
 	x = gate_layer_on_list([img_input], int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts,
 	                       border_mode='same', merge_flag=True, layer_index=0)
 	# TODO add stride for conv layer
-	x = maxpool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same')
+	# x = maxpool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same')
 	#                           Layer 2 Conv 5x5 64ch  border 'same' AveragePooling 3x3 stride 2
 	x = gate_layer_on_list(x, int(64 * expand_rate / 2), f_size[1],
 	                       input_shape=(32, (input_shape[1] - 2), (input_shape[2]) - 2), opts=opts, border_mode='same',
@@ -107,4 +111,7 @@ def gatenet_binary_merged(opts, input_shape, nb_classes, input_tensor=None, incl
 		x = Dense(nb_classes)(x)
 		x = Activation('softmax')(x)
 		model = Model(input=img_input, output=x)
-	return model
+	if output=='model':
+		return model
+	else:
+		return x
