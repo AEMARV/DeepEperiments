@@ -60,7 +60,7 @@ class Inverter(Layer):
 
     def call(self, x, mask=None):
         one = K.ones_like(x)
-        res = one-x
+        res = x-one
         return res
 
     def get_config(self):
