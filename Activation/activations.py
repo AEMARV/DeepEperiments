@@ -22,7 +22,10 @@ def softmax(x):
                          'that is not 2D or 3D. '
                          'Here, ndim=' + str(ndim))
 
-
+def negative(x):
+    return K.zeros_like(x)-x
+def inverter(x):
+    return K.ones_like(x)-x
 def elu(x, alpha=1.0):
     return K.elu(x, alpha)
 

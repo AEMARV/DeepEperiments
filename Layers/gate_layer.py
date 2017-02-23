@@ -3,21 +3,27 @@ from keras.layers import Convolution2D, Activation,MaxPooling2D,AveragePooling2D
 from keras.layers import merge
 from keras.regularizers import l1, l2
 
-from Layers.sigmoid_stoch import StochActivation, Inverter
+from Layers.sigmoid_stoch import StochActivation, Inverter,Negater
 from Regularizer.activity_regularizers import VarianceSpatialActivityRegularizer, NormalizeActivityRegularizer
 from utils.opt_utils import *
 import keras.backend as K
-def averagepool_on_list(input_list,pool_size, strides, border_mode='valid'):
+def averagepool_on_list(input_list,pool_size, strides,layer_index, border_mode='valid'):
 	result_list = []
+	index =0
 	for x in input_list:
-		res= AveragePooling2D(pool_size=pool_size, strides=strides, border_mode=border_mode)(x)
+		res= AveragePooling2D(pool_size=pool_size, strides=strides, border_mode=border_mode,name='A_pool_size'+str(
+			pool_size)+'strides'+str(strides)+str(layer_index)+str(index))(x)
 		result_list+=[res]
+		index+=1
 	return result_list
-def maxpool_on_list(input_list,pool_size, strides, border_mode='valid'):
+def maxpool_on_list(input_list,pool_size, strides,layer_index, border_mode='valid'):
 	result_list = []
+	index=0
 	for x in input_list:
-		res= MaxPooling2D(pool_size=pool_size, strides=strides, border_mode=border_mode)(x)
+		res= MaxPooling2D(pool_size=pool_size, strides=strides, border_mode=border_mode,name='max_pool_size'+str(
+			pool_size)+'strides'+str(strides)+'l'+str(layer_index)+'i'+str(index))(x)
 		result_list+=[res]
+		index+=1
 	return result_list
 def gate_layer_on_list(input_tensor_list, nb_filter, filter_size, opts, input_shape=(None, None, None),
                        border_mode='valid', merge_flag=True,
@@ -48,14 +54,22 @@ def gate_layer_on_list(input_tensor_list, nb_filter, filter_size, opts, input_sh
 		data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=data_activation,
 		                          input_shape=input_shape, border_mode=border_mode, W_regularizer=w_reg,
 		                          name='conv_layer_'+str(layer_index)+'number'+str(index))(input_tensor)
-		gate_output = Activation(activation=gate_activation)(data_conv)
-		if get_stoc(opts):
-			gate_output = StochActivation(opts, tan=False)(gate_output)
-		gate_output_inv = Inverter()(gate_output)
-		inv_pas = merge([gate_output_inv, data_conv], mode='mul')
-		pas = merge([gate_output, data_conv], mode='mul')
+		if gate_activation=='relu':
+			pas = Activation(activation=gate_activation,name='relu1'+str(layer_index)+'number'+str(index))(data_conv)
+			data_conv_negate =Negater()(data_conv)
+			inv_pas = Activation(activation=gate_activation,name='relu0'+str(layer_index)+'number'+str(index))(
+				data_conv_negate)
+		else:
+			gate_output = Activation(activation=gate_activation,name=gate_activation+'number'+str(layer_index)+str(index))(data_conv)
+
+			if get_stoc(opts):
+				gate_output = StochActivation(opts, tan=False,name='stochastic'+str(layer_index)+str(index))(gate_output)
+			gate_output_inv = Inverter()(gate_output)
+			data_conv_negate = Negater()(data_conv)
+			inv_pas = merge([gate_output_inv, data_conv_negate], mode='mul',name='mul'+str(layer_index)+str(index))
+			pas = merge([gate_output, data_conv], mode='mul',name='mulpos'+str(layer_index)+str(index))
 		if merge_flag:
-			merged = [merge([inv_pas, pas], mode='concat', concat_axis=1)]
+			merged = [merge([inv_pas, pas], mode='concat', concat_axis=1,name='concat'+str(layer_index)+str(index))]
 		else:
 			merged = [inv_pas, pas]
 		result_tensor_list += merged
@@ -112,12 +126,17 @@ def gate_layer(input_tensor, nb_filter, filter_size, opts, input_shape=(None, No
 	# 	                            border_mode=border_mode, )(input_tensor)
 	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=data_activation, input_shape=input_shape,
 	                          border_mode=border_mode, W_regularizer=w_reg)(input_tensor)
-	gate_output = Activation(activation=gate_activation)(data_conv)
-	if get_stoc(opts):
-		gate_output = StochActivation(opts, tan=False)(gate_output)
-		gate_output_inv = Inverter()(gate_output)
-	inv_pas = merge([gate_output_inv, data_conv], mode='mul')
-	pas = merge([gate_output, data_conv], mode='mul')
+	if gate_activation == 'relu':
+		pas = Activation(activation=gate_activation)(data_conv)
+		data_conv_negate = Negater()(data_conv)
+		inv_pas = Activation(activation=gate_activation)(data_conv_negate)
+	else:
+		gate_output = Activation(activation=gate_activation)(data_conv)
+		if get_stoc(opts):
+			gate_output = StochActivation(opts, tan=False)(gate_output)
+			gate_output_inv = Inverter()(gate_output)
+		inv_pas = merge([gate_output_inv, data_conv], mode='mul')
+		pas = merge([gate_output, data_conv], mode='mul')
 		# inv_pas=inv_pas+ones
 		# pas = pas+ones
 

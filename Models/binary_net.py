@@ -30,22 +30,22 @@ def gatenet_binary(opts, input_shape, nb_classes, input_tensor=None, include_top
 	x = gate_layer_on_list([img_input], int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts,
 	                       border_mode='same', merge_flag=False, layer_index=0)
 	# TODO add stride for conv layer
-	x = maxpool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same')
+	x = maxpool_on_list(x, pool_size=(3, 3), strides=(2, 2),layer_index=1, border_mode='same')
 	#                           Layer 2 Conv 5x5 64ch  border 'same' AveragePooling 3x3 stride 2
 	x = gate_layer_on_list(x, int(64 * expand_rate / 2), f_size[1],
 	                       input_shape=(32, (input_shape[1] - 2), (input_shape[2]) - 2), opts=opts,
-	                       border_mode='same', merge_flag=False, layer_index=1)
-	x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2))
+	                       border_mode='same', merge_flag=False, layer_index=2)
+	x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2),layer_index=3)
 
 	#                           Layer 3 Conv 5x5 128ch  border 'same' AveragePooling3x3 stride 2
 	x = gate_layer_on_list(x, int(128 * expand_rate / 4), f_size[2],
 	                       input_shape=(32, (input_shape[1] - 2) / 2, (input_shape[2] - 2) / 2), opts=opts,
-	                       border_mode='same', merge_flag=False,layer_index=2)
-	x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same')
+	                       border_mode='same', merge_flag=False,layer_index=4)
+	x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same',layer_index=5)
 	#                           Layer 4 Conv 4x4 64ch  border 'same' no pooling
 	x = gate_layer_on_list(x, int(64 * expand_rate / 8), f_size[3],
 	                       input_shape=(64, ((input_shape[1] - 2) / 2) - 2, ((input_shape[2] - 2) / 2) - 2), opts=opts,
-	                       border_mode='valid', merge_flag=False,layer_index=3)
+	                       border_mode='valid', merge_flag=False,layer_index=6)
 	# option 1 average pool all x
 	# option 2 concat x list into one tensor
 	merged = x[0]
@@ -81,22 +81,22 @@ def gatenet_binary_merged(opts, input_shape, nb_classes, input_tensor=None, incl
 	x = gate_layer_on_list([img_input], int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts,
 	                       border_mode='same', merge_flag=True, layer_index=0)
 	# TODO add stride for conv layer
-	x = maxpool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same')
+	x = maxpool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same',layer_index=1)
 	#                           Layer 2 Conv 5x5 64ch  border 'same' AveragePooling 3x3 stride 2
-	x = gate_layer_on_list(x, int(64 * expand_rate / 2), f_size[1],
+	x = gate_layer_on_list(x, int(64 * expand_rate ), f_size[1],
 	                       input_shape=(32, (input_shape[1] - 2), (input_shape[2]) - 2), opts=opts, border_mode='same',
-	                       merge_flag=True, layer_index=1)
-	x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2))
+	                       merge_flag=True, layer_index=2)
+	x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2),layer_index=3)
 
 	#                           Layer 3 Conv 5x5 128ch  border 'same' AveragePooling3x3 stride 2
-	x = gate_layer_on_list(x, int(128 * expand_rate / 4), f_size[2],
+	x = gate_layer_on_list(x, int(128 * expand_rate), f_size[2],
 	                       input_shape=(32, (input_shape[1] - 2) / 2, (input_shape[2] - 2) / 2), opts=opts,
-	                       border_mode='same', merge_flag=True, layer_index=2)
-	x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same')
+	                       border_mode='same', merge_flag=True, layer_index=4)
+	x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same',layer_index=5)
 	#                           Layer 4 Conv 4x4 64ch  border 'same' no pooling
-	x = gate_layer_on_list(x, int(64 * expand_rate / 8), f_size[3],
+	x = gate_layer_on_list(x, int(64 * expand_rate ), f_size[3],
 	                       input_shape=(64, ((input_shape[1] - 2) / 2) - 2, ((input_shape[2] - 2) / 2) - 2), opts=opts,
-	                       border_mode='valid', merge_flag=True, layer_index=3)
+	                       border_mode='valid', merge_flag=True, layer_index=6)
 	# option 1 average pool all x
 	# option 2 concat x list into one tensor
 	merged = x

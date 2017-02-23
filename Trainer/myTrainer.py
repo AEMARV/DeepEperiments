@@ -4,6 +4,7 @@ import os
 
 import numpy as np
 from keras.callbacks import ReduceLROnPlateau,TensorBoard,History,CSVLogger,LearningRateScheduler
+from CallBacks.callbacks import EarlyStopping
 from keras.optimizers import SGD
 from keras.preprocessing import image
 from Models import gate_net
@@ -196,7 +197,8 @@ def cifar_trainer(opts,model,optimizer):
 	tensorboard = TensorBoard(log_dir=experiments_abs_path + '/logs',histogram_freq=0,write_images=False)
 	csv_logger = CSVLogger(filename=experiments_abs_path+'/training.log',separator=',')
 	lr_sched = LearningRateScheduler(lr_random_multiScale)
-	callback_list = [plotter, tensorboard, csv_logger]
+	early_stopping = EarlyStopping('acc', min_delta=.0001, patience=20, mode='max')
+	callback_list = [plotter, tensorboard, csv_logger,early_stopping]
 	if opts['optimizer_opts']['lr']==-1:
 		callback_list = callback_list+[lr_sched]
 	if opts['optimizer_opts']['lr']==-2:
@@ -264,7 +266,8 @@ def cifar100_trainer(opts, model, optimizer):
 	tensorboard = TensorBoard(log_dir=experiments_abs_path + '/logs', histogram_freq=0, write_images=False)
 	csv_logger = CSVLogger(filename=experiments_abs_path + '/training.log', separator=',')
 	lr_sched = LearningRateScheduler(lr_random_multiScale)
-	callback_list = [plotter, tensorboard, csv_logger]
+	early_stopping = EarlyStopping('acc',min_delta=.0001,patience=20,mode='max')
+	callback_list = [plotter, tensorboard, csv_logger,early_stopping]
 	if opts['optimizer_opts']['lr'] == -1:
 		callback_list = callback_list + [lr_sched]
 	if opts['optimizer_opts']['lr']==-2:

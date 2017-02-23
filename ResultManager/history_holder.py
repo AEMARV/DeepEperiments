@@ -62,11 +62,18 @@ class HistoryHolder():
 				os.mkdir(path_to_be_created)
 	def model_plot(self,model):
 		plot(model, to_file=self.dir_abs_path+'/model.png')
+		with open(self.dir_abs_path+'/model_config.txt', 'w') as f:
+			f.write(str(model.get_config()))
+		with open(self.dir_abs_path+'/model_config.yaml', 'w') as f:
+			f.write(str(model.to_yaml()))
+		with open(self.dir_abs_path + '/model_config.json', 'w') as f:
+			f.write(str(model.to_json()))
 	def store_opts(self):
 		with open(self.dir_abs_path+'/opts.pkl', 'wb') as f:
 			pickle.dump(self.opts, f, 0)
 		with open(self.dir_abs_path+'/opts.txt', 'w') as g:
 			g.write(str(self.opts))
+
 def test_HH(opts):
 	hh = HistoryHolder(experiment_name="test_hh", opts=opts)
 	# hh.metric_plot_container.create_random_plots()
