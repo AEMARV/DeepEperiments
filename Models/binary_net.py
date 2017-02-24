@@ -23,7 +23,7 @@ def gatenet_binary(opts, input_shape, nb_classes, input_tensor=None, include_top
 	expand_rate = opts['model_opts']['param_dict']['param_expand']['rate']
 	filter_size = get_filter_size(opts)
 	if filter_size == -1:
-		f_size = [5, 3, 5, 4]
+		f_size = [3, 5, 5, 4]
 	else:
 		f_size = np.min([[32, 16, 7, 3], [filter_size, (filter_size + 1) / 2, filter_size, filter_size - 1]], 0)
 	# Layer 1 Conv 5x5 32ch  border 'same' Max Pooling 3x3 stride 2 border valid
@@ -74,7 +74,7 @@ def gatenet_binary_merged(opts, input_shape, nb_classes, input_tensor=None, incl
 	expand_rate = opts['model_opts']['param_dict']['param_expand']['rate']
 	filter_size = get_filter_size(opts)
 	if filter_size == -1:
-		f_size = [5, 3, 5, 4]
+		f_size = [3, 5, 5, 4]
 	else:
 		f_size = np.min([[32, 16, 7, 3], [filter_size, (filter_size + 1) / 2, filter_size, filter_size - 1]], 0)
 	# Layer 1 Conv 5x5 32ch  border 'same' Max Pooling 3x3 stride 2 border valid

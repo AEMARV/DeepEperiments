@@ -7,17 +7,12 @@ from keras.callbacks import ReduceLROnPlateau,TensorBoard,History,CSVLogger,Lear
 from CallBacks.callbacks import EarlyStopping
 from keras.optimizers import SGD
 from keras.preprocessing import image
-from Models import gate_net
 from CallBacks.callback_metric_plot import PlotMetrics
 from keras.datasets import cifar10
 from keras.datasets import cifar100
-from keras.datasets import cifar
 from keras.utils import np_utils
 from keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
-from Models import lenet
-import pickle
-from Models.vgg16_zisserman import VGG16
 
 cpu_debug = False
 

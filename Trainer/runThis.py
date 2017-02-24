@@ -1,9 +1,10 @@
 from myTrainer import *
 from Models.binary_net import gatenet_binary,gatenet_binary_merged
+from Models.Binary_models.models import model_a,get_model
 from utils.opt_utils import *
 from Models.vgg16_zisserman import VGG16
 from Models.lenet_amir import lenet_amir_model
-
+from keras.utils.visualize_util import plot
 import time
 def find_key_value_to_str_recursive(dictionary,parent_dict_name,method_name_exclusive_list):
 	result_str = ''
@@ -38,21 +39,22 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 	opts = set_default_opts_based_on_model_dataset(opts)
 
 
-	gate_activation_set = ['relu','softplus']
-	gate_stoch_enable =[False,True]
+	gate_activation_set = ['relu']
+	gate_stoch_enable =[True]
 	data_activation_set = [None]
 	loss_set = {'categorical_crossentropy'}
 	lenet_activation = ['elu']
 	filter_size_set = [-1]
 	lr = [-2]
-	w_reg = {None,'l1'}
+
+	w_reg = {'l1'}
 	w_reg_value = {1e-6}
-	param_expand = [1,2,4] ## in gated all the params are devided by two because we have two layers per channel so
+	param_expand = [1] ## in gated all the params are devided by two because we have two layers per channel so
 	# this ratio can be compared for number of parameters e.g if in lennet param_expand=1 and in gated param_expand=1
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
 	model_str = get_model_string(opts)
-	if not str(model_str).find('gatenet') == -1:
+	if not (str(model_str).find('gatenet') == -1 and str(model_str).find('model') == -1):
 		for gate_activation in gate_activation_set:
 			for data_activation in data_activation_set:
 				for loss_objective in loss_set:
@@ -62,10 +64,6 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 								for param_expand_sel in param_expand:
 									for gate_stoch in gate_stoch_enable:
 										for f_size in filter_size_set:
-											if gate_activation=='relu' and gate_stoch is True:
-												break
-											if gate_activation == 'softplus' and gate_stoch is False:
-												break
 											opts=set_gate_activation(opts=opts,activation=gate_activation)
 											opts=set_data_activation(opts=opts,activation=data_activation)
 											opts=set_loss(opts=opts,loss_string=loss_objective)
@@ -83,17 +81,46 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 											# binary_bit_generator(opts=opts, input_shape=opts[
 											# 	'training_opts']['dataset'][
 											# 	'input_shape'], nb_classes=opts['training_opts']['dataset']['nb_classes'])
-											gatenet_amir_model = gate_net.gatenet_amir(opts=opts, input_shape=opts[
-												'training_opts']['dataset'][
-												'input_shape'], nb_classes=opts['training_opts']['dataset']['nb_classes'])
-											gatenet_binary_model = gatenet_binary(opts=opts, input_shape=
+											# gatenet_amir_model = gate_net.gatenet_amir(opts=opts, input_shape=opts[
+											# 	'training_opts']['dataset'][
+											# 	'input_shape'], nb_classes=opts['training_opts']['dataset']['nb_classes'])
+											# gatenet_binary_model = gatenet_binary(opts=opts, input_shape=
+											# opts['training_opts']['dataset']['input_shape'], nb_classes=
+											#                                      opts['training_opts']['dataset'][
+											# 	                                     'nb_classes'])
+											# gatenet_binary_merged_model = gatenet_binary_merged(opts=opts, input_shape=
+											# opts['training_opts']['dataset']['input_shape'], nb_classes=
+											#                                      opts['training_opts']['dataset'][
+											# 	                                     'nb_classes'])
+											input_shape = opts['training_opts']['dataset']['input_shape']
+											nb_class = opts['training_opts']['dataset']['nb_classes']
+											model_A = model_a(opts=opts, input_shape=
 											opts['training_opts']['dataset']['input_shape'], nb_classes=
 											                                     opts['training_opts']['dataset'][
 												                                     'nb_classes'])
-											gatenet_binary_merged_model = gatenet_binary_merged(opts=opts, input_shape=
-											opts['training_opts']['dataset']['input_shape'], nb_classes=
-											                                     opts['training_opts']['dataset'][
-												                                     'nb_classes'])
+											model0 =get_model(opts,input_shape,nb_classes=nb_class,
+											                 model_string='exp'
+											                              '-exp'
+											                              '-exp'
+											                              '-swap'
+											                              '-max'
+											                              '-swap'
+											                              '-avg'
+											                              '-rmerge'
+											                              '-avg'
+											                              '-rmerge'
+											                              '-rmerge')
+											model1_str = 'exp-exp-swap-swap-rmerge-rmerge-' \
+											             'max-exp-exp-swap-swap-rmerge-rmerge' \
+											             '-avg-exp-exp-swap-swap-rmerge-rmerge' \
+											             '-avg-exp-exp-swap-swap-rmerge-rmerge'
+											model2_str = 'exp-exp-exp-exp-rmerge-rmerge-rmerge-rmerge' \
+											             '-max-exp-exp-rmerge-rmerge' \
+											             '-avg-exp-rmerge' \
+											             '-avg-exp-rmerge-'
+											model1= get_model(opts,input_shape,nb_class,model1_str)
+											model2 = get_model(opts,input_shape,nb_class,model2_str)
+											# plot(model, to_file='/home/student/Documents/My Documents/a.png')
 											model = eval(model_str)
 											model.summary()
 											print 'gate_activation:', gate_activation
@@ -119,14 +146,14 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 									opts = set_data_activation(opts,activation=actvation)
 									opts = set_filter_size(opts, f_size)
 									print 'loss:', loss_objective
-									lenett = lenet.lenet_model(opts=opts,nb_classes=opts['training_opts']['dataset']['nb_classes'])
+									# lenett = lenet.lenet_model(opts=opts,nb_classes=opts['training_opts']['dataset']['nb_classes'])
 									lenet_amir = lenet_amir_model(opts=opts,nb_classes=opts['training_opts']['dataset']['nb_classes'])
-									if (model_str == 'gated'):
-										gated = gate_net.gated_lenet(opts=opts,
-										                             input_shape=opts['training_opts']['dataset']['input_shape'],
-										                             nb_classes=opts['training_opts']['dataset']['nb_classes'])
-										print 'gated run'
-									vgg16 = VGG16(weights=None)
+									# if (model_str == 'gated'):
+									# 	gated = gate_net.gated_lenet(opts=opts,
+									# 	                             input_shape=opts['training_opts']['dataset']['input_shape'],
+									# 	                             nb_classes=opts['training_opts']['dataset']['nb_classes'])
+									# 	print 'gated run'
+									# vgg16 = VGG16(weights=None)
 
 									model = eval(model_str)
 									model.summary()
@@ -172,15 +199,15 @@ def default_opt_creator():
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['gatenet_binary_merged_model']
+	models= ['model2','model1','model0']
 	datasets=['cifar10','cifar100']
-	experiment_name = 'BiRELU Baseline-Merged'+time.strftime('%b%d')
+	experiment_name = 'First Expanding Experiment-the machine shall rise'+time.strftime('%b%d')
 
 	for dataset_str in datasets:
 		for model_str in models:
 			options={}
 			options = default_opt_creator()
-			options['description'] = 'Testing ReLU activation'
+			options['description'] = 'Model_expandable'
 			grid_search(options,experiment_name=experiment_name,model_str=model_str,dataset_str=dataset_str)
 # method_names = find_key_value_to_str_recursive(opts,'')
 

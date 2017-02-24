@@ -4,11 +4,17 @@ import tensorflow as tf
 from keras.utils.generic_utils import get_from_module
 from keras.layers import SpatialDropout2D
 from utils.opt_utils import get_stoc_flip
+def softplus_stoch(x):
+    y = softplus(x)
+    shape_x = K.shape(y)
+    active_bool = K.lesser_equal(K.random_uniform(shape_x),y)
+    res = tf.where(active_bool, K.ones_like(y), K.zeros_like(y))
+    return res
 def stoch_activation_function(x):
-	shape_x = K.shape(x)
-	active_bool = K.lesser_equal(K.random_uniform(shape_x),x)
-	res = tf.where(active_bool, K.ones_like(x), K.zeros_like(x))
-	return res
+    shape_x = K.shape(x)
+    active_bool = K.lesser_equal(K.random_uniform(shape_x),x)
+    res = tf.where(active_bool, K.ones_like(x), K.zeros_like(x))
+    return res
 def softmax(x):
     ndim = K.ndim(x)
     if ndim == 2:

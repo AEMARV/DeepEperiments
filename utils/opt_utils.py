@@ -1,6 +1,8 @@
 def set_gate_activation(opts,activation):
 	opts['model_opts']['param_dict']['gate_layer']['gate_activation']['method']=activation
 	return opts
+def get_gate_activation(opts):
+	return opts['model_opts']['param_dict']['gate_layer']['gate_activation']['method']
 def set_data_activation(opts,activation):
 	opts['model_opts']['param_dict']['data_layer']['data_activation']['method']=activation
 	return opts
@@ -74,7 +76,7 @@ def set_default_opts_based_on_model_dataset(opts):
 
 	# Gated Parameters and Activations
 	####### ACTIVITY REGULARIZER
-	if not opts['model_opts']['method'].find('gatenet')==-1:
+	if not opts['model_opts']['method'].find('gatenet')==-1 or not opts['model_opts']['method'].find('model')==-1:
 		opts['model_opts']['param_dict']['gate_layer'] = {}
 		opts['model_opts']['param_dict']['gate_layer']['gate_activation'] = {}
 		opts['model_opts']['param_dict']['gate_layer']['gate_activity_regularizer'] = {}
