@@ -2,10 +2,10 @@ from Models.binary_net import gate_layer_on_list
 from keras.engine import Model
 from keras.layers import Input, Flatten, Dense, Dropout, Activation, AveragePooling2D, MaxPooling2D, Convolution2D, \
 	merge
-# from Layers.gate_layer import gate_layer, gate_layer_on_list, maxpool_on_list, averagepool_on_list
-from Layers.layer_wrappers.on_list_wrappers import conv_birelu_expand_on_list,conv_birelu_merge_on_list,\
-	conv_birelu_swap_on_list,max_pool_on_list,avg_pool_on_list
+from Layers.layer_wrappers.on_list_wrappers import conv_birelu_expand_on_list,conv_relu_merge_on_list,\
+	conv_birelu_swap_on_list,max_pool_on_list,avg_pool_on_list,conv_birelu_merge_on_list,conv_relu_on_list
 from utils.opt_utils import get_filter_size,get_gate_activation
+from keras.utils.generic_utils import get_from_module
 import numpy as np
 # def model_e_0(opts, input_shape, nb_classes, input_tensor=None, include_top=True, initialization='glorot_normal'):
 # 	if include_top:
@@ -61,38 +61,84 @@ def get_layer_index():
 	global layer_index
 	layer_index=layer_index+1
 	return layer_index
-def model_constructor(layer_sequence,opts,nb_classes,input_shape):
+def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=None,filter_size_list = None,
+                      model_dict=None):
+	'nb_filter_list is total filters used in each layer.filter size is for convolution'
 	img_input = Input(shape=input_shape, name='image_batch')
 	x = [img_input]
 	expand_rate = opts['model_opts']['param_dict']['param_expand']['rate']
 	layer_index_t = 0
-	f_size = [3]
+	f_size = 3
 	nb_filter = 32
+	filter_size_index =0
+	conv_nb_filterindex=0
+	branch = 1
 	for component in layer_sequence:
+		if component not in ['e','s','rm','am','mp','ma','rbe']:
+			assert 'Invalid Layer'
+
 		if not layer_index_t == 0:
 			input_shape = (None,None,None)
-		if component=='exp':
-
-			x = conv_birelu_expand_on_list(input_tensor_list=x,nb_filter=int(nb_filter * expand_rate), filter_size=f_size[0],
+		if nb_filter_list is not None and component in ['e','s','rm','am','rbe']:
+			nb_filter=nb_filter_list[conv_nb_filterindex]
+		if filter_size_list is not None:
+			f_size = filter_size_list[filter_size_index]
+		if component=='e':
+			x = conv_birelu_expand_on_list(input_tensor_list=x,nb_filter=int(nb_filter * expand_rate/branch),
+			                               filter_size=f_size,
 	                               input_shape=input_shape, w_reg=None,
 	                       gate_activation=get_gate_activation(opts), layer_index=layer_index_t,border_mode='same')
-			nb_filter = nb_filter / 2
-		if component=='swap':
-			x = conv_birelu_swap_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate), filter_size=f_size[0],
+			branch=2*branch
+		if component == 'rbe':
+			dropout = model_dict['ex_drop']
+			x = conv_birelu_expand_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
+			                               filter_size=f_size, input_shape=input_shape, w_reg=None,
+			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
+			                               border_mode='same',relu_birelu_switch=dropout)
+			branch = 2 * branch
+		if component=='s':
+			x = conv_birelu_swap_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
+			                             filter_size=f_size,
 			                               input_shape=input_shape, w_reg=None,
 			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
 			                               border_mode='same')
-		if component=='rmerge':
-			nb_filter=nb_filter*2
-			x = conv_birelu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate), filter_size=f_size[0],
+		if component=='rm':
+			branch = branch / 2
+			x = conv_relu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
+			                              filter_size=f_size,
 			                               input_shape=input_shape, w_reg=None,
 			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
 			                               border_mode='same')
-		if component=='avg':
-			x =avg_pool_on_list(input_tensor_list=x,strides=(2,2),layer_index=layer_index_t)
-		if component == 'max':
-			x = max_pool_on_list(input_tensor_list=x, strides=(2, 2), layer_index=layer_index_t)
+
+		if component=='am':
+			branch = branch / 2
+			x = conv_relu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
+			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
+			                              gate_activation='avr', layer_index=layer_index_t, border_mode='same')
+		if component == 'bm':
+			branch = branch / 2
+			x = conv_birelu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
+			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
+			                              gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
+			                              border_mode='same')
+
+		if component=='ap':
+			x =avg_pool_on_list(input_tensor_list=x,strides=(2,2),layer_index=layer_index_t,
+			                    pool_size=f_size)
+			conv_nb_filterindex-=1
+		if component == 'mp':
+			x = max_pool_on_list(input_tensor_list=x, strides=(2, 2), layer_index=layer_index_t,pool_size=f_size)
+			conv_nb_filterindex-=1
+		if component == 'r':
+			x = conv_relu_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
+			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
+			                              gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
+			                              border_mode='same')
+
 		layer_index_t+=1
+		conv_nb_filterindex+=1
+		filter_size_index+=1
+	x = node_list_to_list(x)
 	merged = x[0]
 	if not x.__len__() == 1:
 		for input1 in x[1:]:
@@ -102,6 +148,9 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape):
 	x = Activation('softmax')(x)
 	model = Model(input=img_input, output=x)
 	return model
+def remove_pooling_from_string(model_string):
+	model_string.replace('-ap')
+
 def model_a(opts, input_shape, nb_classes, input_tensor=None, include_top=True, initialization='glorot_normal'):
 	if include_top:
 		input_shape = input_shape
@@ -176,6 +225,7 @@ def model_a(opts, input_shape, nb_classes, input_tensor=None, include_top=True, 
 	#                        border_mode='valid', merge_flag=False,layer_index=6)
 	# option 1 average pool all x
 	# option 2 concat x list into one tensor
+	x = node_list_to_list(x)
 	merged = x[0]
 	if not x.__len__()==1:
 		for input1 in x[1:]:
@@ -188,6 +238,49 @@ def model_a(opts, input_shape, nb_classes, input_tensor=None, include_top=True, 
 		x = Activation('softmax')(x)
 		model = Model(input=img_input, output=x)
 	return model
-def get_model(opts, input_shape, nb_classes,model_string):
-	model_string_list = model_string.split('-')
-	return model_constructor(model_string_list,opts=opts,nb_classes=nb_classes,input_shape=input_shape)
+def node_list_to_list(array_tensor):
+	'convert a hiearchial list to flat list'
+	result =[]
+	if not type(array_tensor)==list:
+		return array_tensor
+	else:
+		for tensor_list in array_tensor:
+			a = node_list_to_list(tensor_list)
+			if type(a)==list:
+				result+=a
+			else:
+				result+=[a]
+	return result
+def parse_model_string(model_string):
+	model_string_list = model_string.split('->')
+	model_filter_list = []
+	nb_filter_list = []
+	filter_size_list = []
+	expand_dropout= 1
+	dict = {}
+	for block in model_string_list:
+		filter = block.split('|')
+		filter_name = filter[0]
+		model_filter_list += [filter_name]
+		parameters = filter[1]
+		parameters = parameters.split(',')
+		for parameter in parameters:
+			param = parameter.split(':')
+			param_name = param[0]
+			param_val = param[1]
+			if param_name == 'r':
+				filter_size_list += [int(param_val)]
+			if param_name == 'f':
+				nb_filter_list += [int(param_val)]
+			if param_name == 'p':
+				expand_dropout=float(param_val)
+
+
+	return {'filters':model_filter_list,'r_field_size':filter_size_list,'conv_nb_filter':nb_filter_list,
+	        'ex_drop':expand_dropout}
+def get_model(opts, input_shape, nb_classes,model_string,nb_filter_list=None,conv_filter_size_list=None):
+	model_dict = parse_model_string(model_string)
+
+	return model_constructor(model_dict['filters'],opts=opts,nb_classes=nb_classes,input_shape=input_shape,
+	                         nb_filter_list=model_dict['conv_nb_filter'],filter_size_list=model_dict['r_field_size'],
+	                         model_dict = model_dict)

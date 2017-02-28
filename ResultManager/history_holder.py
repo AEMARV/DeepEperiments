@@ -61,7 +61,7 @@ class HistoryHolder():
 			if not os.path.exists(path_to_be_created):
 				os.mkdir(path_to_be_created)
 	def model_plot(self,model):
-		plot(model, to_file=self.dir_abs_path+'/model.png')
+		plot(model, show_shapes=True,to_file=self.dir_abs_path+'/model.png')
 		with open(self.dir_abs_path+'/model_config.txt', 'w') as f:
 			f.write(str(model.get_config()))
 		with open(self.dir_abs_path+'/model_config.yaml', 'w') as f:

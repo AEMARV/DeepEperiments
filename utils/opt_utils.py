@@ -49,6 +49,21 @@ def get_filter_size(opts):
 def set_filter_size(opts,size):
 	 opts['model_opts']['param_dict']['data_layer']['conv_size']['method']=size
 	 return opts
+def set_dataset(opts,dataset):
+	opts['training_opts']['dataset']['method'] = dataset
+	if opts['training_opts']['dataset']['method']=='cifar100':
+		opts['training_opts']['dataset']['nb_classes']=100
+		opts['training_opts']['dataset']['input_shape'] = (3,32,32)
+		return opts
+	if opts['training_opts']['dataset']['method']=='cifar10':
+		opts['training_opts']['dataset']['nb_classes']=10
+		opts['training_opts']['dataset']['input_shape'] = (3, 32, 32)
+		return opts
+	if opts['training_opts']['dataset']['method']=='voc':
+		opts['training_opts']['dataset']['nb_classes']=20
+		opts['training_opts']['dataset']['input_shape'] = (3, 224, 224)
+		return opts
+	assert 'Undefined Dataset'
 def get_merge_flag(opts):
 	return opts['model_opts']['param_dict']['data_layer']['merge_flag']['method']
 def set_merge_flag(opts,merge_flag):
@@ -76,7 +91,7 @@ def set_default_opts_based_on_model_dataset(opts):
 
 	# Gated Parameters and Activations
 	####### ACTIVITY REGULARIZER
-	if not opts['model_opts']['method'].find('gatenet')==-1 or not opts['model_opts']['method'].find('model')==-1:
+	if opts['model_opts']['method'].find('lenet')==-1:
 		opts['model_opts']['param_dict']['gate_layer'] = {}
 		opts['model_opts']['param_dict']['gate_layer']['gate_activation'] = {}
 		opts['model_opts']['param_dict']['gate_layer']['gate_activity_regularizer'] = {}
@@ -101,7 +116,7 @@ def set_default_opts_based_on_model_dataset(opts):
 	else:
 		opts['model_opts']['param_dict']['data_layer'] = {}
 		opts['model_opts']['param_dict']['data_layer']['data_activation'] = {}
-		opts['model_opts']['param_dict']['data_layer']['data_activation']['method'] = 'elu'
+		opts['model_opts']['param_dict']['data_layer']['data_activation']['method'] = 'relu'
 	opts['model_opts']['param_dict']['data_layer']['conv_size']={}
 	opts['model_opts']['param_dict']['data_layer']['conv_size']['method']=-1
 	# opts['model_opts']['param_dict']['data_layer']['merge_flag']={}
@@ -117,7 +132,7 @@ def set_default_opts_based_on_model_dataset(opts):
 	opts['optimizer_opts']['lr'] = -2
 	opts['optimizer_opts']['momentum'] = .9
 	opts['optimizer_opts']['decay'] = 1e-6
-	opts['optimizer_opts']['nestrov'] = False
+	opts['optimizer_opts']['nestrov'] = True
 	opts['optimizer_opts']['loss']['method'] = 'categorical_crossentropy'
 
 	if opts['training_opts']['dataset']['method']=='cifar100':
@@ -129,7 +144,27 @@ def set_default_opts_based_on_model_dataset(opts):
 	if opts['training_opts']['dataset']['method']=='voc':
 		opts['training_opts']['dataset']['nb_classes']=20
 		opts['training_opts']['dataset']['input_shape'] = (3, 224, 224)
-	opts['training_opts']['samples_per_epoch'] = -1
+	opts['training_opts']['samples_per_epoch'] =-1
 	opts['training_opts']['batch_size'] = 128
-	opts['training_opts']['epoch_nb'] =150
+	opts['training_opts']['epoch_nb'] =100
+	return opts
+def default_opt_creator():
+	aug_opts = {}
+
+	model_opts = {}
+	model_opts['param_dict'] = {}
+
+
+	optimizer_opts = {}
+	optimizer_opts['loss'] = {}
+
+	training_opts = {}
+	training_opts['dataset'] = {}
+	opts = {
+		'seed'           : 0,
+		'experiment_name': '',
+		'model_opts'     : model_opts,
+		'aug_opts'       : aug_opts,
+		'training_opts'  : training_opts,
+		'optimizer_opts' : optimizer_opts}
 	return opts

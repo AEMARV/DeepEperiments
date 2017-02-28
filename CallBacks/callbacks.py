@@ -15,6 +15,37 @@ from collections import OrderedDict
 from collections import Iterable
 from keras import backend as K
 from pkg_resources import parse_version
+class LearningRateSchedulerCostum(Callback):
+    """Learning rate scheduler.
+
+    # Arguments
+        schedule: a function that takes an epoch index as input
+            (integer, indexed from 0) and returns a new
+            learning rate as output (float).
+    """
+
+    def __init__(self, schedule,momentum_reset=False):
+        super(LearningRateSchedulerCostum, self).__init__()
+        self.schedule = schedule
+        self.initial_weight =None
+        self.momentum_reset = momentum_reset
+    def on_train_begin(self, logs=None):
+        if self.momentum_reset:
+            self.initial_weight = self.model.get_weights()
+
+    def on_epoch_begin(self, epoch, logs=None):
+        if not hasattr(self.model.optimizer, 'lr'):
+            raise ValueError('Optimizer must have a "lr" attribute.')
+        if epoch%40 ==0:
+            lr =.1**(int(epoch/30)+1)
+            destination_weights = self.model.get_weights
+            avg = destination_weights-self.initial_weights
+            K.set_value(self.model.optimizer.mom)
+
+        if not isinstance(lr, (float, np.float32, np.float64)):
+            raise ValueError('The output of the "schedule" function '
+                             'should be float.')
+        K.set_value(self.model.optimizer.lr, lr)
 class EarlyStopping(Callback):
     """Stop training when a monitored quantity has stopped improving.
 
@@ -89,7 +120,6 @@ class EarlyStopping(Callback):
         if logs.get('acc') == 100:
 	        self.stopped_epoch = epoch
 	        self.model.stop_training = True
-
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
             print('Epoch %05d: early stopping' % (self.stopped_epoch))

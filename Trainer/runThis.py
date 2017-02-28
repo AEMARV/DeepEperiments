@@ -1,10 +1,12 @@
 from myTrainer import *
 from Models.binary_net import gatenet_binary,gatenet_binary_merged
-from Models.Binary_models.models import model_a,get_model
+from Models.Binary_models.model_db import get_model_from_db
 from utils.opt_utils import *
 from Models.vgg16_zisserman import VGG16
 from Models.lenet_amir import lenet_amir_model
 from keras.utils.visualize_util import plot
+import numpy as np
+
 import time
 def find_key_value_to_str_recursive(dictionary,parent_dict_name,method_name_exclusive_list):
 	result_str = ''
@@ -39,7 +41,7 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 	opts = set_default_opts_based_on_model_dataset(opts)
 
 
-	gate_activation_set = ['relu']
+	gate_activation_set = ['softplus_stoch']
 	gate_stoch_enable =[True]
 	data_activation_set = [None]
 	loss_set = {'categorical_crossentropy'}
@@ -54,7 +56,7 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
 	model_str = get_model_string(opts)
-	if not (str(model_str).find('gatenet') == -1 and str(model_str).find('model') == -1):
+	if str(model_str).find('lenet') == -1:
 		for gate_activation in gate_activation_set:
 			for data_activation in data_activation_set:
 				for loss_objective in loss_set:
@@ -94,34 +96,39 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 											# 	                                     'nb_classes'])
 											input_shape = opts['training_opts']['dataset']['input_shape']
 											nb_class = opts['training_opts']['dataset']['nb_classes']
-											model_A = model_a(opts=opts, input_shape=
-											opts['training_opts']['dataset']['input_shape'], nb_classes=
-											                                     opts['training_opts']['dataset'][
-												                                     'nb_classes'])
-											model0 =get_model(opts,input_shape,nb_classes=nb_class,
-											                 model_string='exp'
-											                              '-exp'
-											                              '-exp'
-											                              '-swap'
-											                              '-max'
-											                              '-swap'
-											                              '-avg'
-											                              '-rmerge'
-											                              '-avg'
-											                              '-rmerge'
-											                              '-rmerge')
-											model1_str = 'exp-exp-swap-swap-rmerge-rmerge-' \
-											             'max-exp-exp-swap-swap-rmerge-rmerge' \
-											             '-avg-exp-exp-swap-swap-rmerge-rmerge' \
-											             '-avg-exp-exp-swap-swap-rmerge-rmerge'
-											model2_str = 'exp-exp-exp-exp-rmerge-rmerge-rmerge-rmerge' \
-											             '-max-exp-exp-rmerge-rmerge' \
-											             '-avg-exp-rmerge' \
-											             '-avg-exp-rmerge-'
-											model1= get_model(opts,input_shape,nb_class,model1_str)
-											model2 = get_model(opts,input_shape,nb_class,model2_str)
+											# model_A = model_a(opts=opts, input_shape=
+											# opts['training_opts']['dataset']['input_shape'], nb_classes=
+											#                                      opts['training_opts']['dataset'][
+											# 	                                     'nb_classes'])
+											# model0 =get_model(opts,input_shape,nb_classes=nb_class,
+											#                  model_string='exp'
+											#                               '-exp'
+											#                               '-exp'
+											#                               '-swap'
+											#                               '-max'
+											#                               '-swap'
+											#                               '-avg'
+											#                               '-rmerge'
+											#                               '-avg'
+											#                               '-rmerge'
+											#                               '-rmerge')
+											# model1_str = 'exp-exp-swap-swap-rmerge-rmerge-' \
+											#              'max-exp-exp-swap-swap-rmerge-rmerge' \
+											#              '-avg-exp-exp-swap-swap-rmerge-rmerge' \
+											#              '-avg-exp-exp-swap-swap-rmerge-rmerge'
+											# model2_str = 'exp-exp-exp-exp-rmerge-rmerge-rmerge-rmerge' \
+											#              '-max-exp-exp-rmerge-rmerge' \
+											#              '-avg-exp-rmerge' \
+											#              '-avg-exp-rmerge-'
 											# plot(model, to_file='/home/student/Documents/My Documents/a.png')
-											model = eval(model_str)
+
+											# model = eval(model_str)
+											model = get_model_from_db(model_str,opts,input_shape,nb_class)
+											params_count = model.count_params()
+											param_expand_val = np.round(np.sqrt(9e5/params_count))
+											if param_expand_val ==0: param_expand_val+=1
+											opts = set_expand_rate(opts,int(param_expand_val))
+											model = get_model_from_db(model_str, opts, input_shape, nb_class)
 											model.summary()
 											print 'gate_activation:', gate_activation
 											print 'data_activation:', data_activation
@@ -174,34 +181,14 @@ def wrapper_gated(model,opts,experiment_name):
 		cifar_trainer(opts, model, optimizer=sgd)
 	if opts['training_opts']['dataset']['method'] == 'cifar100':
 		cifar100_trainer(opts, model, optimizer=sgd)
-def default_opt_creator():
-	aug_opts = {}
-
-	model_opts = {}
-	model_opts['param_dict'] = {}
-
-
-	optimizer_opts = {}
-	optimizer_opts['loss'] = {}
-
-	training_opts = {}
-	training_opts['dataset'] = {}
-	opts = {
-		'seed'           : 0,
-		'experiment_name': '',
-		'model_opts'     : model_opts,
-		'aug_opts'       : aug_opts,
-		'training_opts'  : training_opts,
-		'optimizer_opts' : optimizer_opts}
-	return opts
 
 
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['model2','model1','model0']
-	datasets=['cifar10','cifar100']
-	experiment_name = 'First Expanding Experiment-the machine shall rise'+time.strftime('%b%d')
+	models= ['lil0_3_0_rb0','lil0']
+	datasets=['cifar100']
+	experiment_name = 'lil'+time.strftime('%b%d')
 
 	for dataset_str in datasets:
 		for model_str in models:

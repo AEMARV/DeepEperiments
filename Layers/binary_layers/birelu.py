@@ -1,12 +1,15 @@
 from keras.layers import Layer
 
 from Activation.activations import *
-
+from keras.layers import Dropout
 
 class Birelu(Layer):
-	def __init__(self, activation, **kwargs):
+	def __init__(self, activation,relu_birelu_sel=1, **kwargs):
 		self.supports_masking = False
 		self.activation = get(activation)
+		self.relu_birelu_sel = relu_birelu_sel
+		if not relu_birelu_sel==1:
+			self.uses_learning_phase=True
 		super(Birelu, self).__init__(**kwargs)
 
 	def get_output_shape_for(self, input_shape):
@@ -16,6 +19,7 @@ class Birelu(Layer):
 		return [None, None]
 
 	def call(self, x, mask=None):
+
 		if self.activation.__name__ == 'relu':
 			pas = relu(x)
 			inv_pas = relu(-x)
@@ -23,7 +27,18 @@ class Birelu(Layer):
 			prob = self.activation(x)
 			pas = x * prob
 			inv_pas = x * (prob - 1)
-		return [pas, inv_pas]
+		if not self.relu_birelu_sel==1:
+			variable_placeholder =K.variable(0)
+			one = K.ones_like(variable_placeholder)
+			birelu_flag = K.random_binomial(K.shape(variable_placeholder),p=self.relu_birelu_sel)
+			pas_flag = K.random_binomial(K.shape(variable_placeholder),p=.5)
+			inv_flag = one-pas_flag
+			inv_flag = inv_flag+birelu_flag
+			pas_flag = K.minimum(pas_flag+birelu_flag,one)
+			inv_flag = K.minimum(inv_flag+birelu_flag,one)
+			return [K.in_train_phase(pas*pas_flag,pas),K.in_train_phase(inv_pas*inv_flag,inv_pas)]
+			# return [pas*pas_flag, inv_pas*inv_flag]
+		return [pas,inv_pas]
 
 	def get_config(self):
 		config = {'activation': self.activation.__name__}
@@ -54,7 +69,7 @@ class Relu(Layer):
 		super(Relu, self).__init__(**kwargs)
 
 	def call(self, x, mask=None):
-		if self.activation.__name__ == 'relu':
+		if self.activation.__name__ == 'relu' or self.activation.__name__=='avr':
 			pas = relu(x)
 		else:
 			prob = self.activation(x)

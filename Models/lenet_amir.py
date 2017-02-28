@@ -64,7 +64,7 @@ def lenet_amir_model(opts,weights=None,
     x = MaxPooling2D(pool_size=(3,3),strides=(2,2),border_mode='same')(x)
 
 
-	#                           Layer 2 Conv 5x5 64ch  border 'same' AveragePooling 3x3 stride 2
+	#                           Layer 2 Conv 3x3 64ch  border 'same' AveragePooling 3x3 stride 2
     x=Convolution2D(int(64 * channel_expand_ratio), f_size[1], f_size[1], W_regularizer=w_reg,activation=None,
                             border_mode='same')(x)
     x = Activation(data_activation)(x)

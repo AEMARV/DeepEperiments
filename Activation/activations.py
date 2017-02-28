@@ -27,9 +27,12 @@ def softmax(x):
         raise ValueError('Cannot apply softmax to a tensor '
                          'that is not 2D or 3D. '
                          'Here, ndim=' + str(ndim))
-
+def neutral(x):
+    return x
 def negative(x):
     return K.zeros_like(x)-x
+def avr(x):
+    return relu(x,alpha=-1)
 def inverter(x):
     return K.ones_like(x)-x
 def elu(x, alpha=1.0):
@@ -42,7 +45,6 @@ def softplus(x):
 
 def softsign(x):
     return K.softsign(x)
-
 
 def relu(x, alpha=0., max_value=None):
     return K.relu(x, alpha=alpha, max_value=max_value)
