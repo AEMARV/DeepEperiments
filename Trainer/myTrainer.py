@@ -131,7 +131,7 @@ def lr_random_multiScale(index):
 def lr_permut(index):
 	lr = [1e-2,1e-2,1e-2,1e-2,1e-3,1e-3,1e-3,1e-4,1e-4,1e-4]
 	a = np.random.randint(0,3)
-	k=.25*np.random.randn()+(index/15)
+	k=(index/15)
 	print('rand_lr_value:',k)
 	i = np.floor(k)
 	if i<0:

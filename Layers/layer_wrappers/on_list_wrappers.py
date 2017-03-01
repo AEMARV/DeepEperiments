@@ -18,7 +18,7 @@ def conv_birelu_expand_on_list(nb_filter,filter_size,border_mode,input_shape,w_r
 		indexint+=1
 	return result
 def conv_birelu_swap_on_list(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,layer_index,
-                      input_tensor_list,index='0'):
+                      input_tensor_list,index='0',relu_birelu_switch=1):
 	result = []
 	indexint =0
 
@@ -26,11 +26,11 @@ def conv_birelu_swap_on_list(nb_filter,filter_size,border_mode,input_shape,w_reg
 		if type(lists_or_tensor[0]) == list:
 			result += [
 				conv_birelu_swap_on_list(nb_filter, filter_size, border_mode, input_shape, w_reg, gate_activation,
-				                            layer_index, lists_or_tensor,index=index+str(indexint))]
+				                            layer_index, lists_or_tensor,index=index+str(indexint),relu_birelu_switch=relu_birelu_switch)]
 		else:
 
 			result += [conv_birelu_swap(nb_filter, filter_size, border_mode, input_shape, w_reg, gate_activation, index+str(indexint),
-				                   layer_index, lists_or_tensor)]
+				                   layer_index, lists_or_tensor,relu_birelu_switch=relu_birelu_switch)]
 		indexint+=1
 	return result
 def conv_relu_merge_on_list(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,layer_index,

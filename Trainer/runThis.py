@@ -51,11 +51,13 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 
 	w_reg = {'l1'}
 	w_reg_value = {1e-6}
-	param_expand = [1] ## in gated all the params are devided by two because we have two layers per channel so
+	param_expand = [3,4,6] ## in gated all the params are devided by two because we have two layers per channel so
 	# this ratio can be compared for number of parameters e.g if in lennet param_expand=1 and in gated param_expand=1
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
 	model_str = get_model_string(opts)
+	if model_str =='lil0_3_0_rb0':
+		param_expand = [2, 3]
 	if str(model_str).find('lenet') == -1:
 		for gate_activation in gate_activation_set:
 			for data_activation in data_activation_set:
@@ -123,11 +125,11 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 											# plot(model, to_file='/home/student/Documents/My Documents/a.png')
 
 											# model = eval(model_str)
-											model = get_model_from_db(model_str,opts,input_shape,nb_class)
-											params_count = model.count_params()
-											param_expand_val = np.round(np.sqrt(9e5/params_count))
-											if param_expand_val ==0: param_expand_val+=1
-											opts = set_expand_rate(opts,int(param_expand_val))
+											# model = get_model_from_db(model_str,opts,input_shape,nb_class)
+											# params_count = model.count_params()
+											# param_expand_val = np.round(np.sqrt(9e5/params_count))
+											# if param_expand_val ==0: param_expand_val+=1
+											# opts = set_expand_rate(opts,int(param_expand_val*param_expand))
 											model = get_model_from_db(model_str, opts, input_shape, nb_class)
 											model.summary()
 											print 'gate_activation:', gate_activation
@@ -186,15 +188,16 @@ def wrapper_gated(model,opts,experiment_name):
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['lil0_3_0_rb0','lil0']
+	models= ['be0_rb0','be1_rb0','be2_rb0','lil0_3_0_rb0']
 	datasets=['cifar100']
-	experiment_name = 'lil'+time.strftime('%b%d')
+	experiment_name = 'param_expand_be_lil'+time.strftime('%b%d')
 
 	for dataset_str in datasets:
 		for model_str in models:
 			options={}
 			options = default_opt_creator()
-			options['description'] = 'Model_expandable'
+			options['description'] = 'Trying to expand parameters to see if over feat happens and also see if we get ' \
+			                         'better results'
 			grid_search(options,experiment_name=experiment_name,model_str=model_str,dataset_str=dataset_str)
 # method_names = find_key_value_to_str_recursive(opts,'')
 

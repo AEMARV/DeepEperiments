@@ -73,36 +73,54 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 	filter_size_index =0
 	conv_nb_filterindex=0
 	branch = 1
-	for component in layer_sequence:
-		if component not in ['e','s','rm','am','mp','ma','rbe']:
+	for layer in model_dict:
+		component = layer['type']
+		if layer['type'] not in ['e','s','rm','am','mp','ma','rbe']:
 			assert 'Invalid Layer'
 
 		if not layer_index_t == 0:
 			input_shape = (None,None,None)
-		if nb_filter_list is not None and component in ['e','s','rm','am','rbe']:
-			nb_filter=nb_filter_list[conv_nb_filterindex]
-		if filter_size_list is not None:
-			f_size = filter_size_list[filter_size_index]
+		# if nb_filter_list is not None and component in ['e','s','rm','am','rbe','rbs']:
+		# 	nb_filter=nb_filter_list[conv_nb_filterindex]
+		# if filter_size_list is not None:
+		# 	f_size = filter_size_list[filter_size_index]
+		param =layer['param']
+		f_size = param['r']
+
 		if component=='e':
+			nb_filter = param['f']
 			x = conv_birelu_expand_on_list(input_tensor_list=x,nb_filter=int(nb_filter * expand_rate/branch),
 			                               filter_size=f_size,
 	                               input_shape=input_shape, w_reg=None,
 	                       gate_activation=get_gate_activation(opts), layer_index=layer_index_t,border_mode='same')
 			branch=2*branch
 		if component == 'rbe':
-			dropout = model_dict['ex_drop']
+			if param.has_key('p'):
+				dropout = param['p']
+			nb_filter = param['f']
 			x = conv_birelu_expand_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
 			                               filter_size=f_size, input_shape=input_shape, w_reg=None,
 			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
 			                               border_mode='same',relu_birelu_switch=dropout)
 			branch = 2 * branch
 		if component=='s':
+			nb_filter = param['f']
 			x = conv_birelu_swap_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
 			                             filter_size=f_size,
 			                               input_shape=input_shape, w_reg=None,
 			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
 			                               border_mode='same')
+		if component=='rbs':
+			if param.has_key('p'):
+				dropout = param['p']
+			nb_filter = param['f']
+			x = conv_birelu_swap_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
+			                             filter_size=f_size,
+			                               input_shape=input_shape, w_reg=None,
+			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
+			                               border_mode='same',relu_birelu_switch=dropout)
 		if component=='rm':
+			nb_filter = param['f']
 			branch = branch / 2
 			x = conv_relu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
 			                              filter_size=f_size,
@@ -111,11 +129,13 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			                               border_mode='same')
 
 		if component=='am':
+			nb_filter = param['f']
 			branch = branch / 2
 			x = conv_relu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
 			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
 			                              gate_activation='avr', layer_index=layer_index_t, border_mode='same')
 		if component == 'bm':
+			nb_filter = param['f']
 			branch = branch / 2
 			x = conv_birelu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
 			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
@@ -130,6 +150,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			x = max_pool_on_list(input_tensor_list=x, strides=(2, 2), layer_index=layer_index_t,pool_size=f_size)
 			conv_nb_filterindex-=1
 		if component == 'r':
+			nb_filter = param['f']
 			x = conv_relu_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
 			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
 			                              gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
@@ -258,29 +279,47 @@ def parse_model_string(model_string):
 	filter_size_list = []
 	expand_dropout= 1
 	dict = {}
+	result_list = []
 	for block in model_string_list:
+		filter_dict = {}
 		filter = block.split('|')
 		filter_name = filter[0]
-		model_filter_list += [filter_name]
+		filter_dict['type'] = filter_name
+		filter_dict['param'] = {}
 		parameters = filter[1]
 		parameters = parameters.split(',')
 		for parameter in parameters:
 			param = parameter.split(':')
 			param_name = param[0]
 			param_val = param[1]
+			filter_dict['param'][param_name]=float(param_val)
 			if param_name == 'r':
 				filter_size_list += [int(param_val)]
 			if param_name == 'f':
 				nb_filter_list += [int(param_val)]
 			if param_name == 'p':
 				expand_dropout=float(param_val)
-
+		model_filter_list+=[filter_dict]
 
 	return {'filters':model_filter_list,'r_field_size':filter_size_list,'conv_nb_filter':nb_filter_list,
-	        'ex_drop':expand_dropout}
+	        'ex_drop':expand_dropout,'dict':model_filter_list}
 def get_model(opts, input_shape, nb_classes,model_string,nb_filter_list=None,conv_filter_size_list=None):
 	model_dict = parse_model_string(model_string)
 
 	return model_constructor(model_dict['filters'],opts=opts,nb_classes=nb_classes,input_shape=input_shape,
 	                         nb_filter_list=model_dict['conv_nb_filter'],filter_size_list=model_dict['r_field_size'],
-	                         model_dict = model_dict)
+	                         model_dict = model_dict['dict'])
+if __name__ == '__main__':
+	model_string = 'rbe|f:32,r:5,p:.75' \
+	               '->rbe|f:64,r:5' \
+	               '->rbe|f:128,r:5' \
+	               '->s|f:128,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->s|f:256,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->s|f:512,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->s|f:256,r:4' \
+	               '->ap|s:2,r:3'
+	x = parse_model_string(model_string)
+	print x

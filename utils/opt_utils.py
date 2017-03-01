@@ -132,7 +132,7 @@ def set_default_opts_based_on_model_dataset(opts):
 	opts['optimizer_opts']['lr'] = -2
 	opts['optimizer_opts']['momentum'] = .9
 	opts['optimizer_opts']['decay'] = 1e-6
-	opts['optimizer_opts']['nestrov'] = True
+	opts['optimizer_opts']['nestrov'] = False
 	opts['optimizer_opts']['loss']['method'] = 'categorical_crossentropy'
 
 	if opts['training_opts']['dataset']['method']=='cifar100':

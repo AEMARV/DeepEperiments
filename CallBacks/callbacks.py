@@ -46,6 +46,7 @@ class LearningRateSchedulerCostum(Callback):
             raise ValueError('The output of the "schedule" function '
                              'should be float.')
         K.set_value(self.model.optimizer.lr, lr)
+
 class EarlyStopping(Callback):
     """Stop training when a monitored quantity has stopped improving.
 
