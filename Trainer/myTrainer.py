@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 from keras.callbacks import ReduceLROnPlateau,TensorBoard,History,CSVLogger,LearningRateScheduler
-from CallBacks.callbacks import EarlyStopping
+from CallBacks.callbacks import *
 from keras.optimizers import SGD
 from keras.preprocessing import image
 from CallBacks.callback_metric_plot import PlotMetrics
@@ -71,11 +71,6 @@ def train(model, dataset_abs_path, optimizer, opts,cpu_debug=False):
 		if opts['optimizer_opts']['lr'] == -1:
 			callback_list = callback_list + [lr_sched]
 		# Debugger
-		sample_batch = train_generator.next()
-		data = sample_batch[0]
-		label = sample_batch[1]
-		images = np.rollaxis(data,1,4)
-		plt.imshow(images[0])
 		model.fit_generator(generator=train_generator, samples_per_epoch=samples_per_epoch_training,
 		                    nb_epoch=opts['training_opts']['epoch_nb'],
 		                    validation_data=validation_generator, nb_val_samples=samples_per_epoch_validation,
@@ -95,8 +90,6 @@ def trainer_from_generator(train_generator, batch_size, model):
 	loss = loss / train_generator.batch_index
 	print('Average Loss:', loss)
 	train_generator.reset()
-
-
 def validation_from_generator(validation_generator, batch_size, model):
 	batch_val_total = int(validation_generator.nb_sample / batch_size)
 	loss = 0
@@ -106,7 +99,6 @@ def validation_from_generator(validation_generator, batch_size, model):
 		loss += loss_batch
 	loss = loss / validation_generator.batch_index
 	validation_generator.reset
-
 
 def run_trainer(model,opts,epoch_nb=100, batch_size=64 ,
                 dataset_abs_path="/home/student/Documents/Git/Datasets/VOC/Keras", lr=0.001, momentum=.9,
@@ -129,9 +121,9 @@ def lr_random_multiScale(index):
 		print('learningrate:',ler)
 	return ler
 def lr_permut(index):
-	lr = [1e-2,1e-2,1e-2,1e-2,1e-3,1e-3,1e-3,1e-4,1e-4,1e-4]
+	lr = [1e-2,1e-2,1e-2,1e-2,1e-2,1e-3,1e-3,1e-3,1e-3,1e-4,1e-4,1e-4]
 	a = np.random.randint(0,3)
-	k=(index/15)
+	k=(index/30)
 	print('rand_lr_value:',k)
 	i = np.floor(k)
 	if i<0:
@@ -189,11 +181,12 @@ def cifar_trainer(opts,model,optimizer):
 	plotter = PlotMetrics(opts)
 	experiments_abs_path = plotter.history_holder.dir_abs_path
 	reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.00001)
-	tensorboard = TensorBoard(log_dir=experiments_abs_path + '/logs',histogram_freq=0,write_images=False)
+	tensorboard = TensorboardCostum(log_dir=experiments_abs_path + '/logs', histogram_freq=5, write_graph=False,
+	                                write_images=False)
 	csv_logger = CSVLogger(filename=experiments_abs_path+'/training.log',separator=',')
 	lr_sched = LearningRateScheduler(lr_random_multiScale)
 	early_stopping = EarlyStopping('acc', min_delta=.0001, patience=20, mode='max')
-	callback_list = [plotter, tensorboard, csv_logger,early_stopping]
+	callback_list = [plotter, csv_logger,early_stopping,tensorboard]
 	if opts['optimizer_opts']['lr']==-1:
 		callback_list = callback_list+[lr_sched]
 	if opts['optimizer_opts']['lr']==-2:
@@ -258,11 +251,16 @@ def cifar100_trainer(opts, model, optimizer):
 	plotter = PlotMetrics(opts)
 	experiments_abs_path = plotter.history_holder.dir_abs_path
 	reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.00001)
-	tensorboard = TensorBoard(log_dir=experiments_abs_path + '/logs', histogram_freq=0, write_images=False)
+	tensorboard = TensorBoard(log_dir=experiments_abs_path + '/logs', histogram_freq=5,write_graph=False,
+	write_images=False)
+	tensorboard = TensorboardCostum(log_dir=experiments_abs_path + '/logs', histogram_freq=5, write_graph=False,
+	                          write_images=False)
 	csv_logger = CSVLogger(filename=experiments_abs_path + '/training.log', separator=',')
 	lr_sched = LearningRateScheduler(lr_random_multiScale)
 	early_stopping = EarlyStopping('acc',min_delta=.0001,patience=20,mode='max')
-	callback_list = [plotter, tensorboard, csv_logger,early_stopping]
+	general_callback = GeneralCallback()
+	callback_list = [plotter, tensorboard, csv_logger,early_stopping,general_callback]
+	# callback_list = [tensorboard]
 	if opts['optimizer_opts']['lr'] == -1:
 		callback_list = callback_list + [lr_sched]
 	if opts['optimizer_opts']['lr']==-2:

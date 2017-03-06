@@ -2,8 +2,7 @@ from Models.binary_net import gate_layer_on_list
 from keras.engine import Model
 from keras.layers import Input, Flatten, Dense, Dropout, Activation, AveragePooling2D, MaxPooling2D, Convolution2D, \
 	merge
-from Layers.layer_wrappers.on_list_wrappers import conv_birelu_expand_on_list,conv_relu_merge_on_list,\
-	conv_birelu_swap_on_list,max_pool_on_list,avg_pool_on_list,conv_birelu_merge_on_list,conv_relu_on_list
+from Layers.layer_wrappers.on_list_wrappers import *
 from utils.opt_utils import get_filter_size,get_gate_activation
 from keras.utils.generic_utils import get_from_module
 import numpy as np
@@ -68,14 +67,12 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 	x = [img_input]
 	expand_rate = opts['model_opts']['param_dict']['param_expand']['rate']
 	layer_index_t = 0
-	f_size = 3
-	nb_filter = 32
 	filter_size_index =0
 	conv_nb_filterindex=0
 	branch = 1
 	for layer in model_dict:
 		component = layer['type']
-		if layer['type'] not in ['e','s','rm','am','mp','ma','rbe']:
+		if layer['type'] not in ['e','s','rm','am','mp','ma','rbe','d']:
 			assert 'Invalid Layer'
 
 		if not layer_index_t == 0:
@@ -85,10 +82,11 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 		# if filter_size_list is not None:
 		# 	f_size = filter_size_list[filter_size_index]
 		param =layer['param']
-		f_size = param['r']
+
 
 		if component=='e':
 			nb_filter = param['f']
+			f_size = param['r']
 			x = conv_birelu_expand_on_list(input_tensor_list=x,nb_filter=int(nb_filter * expand_rate/branch),
 			                               filter_size=f_size,
 	                               input_shape=input_shape, w_reg=None,
@@ -98,6 +96,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			if param.has_key('p'):
 				dropout = param['p']
 			nb_filter = param['f']
+			f_size = param['r']
 			x = conv_birelu_expand_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
 			                               filter_size=f_size, input_shape=input_shape, w_reg=None,
 			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
@@ -105,6 +104,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			branch = 2 * branch
 		if component=='s':
 			nb_filter = param['f']
+			f_size = param['r']
 			x = conv_birelu_swap_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
 			                             filter_size=f_size,
 			                               input_shape=input_shape, w_reg=None,
@@ -114,6 +114,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			if param.has_key('p'):
 				dropout = param['p']
 			nb_filter = param['f']
+			f_size = param['r']
 			x = conv_birelu_swap_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
 			                             filter_size=f_size,
 			                               input_shape=input_shape, w_reg=None,
@@ -122,6 +123,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 		if component=='rm':
 			nb_filter = param['f']
 			branch = branch / 2
+			f_size = param['r']
 			x = conv_relu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
 			                              filter_size=f_size,
 			                               input_shape=input_shape, w_reg=None,
@@ -131,30 +133,47 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 		if component=='am':
 			nb_filter = param['f']
 			branch = branch / 2
+			f_size = param['r']
 			x = conv_relu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
 			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
 			                              gate_activation='avr', layer_index=layer_index_t, border_mode='same')
 		if component == 'bm':
 			nb_filter = param['f']
 			branch = branch / 2
+			f_size = param['r']
 			x = conv_birelu_merge_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
 			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
 			                              gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
 			                              border_mode='same')
 
 		if component=='ap':
+			f_size = param['r']
 			x =avg_pool_on_list(input_tensor_list=x,strides=(2,2),layer_index=layer_index_t,
 			                    pool_size=f_size)
 			conv_nb_filterindex-=1
 		if component == 'mp':
+			f_size = param['r']
 			x = max_pool_on_list(input_tensor_list=x, strides=(2, 2), layer_index=layer_index_t,pool_size=f_size)
 			conv_nb_filterindex-=1
 		if component == 'r':
+			f_size = param['r']
 			nb_filter = param['f']
 			x = conv_relu_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
 			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
 			                              gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
 			                              border_mode='same')
+		if component=='d':
+			p = param['p']
+			x = dropout_on_list(input_tensor_list=x,p=p,layer_index=layer_index_t)
+		if component=='c':
+			n = param['n']
+			branch = branch / 2
+			if n == -1:
+				while type(x[0])is list:
+					x = concat_on_list(input_tensor_list=x, n=n, layer_index=layer_index_t)
+			else:
+				for i in range(int(n)):
+					x = concat_on_list(input_tensor_list=x,n=n,layer_index=layer_index_t)
 
 		layer_index_t+=1
 		conv_nb_filterindex+=1

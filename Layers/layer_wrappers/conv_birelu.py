@@ -12,7 +12,7 @@ def conv_birelu_expand(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_
 		                          index))(
 		input_tensor)
 	output_tensor_list = Birelu(gate_activation,relu_birelu_sel=relu_birelu_switch,name='E_Birelu_layer-'+str(
-		layer_index)+'_index-'+str(index))(
+		layer_index)+'_index-'+str(index),layer_index=layer_index)(
 		data_conv)
 	return output_tensor_list
 def conv_birelu_swap(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
@@ -67,3 +67,7 @@ def conv_relu(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activatio
 		index))(input_tensor)
 	output_tensor = Relu(gate_activation,name='R_relu_layer-'+str(layer_index)+'_index'+str(index))(data_conv)
 	return output_tensor
+def concat(input_tensor_list,index,layer_index):
+	tensor_concat = merge([input_tensor_list[0], input_tensor_list[1]], mode='concat', concat_axis=1,
+	                      name='Merge_' + str(layer_index) + 'index-' + str(index))
+	return tensor_concat

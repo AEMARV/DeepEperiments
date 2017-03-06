@@ -146,7 +146,7 @@ def set_default_opts_based_on_model_dataset(opts):
 		opts['training_opts']['dataset']['input_shape'] = (3, 224, 224)
 	opts['training_opts']['samples_per_epoch'] =-1
 	opts['training_opts']['batch_size'] = 128
-	opts['training_opts']['epoch_nb'] =100
+	opts['training_opts']['epoch_nb'] =300
 	return opts
 def default_opt_creator():
 	aug_opts = {}

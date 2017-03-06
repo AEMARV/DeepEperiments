@@ -51,13 +51,13 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 
 	w_reg = {'l1'}
 	w_reg_value = {1e-6}
-	param_expand = [3,4,6] ## in gated all the params are devided by two because we have two layers per channel so
+	param_expand = [2] ## in gated all the params are devided by two because we have two layers per channel so
 	# this ratio can be compared for number of parameters e.g if in lennet param_expand=1 and in gated param_expand=1
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
 	model_str = get_model_string(opts)
 	if model_str =='lil0_3_0_rb0':
-		param_expand = [2, 3]
+		param_expand = [1, 3]
 	if str(model_str).find('lenet') == -1:
 		for gate_activation in gate_activation_set:
 			for data_activation in data_activation_set:
@@ -188,16 +188,15 @@ def wrapper_gated(model,opts,experiment_name):
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['be0_rb0','be1_rb0','be2_rb0','lil0_3_0_rb0']
-	datasets=['cifar100']
-	experiment_name = 'param_expand_be_lil'+time.strftime('%b%d')
+	models= ['be0_rb0_fixedfilter']
+	datasets=['cifar10']
+	experiment_name = 'ConcatModel'+time.strftime('%b%d')
 
 	for dataset_str in datasets:
 		for model_str in models:
 			options={}
 			options = default_opt_creator()
-			options['description'] = 'Trying to expand parameters to see if over feat happens and also see if we get ' \
-			                         'better results'
+			options['description'] = 'Trying to see if every layer has fixed amount of filters in layer will make the result worst or not'
 			grid_search(options,experiment_name=experiment_name,model_str=model_str,dataset_str=dataset_str)
 # method_names = find_key_value_to_str_recursive(opts,'')
 

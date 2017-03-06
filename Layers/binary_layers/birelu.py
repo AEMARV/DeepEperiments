@@ -2,12 +2,17 @@ from keras.layers import Layer
 
 from Activation.activations import *
 from keras.layers import Dropout
-
+import numpy as np
 class Birelu(Layer):
-	def __init__(self, activation,relu_birelu_sel=1, **kwargs):
+	def __init__(self, activation,relu_birelu_sel=1,layer_index=0, **kwargs):
 		self.supports_masking = False
 		self.activation = get(activation)
 		self.relu_birelu_sel = relu_birelu_sel
+		self.layer_index = layer_index
+		if relu_birelu_sel==-1:
+			self.decay_drop=True
+		else:
+			self.decay_drop=False
 		if not relu_birelu_sel==1:
 			self.uses_learning_phase=True
 		super(Birelu, self).__init__(**kwargs)
@@ -19,7 +24,14 @@ class Birelu(Layer):
 		return [None, None]
 
 	def call(self, x, mask=None):
-
+		if self.decay_drop:
+			a = .01*(2*self.layer_index+1)
+			time_tensor= K.variable(value=0)
+			time_update = K.update_add(time_tensor,0.002)
+			dropout_rate = 1/(1+K.exp(-a*(time_update+3)))
+			dropout_rate = (K.cos((a*time_update)+3)/10)+.8
+		else:
+			dropout_rate=self.relu_birelu_sel
 		if self.activation.__name__ == 'relu':
 			pas = relu(x)
 			inv_pas = relu(-x)
@@ -30,7 +42,7 @@ class Birelu(Layer):
 		if not self.relu_birelu_sel==1:
 			variable_placeholder =K.variable(0)
 			one = K.ones_like(variable_placeholder)
-			birelu_flag = K.random_binomial(K.shape(variable_placeholder),p=self.relu_birelu_sel)
+			birelu_flag = K.random_binomial(K.shape(variable_placeholder),p=dropout_rate)
 			pas_flag = K.random_binomial(K.shape(variable_placeholder),p=.5)
 			inv_flag = one-pas_flag
 			inv_flag = inv_flag+birelu_flag
