@@ -10,6 +10,12 @@ def softplus_stoch(x):
     active_bool = K.lesser_equal(K.random_uniform(shape_x),y)
     res = tf.where(active_bool, K.ones_like(y), K.zeros_like(y))
     return res
+def sigmoid_stoch(x):
+    y = sigmoid(x)
+    shape_x = K.shape(y)
+    active_bool = K.lesser_equal(K.random_uniform(shape_x),y)
+    res = tf.where(active_bool, K.ones_like(y), K.zeros_like(y))
+    return res
 def stoch_activation_function(x):
     shape_x = K.shape(x)
     active_bool = K.lesser_equal(K.random_uniform(shape_x),x)

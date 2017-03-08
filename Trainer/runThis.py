@@ -41,7 +41,7 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 	opts = set_default_opts_based_on_model_dataset(opts)
 
 
-	gate_activation_set = ['softplus_stoch']
+	gate_activation_set = ['relu','sigmoid_stoch']
 	gate_stoch_enable =[True]
 	data_activation_set = [None]
 	loss_set = {'categorical_crossentropy'}
@@ -51,13 +51,11 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 
 	w_reg = {'l1'}
 	w_reg_value = {1e-6}
-	param_expand = [2] ## in gated all the params are devided by two because we have two layers per channel so
+	param_expand = [1,2,3] ## in gated all the params are devided by two because we have two layers per channel so
 	# this ratio can be compared for number of parameters e.g if in lennet param_expand=1 and in gated param_expand=1
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
 	model_str = get_model_string(opts)
-	if model_str =='lil0_3_0_rb0':
-		param_expand = [1, 3]
 	if str(model_str).find('lenet') == -1:
 		for gate_activation in gate_activation_set:
 			for data_activation in data_activation_set:
@@ -68,6 +66,8 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 								for param_expand_sel in param_expand:
 									for gate_stoch in gate_stoch_enable:
 										for f_size in filter_size_set:
+											if model_str.find('be')==-1 and gate_activation=='sigmoid_stoch':
+												break
 											opts=set_gate_activation(opts=opts,activation=gate_activation)
 											opts=set_data_activation(opts=opts,activation=data_activation)
 											opts=set_loss(opts=opts,loss_string=loss_objective)
@@ -188,15 +188,14 @@ def wrapper_gated(model,opts,experiment_name):
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['be0_rb0_fixedfilter']
-	datasets=['cifar10']
-	experiment_name = 'ConcatModel'+time.strftime('%b%d')
-
+	models= ['be0_rb0_fixedfilter','ln','lil0_baseline0','be0_rb0_fixedfilter_d','ln_d','lil0_baseline0_d']
+	datasets=['cifar100','cifar10']
+	experiment_name = 'FinalBaseline'+time.strftime('%b%d')
 	for dataset_str in datasets:
 		for model_str in models:
 			options={}
 			options = default_opt_creator()
-			options['description'] = 'Trying to see if every layer has fixed amount of filters in layer will make the result worst or not'
+			options['description'] = 'Hopefully final results,checked dropout '
 			grid_search(options,experiment_name=experiment_name,model_str=model_str,dataset_str=dataset_str)
 # method_names = find_key_value_to_str_recursive(opts,'')
 

@@ -121,9 +121,9 @@ def lr_random_multiScale(index):
 		print('learningrate:',ler)
 	return ler
 def lr_permut(index):
-	lr = [1e-2,1e-2,1e-2,1e-2,1e-2,1e-3,1e-3,1e-3,1e-3,1e-4,1e-4,1e-4]
+	lr = [1e-2,1e-2,1e-2,1e-3,1e-3,1e-3,1e-3,1e-3,1e-3,1e-4,1e-4,1e-4]
 	a = np.random.randint(0,3)
-	k=(index/30)
+	k=(index/60)
 	print('rand_lr_value:',k)
 	i = np.floor(k)
 	if i<0:
@@ -136,7 +136,6 @@ def lr_permut(index):
 def cifar_trainer(opts,model,optimizer):
 	nb_classes=10;
 
-	#TODO changed it for random label
 	(X_train, y_train), (X_test, y_test) = cifar10.load_data()
 	Y_train = np_utils.to_categorical(y_train, nb_classes)
 	Y_test = np_utils.to_categorical(y_test, nb_classes)
@@ -150,7 +149,8 @@ def cifar_trainer(opts,model,optimizer):
 
 	model.compile(loss=opts['optimizer_opts']['loss']['method'],
 	              optimizer=optimizer,
-	              metrics=['accuracy','categorical_accuracy','mean_absolute_percentage_error','precision','recall'])
+	              metrics=['accuracy', 'mean_absolute_percentage_error', 'precision', 'recall',
+	                       'cosine_proximity', 'top_k_categorical_accuracy', 'fmeasure'])
 	# if not data_augmentation:
 	# 	print('Not using data augmentation.')
 	# 	model.fit(X_train, Y_train,
@@ -180,12 +180,12 @@ def cifar_trainer(opts,model,optimizer):
 		datagen.fit(X_train)
 	plotter = PlotMetrics(opts)
 	experiments_abs_path = plotter.history_holder.dir_abs_path
-	reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.00001)
+	reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=10, min_lr=0.0001)
 	tensorboard = TensorboardCostum(log_dir=experiments_abs_path + '/logs', histogram_freq=5, write_graph=False,
 	                                write_images=False)
 	csv_logger = CSVLogger(filename=experiments_abs_path+'/training.log',separator=',')
 	lr_sched = LearningRateScheduler(lr_random_multiScale)
-	early_stopping = EarlyStopping('acc', min_delta=.0001, patience=20, mode='max')
+	early_stopping = EarlyStopping('acc', min_delta=.0001, patience=40, mode='max')
 	callback_list = [plotter, csv_logger,early_stopping,tensorboard]
 	if opts['optimizer_opts']['lr']==-1:
 		callback_list = callback_list+[lr_sched]
@@ -215,8 +215,8 @@ def cifar100_trainer(opts, model, optimizer):
 		samples_per_epoch = X_train.shape[0]
 
 	model.compile(loss=opts['optimizer_opts']['loss']['method'], optimizer=optimizer,
-	              metrics=['accuracy', 'categorical_accuracy', 'mean_absolute_percentage_error', 'precision',
-	                       'recall'])
+	              metrics=['accuracy', 'mean_absolute_percentage_error', 'precision',
+	                       'recall','cosine_proximity','top_k_categorical_accuracy','fmeasure'])
 	# if not data_augmentation:
 	# 	print('Not using data augmentation.')
 	# 	model.fit(X_train, Y_train,

@@ -70,6 +70,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 	filter_size_index =0
 	conv_nb_filterindex=0
 	branch = 1
+	fully_drop =0
 	for layer in model_dict:
 		component = layer['type']
 		if layer['type'] not in ['e','s','rm','am','mp','ma','rbe','d']:
@@ -102,10 +103,20 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
 			                               border_mode='same',relu_birelu_switch=dropout)
 			branch = 2 * branch
+		if component == 'rben':
+			if param.has_key('p'):
+				dropout = param['p']
+			nb_filter = param['f']
+			f_size = param['r']
+			x = conv_birelunary_expand_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
+			                               filter_size=f_size, input_shape=input_shape, w_reg=None,
+			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
+			                               border_mode='same',relu_birelu_switch=dropout)
+			branch = (2**nb_filter) * branch
 		if component=='s':
 			nb_filter = param['f']
 			f_size = param['r']
-			x = conv_birelu_swap_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/branch),
+			x = conv_birelu_swap_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate/(branch/2)),
 			                             filter_size=f_size,
 			                               input_shape=input_shape, w_reg=None,
 			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
@@ -170,20 +181,36 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			branch = branch / 2
 			if n == -1:
 				while type(x[0])is list:
-					x = concat_on_list(input_tensor_list=x, n=n, layer_index=layer_index_t)
+					x = concat_on_list(input_tensor_list=x, n=1, layer_index=layer_index_t)
 			else:
 				for i in range(int(n)):
 					x = concat_on_list(input_tensor_list=x,n=n,layer_index=layer_index_t)
-
+		if component=='fullydropout':
+			fully_drop = param['p']
+		# if component=='flat':
+		# 	if type(x[0]) == list:
+		# 		x = node_list_to_list(x)
+		# 		merged = merge(x, mode='concat', concat_axis=1)
+		# 	else:
+		# 		merged = x
+		# 	x = Flatten(name='flatten')(merged)
+		# if component=='dense':
+		# 	n = param['n']
+		# 	x = Dense(n)(x)
+		# if component=='softmax':
+		# 	x = Dense(nb_classes)(x)
+		# 	x = Activation('softmax')(x)
 		layer_index_t+=1
 		conv_nb_filterindex+=1
 		filter_size_index+=1
-	x = node_list_to_list(x)
-	merged = x[0]
-	if not x.__len__() == 1:
-		for input1 in x[1:]:
-			merged = merge([merged, input1], mode='concat', concat_axis=1)
+	if type(x[0]) == list:
+		x = node_list_to_list(x)
+		merged =merge(x, mode='concat', concat_axis=1)
+	else:
+		merged = x
 	x = Flatten(name='flatten')(merged)
+	if not fully_drop==0:
+		x = Dropout(fully_drop)(x)
 	x = Dense(nb_classes)(x)
 	x = Activation('softmax')(x)
 	model = Model(input=img_input, output=x)

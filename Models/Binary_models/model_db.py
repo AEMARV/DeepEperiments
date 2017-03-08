@@ -726,23 +726,8 @@ def be0_rb0_ad(opts, input_shape, nb_classes,getstring_flag=False): # ad means a
 	return get_model(opts,input_shape,nb_classes,model_string=model_string,nb_filter_list=nb_filter_list,
 	          conv_filter_size_list=filter_size_list)
 ### Experiments 2: these neteworks have same total filters at each layer.
-def be0_rb0_fixedfilter(opts, input_shape, nb_classes,getstring_flag=False):
-	# we can change mp to ap to compare results later
-	model_string = 'rbe|f:64,r:5,p:.75' \
-	               '->mp|s:2,r:3' \
-	               '->rbe|f:64,r:3' \
-	               '->ap|s:2,r:3' \
-	               '->rbe|f:64,r:5' \
-	               '->ap|s:2,r:3' \
-	               '->rbe|f:64,r:4' \
-	               '->ap|s:2,r:3'
-	nb_filter_list = [32,64,128,64]
-	filter_size_list = [5,3,3,3,5,3,4,3]
-	if getstring_flag:
-		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
-	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+
 def be0_rb0_fixedfilter_t(opts, input_shape, nb_classes,getstring_flag=False):
-	# we can change mp to ap to compare results later
 	model_string = 'e|f:4,r:5,p:.75' \
 	               '->e|f:4,r:5,p:.75' \
 	               '->mp|s:2,r:3' \
@@ -755,7 +740,6 @@ def be0_rb0_fixedfilter_t(opts, input_shape, nb_classes,getstring_flag=False):
 		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
 	return get_model(opts,input_shape,nb_classes,model_string=model_string)
 def be0_rb0_expanded_len(opts, input_shape, nb_classes,getstring_flag=False):
-	# in this netwrok each path from root to every leaf has the same structure as lenet. it has the same number of
 	model_string = 'rbe|f:64,r:5,p:.75' \
 	               '->mp|s:2,r:3' \
 	               '->rbe|f:64,r:3' \
@@ -914,6 +898,150 @@ def be0_rb0_fixedfilter_c2(opts, input_shape, nb_classes,getstring_flag=False):
 	if getstring_flag:
 		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
 	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb0_fixedfilter_n(opts, input_shape, nb_classes,getstring_flag=False):
+	# we can change mp to ap to compare results later
+	model_string = 'rben|f:3,r:5,p:.75' \
+	               '->mp|s:2,r:3' \
+	               '->rben|f:3,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rben|f:3,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rben|f:3,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+
+
+def lil0_baseline1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'e|f:32,r:5' \
+	               '->s|f:64,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->s|f:128,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->r|f:64,r:5' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+
+
+def lil0_baseline2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'e|f:32,r:5' \
+	               '->s|f:64,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->r|f:128,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->r|f:64,r:5' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+######################################## BASELINE Experiment
+def be0_rb0_fixedfilter(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:64,r:5,p:.75' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def ln(opts, input_shape, nb_classes, getstring_flag=False):
+
+	# we can change mp to ap to compare results later
+	model_string = 'r|f:32,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->r|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->r|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->r|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32, 64, 128, 64]
+	filter_size_list = [5, 3, 3, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+
+
+def lil0_baseline0(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'e|f:32,r:5' \
+	               '->s|f:64,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->s|f:128,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->s|f:64,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->fullydropout|p:.5'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+def lil0_baseline0_d(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'e|f:32,r:5' \
+	               '->s|f:64,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->s|f:128,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->s|f:64,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->fullydropout|p:.5'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+def be0_rb0_fixedfilter_d(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:64,r:5,p:.75' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3' \
+	               '->fullydropout|p:.5'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def ln_d(opts, input_shape, nb_classes, getstring_flag=False):
+
+	# we can change mp to ap to compare results later
+	model_string = 'r|f:32,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->r|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->r|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->r|f:64,r:4' \
+	               '->ap|s:2,r:3' \
+	               '->fullydropout|p:.5'
+	nb_filter_list = [32, 64, 128, 64]
+	filter_size_list = [5, 3, 3, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+
+
 def get_model_from_db(identifier,opts,input_shape,nb_classes):
 	model_fun = get_from_module(identifier, globals(), 'activation function')
 	return model_fun(opts,input_shape,nb_classes)
@@ -923,7 +1051,7 @@ def get_model_string_from_db(identifier,opts,input_shape,nb_classes):
 if __name__ == '__main__':
 	opts = default_opt_creator()
 	functions = globals().copy()
-	func_to_test = ['be0_rb0_fixedfilter_c0','be0_rb0_fixedfilter_c1','be0_rb0_fixedfilter_c2']
+	func_to_test = ['ln','lil0_baseline0','lil0_baseline1','lil0_baseline2']
 	for function in functions:
 		if not function[0] in ['b','l']:
 			continue
