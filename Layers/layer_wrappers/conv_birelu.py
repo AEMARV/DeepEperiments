@@ -1,20 +1,61 @@
-from keras.layers import Convolution2D,Activation,merge
+from keras.layers import Convolution2D,Activation,merge,BatchNormalization
+from keras.layers.advanced_activations import PReLU
+from theano.gof.cc import DualLinker
+
 from Layers.binary_layers.fundamental_layers_binary import Inverter,Negater,StochActivation
 from utils.opt_utils import *
-from Layers.binary_layers.birelu import Birelu,Relu,Birelu_nary
-def conv_birelu_expand(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
-                      input_tensor,relu_birelu_switch=1):
+from Layers.binary_layers.birelu import *
+def conv_birelu_expand_shared(conv_layer,gate_activation,index,layer_index,
+                      input_tensor,relu_birelu_switch=1,leak_rate=0,batch_norm=0,child_p=.5):
 	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
 	'returns list'
+
+	data_conv = conv_layer(input_tensor)
+	if batch_norm==1:
+		data_conv = BatchNormalization(axis=1)(data_conv)
+	output_tensor_list = Birelu(gate_activation,relu_birelu_sel=relu_birelu_switch,name='E_Birelu_layer-'+str(
+		layer_index)+'_index-'+str(index),layer_index=layer_index,leak_rate=leak_rate,child_p=child_p)(
+		data_conv)
+	return output_tensor_list
+def conv_birelu_expand(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
+                      input_tensor,relu_birelu_switch=1,leak_rate=0,batch_norm=0,child_p=.5):
+	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
+	'returns list'
+
 	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=None,
 	                          input_shape=input_shape, border_mode=border_mode, W_regularizer=w_reg,
 	                          name='E_conv_exp_'+'nbfilter-'+str(nb_filter)+'_layer'+str(layer_index)+'_index-'+str(
 		                          index))(
 		input_tensor)
+	if batch_norm==1:
+		data_conv = BatchNormalization(axis=1)(data_conv)
 	output_tensor_list = Birelu(gate_activation,relu_birelu_sel=relu_birelu_switch,name='E_Birelu_layer-'+str(
-		layer_index)+'_index-'+str(index),layer_index=layer_index)(
+		layer_index)+'_index-'+str(index),layer_index=layer_index,leak_rate=leak_rate,child_p=child_p)(
 		data_conv)
 	return output_tensor_list
+def conv_prelu_expand(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
+                      input_tensor,relu_birelu_switch=1,leak_rate=0,batch_norm=0,child_p=.5,prelu_counter=False):
+	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
+	'returns list'
+
+	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=None,
+	                          input_shape=input_shape, border_mode=border_mode, W_regularizer=w_reg,
+	                          name='E_conv_exp_'+'nbfilter-'+str(nb_filter)+'_layer'+str(layer_index)+'_index-'+str(
+		                          index))(
+		input_tensor)
+	if batch_norm==1:
+		data_conv = BatchNormalization(axis=1)(data_conv)
+
+
+	output_tensor_list = Duplicator(relu_birelu_sel=relu_birelu_switch,child_p=child_p)(data_conv)
+
+	a = PReLU(shared_axes=[1,2, 3], name='PRelu0_' + 'nbfilter-' + str(nb_filter) + '_layer' + str(
+	layer_index) + '_index-' + str(index))(output_tensor_list[0])
+	b = PReLU(shared_axes=[1,2, 3], name='PRelu1_' + 'nbfilter-' + str(nb_filter) + '_layer' + str(
+		layer_index) + '_index-' + str(index))(output_tensor_list[1])
+	if prelu_counter:
+		output_tensor_list[1]=input_tensor
+	return [a,b]
 def conv_birelunary_expand(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
                       input_tensor,relu_birelu_switch=1):
 	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
@@ -28,6 +69,7 @@ def conv_birelunary_expand(nb_filter,filter_size,border_mode,input_shape,w_reg,g
 		layer_index)+'_index-'+str(index),layer_index=layer_index,nb_filter=nb_filter)(
 		data_conv)
 	return output_tensor_list
+
 def conv_birelu_swap(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
                       input_tensor_list,relu_birelu_switch=1):
 	tensor_concat =merge([input_tensor_list[0], input_tensor_list[1]], mode='concat', concat_axis=1,

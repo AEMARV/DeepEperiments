@@ -945,7 +945,7 @@ def lil0_baseline2(opts, input_shape, nb_classes, getstring_flag=False):
 		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
 	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
 	                 conv_filter_size_list=filter_size_list)
-######################################## BASELINE Experiment
+######################################## BASELINE Experiment stored in FinalBaselineMar08
 def be0_rb0_fixedfilter(opts, input_shape, nb_classes,getstring_flag=False):
 	model_string = 'rbe|f:64,r:5,p:.75' \
 	               '->mp|s:2,r:3' \
@@ -955,6 +955,49 @@ def be0_rb0_fixedfilter(opts, input_shape, nb_classes,getstring_flag=False):
 	               '->ap|s:2,r:3' \
 	               '->rbe|f:64,r:4' \
 	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb0_final(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb0_final(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb0_final_d(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.5'
 	nb_filter_list = [32,64,128,64]
 	filter_size_list = [5,3,3,3,5,3,4,3]
 	if getstring_flag:
@@ -985,8 +1028,7 @@ def lil0_baseline0(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->s|f:128,r:3' \
 	               '->ap|s:2,r:3' \
 	               '->s|f:64,r:5' \
-	               '->ap|s:2,r:3' \
-	               '->fullydropout|p:.5'
+	               '->ap|s:2,r:3'
 	nb_filter_list = [32, 32, 64, 128, 64, 64]
 	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
 	if getstring_flag:
@@ -1040,8 +1082,290 @@ def ln_d(opts, input_shape, nb_classes, getstring_flag=False):
 	if getstring_flag:
 		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
 	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+# Trying the leaky version and batch norm after this pos_neg permutation should be tested "leak_rate_expMar9"
+# experiment
 
-
+def be0_rb0_leaky_25(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75,leak:.25,bn:0' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb0_leaky_50(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.90,leak:.5,bn:0' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rbeg0_leaky_50(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbeg|f:32,r:5,p:.90,leak:.5,bn:0' \
+	               '->mp|s:2,r:3' \
+	               '->rbeg|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbeg|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb0_leaky_15(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75,leak:.15,bn:0' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb0_leaky_15_bn(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75,leak:.15,bn:1' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb90_leaky_25(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:90,leak:.25,bn:0' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb0_leaky_bn_fixed_filter(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:64,r:5,p:.75,leak:.25,bn:1' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+## Leaky Experiment
+def be0_rb75_leaky_50(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75,leak:.75,bn:0' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb75_leaky_50_ns(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75,leak:.75,bn:0' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb75_leaky_100(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75,leak:1,bn:0' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb75_leaky_25(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.75,leak:.25,bn:0' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+# Non Symmetric Experiment
+def be0_rb80_leaky_15_ns(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.80,leak:.15,bn:0,cp:.75' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def be0_rb60_leaky_0_ns(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'rbe|f:32,r:5,p:.60,leak:0,bn:0,cp:.80' \
+	               '->mp|s:2,r:3' \
+	               '->rbe|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->rbe|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def prelu_rb75_child80(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'pre|f:32,r:5,p:.75,leak:0,bn:0,cp:.80' \
+	               '->mp|s:2,r:3' \
+	               '->pre|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def prelu_rb75_child55(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'pre|f:32,r:5,p:.75,leak:0,bn:0,cp:.60' \
+	               '->mp|s:2,r:3' \
+	               '->pre|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def prelu_rb75_child75(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'pre|f:32,r:5,p:.75,leak:0,bn:0,cp:.75' \
+	               '->mp|s:2,r:3' \
+	               '->pre|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def prelu_rb75_child50(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'pre|f:32,r:5,p:.75,leak:0,bn:0,cp:.50' \
+	               '->mp|s:2,r:3' \
+	               '->pre|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def prelu_rb95_child55(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'pre|f:32,r:5,p:.75,leak:0,bn:0,cp:.55' \
+	               '->mp|s:2,r:3' \
+	               '->pre|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->pre|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+					'->fullydropout|p:.25'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_0(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->ap|s:2,r:3'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
 def get_model_from_db(identifier,opts,input_shape,nb_classes):
 	model_fun = get_from_module(identifier, globals(), 'activation function')
 	return model_fun(opts,input_shape,nb_classes)
@@ -1051,7 +1375,7 @@ def get_model_string_from_db(identifier,opts,input_shape,nb_classes):
 if __name__ == '__main__':
 	opts = default_opt_creator()
 	functions = globals().copy()
-	func_to_test = ['ln','lil0_baseline0','lil0_baseline1','lil0_baseline2']
+	func_to_test = ['prelu_rb75_child55','prelu_rb75_child75','prelu_rb75_child50','prelu_rb95_child55']
 	for function in functions:
 		if not function[0] in ['b','l']:
 			continue

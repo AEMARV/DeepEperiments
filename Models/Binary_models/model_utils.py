@@ -70,7 +70,11 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 	filter_size_index =0
 	conv_nb_filterindex=0
 	branch = 1
+	batch_norm = False
 	fully_drop =0
+	leak_rate=0
+	child_probability=.5
+	counter = False # for prelu permutation
 	for layer in model_dict:
 		component = layer['type']
 		if layer['type'] not in ['e','s','rm','am','mp','ma','rbe','d']:
@@ -93,15 +97,73 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 	                               input_shape=input_shape, w_reg=None,
 	                       gate_activation=get_gate_activation(opts), layer_index=layer_index_t,border_mode='same')
 			branch=2*branch
+		if component =='besh':
+			#binary expand shared
+			nb_filter = param['f']
+			f_size = param['r']
+			conv_layer_to_pass = Convolution2D(int(nb_filter*expand_rate), f_size, f_size, activation=None,
+			                                   input_shape=input_shape, border_mode='same', W_regularizer=None,
+			                                  )
+			x = conv_birelu_expand_on_list_shared(input_tensor_list=x,
+			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
+			                               relu_birelu_switch=1,batch_norm=0,
+			                               leak_rate=0,child_p = 0,conv_layer=conv_layer_to_pass)
 		if component == 'rbe':
 			if param.has_key('p'):
 				dropout = param['p']
+			if param.has_key('leak'):
+				leak_rate = param['leak']
+			if param.has_key('bn'):
+				batch_norm = param['bn']
+			if param.has_key('cp'):
+				child_probability = param['cp']
 			nb_filter = param['f']
 			f_size = param['r']
+
 			x = conv_birelu_expand_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
 			                               filter_size=f_size, input_shape=input_shape, w_reg=None,
 			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
-			                               border_mode='same',relu_birelu_switch=dropout)
+			                               border_mode='same',relu_birelu_switch=dropout,batch_norm=batch_norm,
+			                               leak_rate=leak_rate,child_p = child_probability)
+
+			branch = 2 * branch
+		if component == 'pre':
+			if param.has_key('p'):
+				dropout = param['p']
+			if param.has_key('bn'):
+				batch_norm = param['bn']
+			if param.has_key('cp'):
+				child_probability = param['cp']
+			if param.has_key('counter'):
+				if param['counter']==1:
+					counter=True
+				else:
+					counter=False
+			nb_filter = param['f']
+			f_size = param['r']
+
+			x = conv_prelu_expand_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
+			                               filter_size=f_size, input_shape=input_shape, w_reg=None,
+			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
+			                               border_mode='same', relu_birelu_switch=dropout, batch_norm=batch_norm,
+			                               leak_rate=0, child_p=child_probability,prelu_counter=counter)
+
+			branch = 2 * branch
+		if component == 'rbeg':
+			if param.has_key('p'):
+				dropout = param['p']
+			if param.has_key('leak'):
+				leak_rate = param['leak']
+			if param.has_key('bn'):
+				batch_norm = param['bn']
+			nb_filter = param['f']
+			f_size = param['r']
+
+			x = conv_birelu_expand_on_list_general_leak(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
+			                               filter_size=f_size, input_shape=input_shape, w_reg=None,
+			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
+			                               border_mode='same',relu_birelu_switch=dropout,batch_norm=batch_norm,
+			                               leak_rate=leak_rate)
 			branch = 2 * branch
 		if component == 'rben':
 			if param.has_key('p'):

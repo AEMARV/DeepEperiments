@@ -60,7 +60,7 @@ class TensorboardCostum(Callback):
     def __init__(self, log_dir='./logs',
                  histogram_freq=0,
                  write_graph=True,
-                 write_images=False,layer_list=[],images_num = 4,distribution_sample_size = 128):
+                 write_images=True,layer_list=[],images_num = 4,distribution_sample_size = 128):
         super(TensorboardCostum, self).__init__()
         if K.backend() != 'tensorflow':
             raise RuntimeError('TensorBoard callback only works '
@@ -69,14 +69,52 @@ class TensorboardCostum(Callback):
         self.histogram_freq = histogram_freq
         self.merged = None
         self.write_graph = write_graph
-        self.write_images = write_images
+        self.write_images = True
 
     def set_model(self, model):
         self.model = model
         self.sess = K.get_session()
-        filter_num_to_show_max =16
+        filter_num_to_show_max =1024
         if self.histogram_freq and self.merged is None:
             for layer in self.model.layers:
+                for weight in layer.weights:
+                    if hasattr(tf, 'histogram_summary'):
+                        tf.histogram_summary(weight.name, weight)
+                    else:
+                        tf.summary.histogram(weight.name, weight)
+
+                    if self.write_images:
+                        w_img = tf.squeeze(weight)
+                        shape = tf.shape(w_img)
+                        shape_list = w_img._shape_as_list()
+                        if len(shape_list) == 1 or len(shape_list) == 2 or len(shape_list) == 3:
+                            break
+                        if len(shape_list)==0:
+                            break
+                        w_img=tf.reshape(w_img,[shape_list[0]*shape_list[1],shape_list[2],shape_list[3]])
+                        filters_for_layer = w_img._shape_as_list()[0]
+                        filter_num_to_show = filters_for_layer
+                        image_per_row = int(np.floor(np.sqrt(filter_num_to_show)))
+                        w_img = w_img[:image_per_row**2,:,:]
+                        w_img = w_img - tf.reduce_min(w_img,[1,2],keep_dims=True)
+                        w_img = 255 * w_img / (
+                        tf.reduce_max(w_img, axis=[1, 2], keep_dims=True) + K.epsilon())
+                        w_img = tf.reshape(w_img, (
+                        image_per_row, image_per_row, shape_list[2], shape_list[3]))
+
+                        w_img = tf.reshape(tf.transpose(w_img, [ 0, 2, 1, 3]),
+                                               [ image_per_row * shape_list[2],
+                                                image_per_row * shape_list[3], 1])
+                        # if len(shape) > 1 and shape[0] > shape[1]:
+                        #     w_img = tf.transpose(w_img)
+                        w_img = tf.expand_dims(w_img,0)
+
+
+
+                        if hasattr(tf, 'image_summary'):
+                            tf.image_summary(weight.name, w_img)
+                        else:
+                            tf.summary.image(weight.name, w_img)
                 # show image and histogram of Birelus
                 if not layer.name.find('image_batch')==-1:
                     o = layer.output
@@ -91,6 +129,7 @@ class TensorboardCostum(Callback):
                     filter_num_to_show = np.min((filter_num_to_show_max,filters_for_layer))
                     image_per_row = int(np.floor(np.sqrt(filter_num_to_show)))
                     filter_num_to_show = image_per_row**2
+
                     if not image_per_row**2==filter_num_to_show:
                         assert 'Filter_num must be power of two'
                     o_pos = tf.slice(o_pos, [0, 0, 0, 0], [shape_o_np[0], filter_num_to_show, shape_o_np[2],
@@ -122,8 +161,8 @@ class TensorboardCostum(Callback):
                                        [shape_o_np[0], image_per_row * shape_o_np[2], image_per_row * shape_o_np[3], 1])
 
                     colord = tf.concat((o_pos_img,o_neg_img,third_channel),-1)
-                    tf.summary.image('{}_out_Positvie'.format(layer.name), o_pos_img)
-                    tf.summary.image('{}_out_Negative'.format(layer.name), o_neg_img)
+                    # tf.summary.image('{}_out_Positvie'.format(layer.name), o_pos_img)
+                    # tf.summary.image('{}_out_Negative'.format(layer.name), o_neg_img)
                     tf.summary.image('{}_out_Mixed'.format(layer.name), colord)
                     if hasattr(layer, 'output'):
                         if hasattr(tf, 'histogram_summary'):
@@ -136,7 +175,7 @@ class TensorboardCostum(Callback):
                         else:
                             tf.summary.histogram('{}_Negative'.format(layer.name), o_neg)
                 else:
-                    if not layer.name.find('R_relu')==-1:
+                    if not layer.name.find('R_relu')==-1 or not layer.name.find('PRelu')==-1:
                         o_pos = layer.output
                         shape_o_np = tf.shape(o_pos)
                         filters_for_layer = o_pos._shape_as_list()[1]
@@ -148,12 +187,15 @@ class TensorboardCostum(Callback):
                             assert 'Filter_num must be power of two'
                         o_pos = tf.slice(o_pos, [0, 0, 0, 0],
                                          [shape_o_np[0], filter_num_to_show, shape_o_np[2], shape_o_np[3]])
+                        o_pos = o_pos+tf.reduce_min(o_pos, axis=[2, 3], keep_dims=True)
+                        o_pos = 255 * o_pos / (
+                        tf.reduce_max(o_pos, axis=[2, 3], keep_dims=True) + K.epsilon())
                         o_pos = tf.reshape(o_pos,
                                            (shape_o_np[0], image_per_row, image_per_row, shape_o_np[2], shape_o_np[3]))
                         o_pos = tf.reshape(tf.transpose(o_pos, [0, 1, 3, 2, 4]),
                                            [shape_o_np[0], image_per_row * shape_o_np[2], image_per_row * shape_o_np[3],
                                             1])
-
+                        o_pos = tf.concat((tf.zeros_like(o_pos),o_pos,tf.zeros_like(o_pos)),-1)
                         tf.summary.image('{}_out_Positvie'.format(layer.name), o_pos)
                         if hasattr(layer, 'output'):
                             if hasattr(tf, 'histogram_summary'):
