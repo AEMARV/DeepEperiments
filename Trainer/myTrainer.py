@@ -259,7 +259,7 @@ def cifar100_trainer(opts, model, optimizer):
 	lr_sched = LearningRateScheduler(lr_random_multiScale)
 	early_stopping = EarlyStopping('acc',min_delta=.0001,patience=20,mode='max')
 	general_callback = GeneralCallback()
-	callback_list = [plotter, csv_logger,early_stopping,general_callback]
+	callback_list = [plotter, csv_logger,early_stopping,general_callback,tensorboard]
 	# callback_list = [tensorboard]
 	if opts['optimizer_opts']['lr'] == -1:
 		callback_list = callback_list + [lr_sched]

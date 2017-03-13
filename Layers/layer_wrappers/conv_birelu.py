@@ -6,17 +6,61 @@ from Layers.binary_layers.fundamental_layers_binary import Inverter,Negater,Stoc
 from utils.opt_utils import *
 from Layers.binary_layers.birelu import *
 def conv_birelu_expand_shared(conv_layer,gate_activation,index,layer_index,
-                      input_tensor,relu_birelu_switch=1,leak_rate=0,batch_norm=0,child_p=.5):
+                      input_tensor,drop_path_rate=1,leak_rate=0,batch_norm=0,child_p=.5):
 	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
 	'returns list'
 
 	data_conv = conv_layer(input_tensor)
 	if batch_norm==1:
 		data_conv = BatchNormalization(axis=1)(data_conv)
-	output_tensor_list = Birelu(gate_activation,relu_birelu_sel=relu_birelu_switch,name='E_Birelu_layer-'+str(
+	output_tensor_list = Birelu(gate_activation,relu_birelu_sel=drop_path_rate,name='E_Birelu_layer-'+str(
 		layer_index)+'_index-'+str(index),layer_index=layer_index,leak_rate=leak_rate,child_p=child_p)(
 		data_conv)
 	return output_tensor_list
+def conv_xavr_expand_shared(conv_layer,index,layer_index,
+                      input_tensor,batch_norm=0):
+	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
+	'returns list'
+
+	data_conv = conv_layer(input_tensor)
+	if batch_norm==1:
+		data_conv = BatchNormalization(axis=1)(data_conv)
+
+	output_tensor = AVR(name='R_relu_AVR_layer-'+str(
+		layer_index)+'_index-'+str(index))(
+		data_conv)
+	return [output_tensor,data_conv]
+def conv_xavrrelu_expand_shared(conv_layer,index,layer_index,
+                      input_tensor,batch_norm=0):
+	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
+	'returns list'
+
+	data_conv = conv_layer(input_tensor)
+	if batch_norm==1:
+		data_conv = BatchNormalization(axis=1)(data_conv)
+
+	output_tensor = AVR(name='R_relu_AVR_layer-'+str(
+		layer_index)+'_index-'+str(index))(
+		data_conv)
+	output_tensor2 = Relu(activation='relu',name='R_relu_layer-'+str(
+		layer_index)+'_index-'+str(index))(data_conv)
+	return [output_tensor2,output_tensor,data_conv]
+def conv_reluavr_expand_shared(conv_layer,index,layer_index,
+                      input_tensor,batch_norm=0):
+	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
+	'returns list'
+
+	data_conv = conv_layer(input_tensor)
+	if batch_norm==1:
+		data_conv = BatchNormalization(axis=1)(data_conv)
+
+	output_tensor = AVR(name='R_relu_AVR_layer-'+str(
+		layer_index)+'_index-'+str(index),layer_index=layer_index)(
+		data_conv)
+	output_tensor2 = Relu('relu',name='R_relu-'+str(
+		layer_index)+'_index-'+str(index),layer_index=layer_index)(data_conv)
+	return [output_tensor,output_tensor2]
+
 def conv_birelu_expand(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
                       input_tensor,relu_birelu_switch=1,leak_rate=0,batch_norm=0,child_p=.5):
 	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"

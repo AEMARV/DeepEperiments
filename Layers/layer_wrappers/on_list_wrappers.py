@@ -23,7 +23,7 @@ def conv_birelu_expand_on_list(nb_filter,filter_size,border_mode,input_shape,w_r
 		indexint+=1
 	return result
 def conv_birelu_expand_on_list_shared(conv_layer,gate_activation,layer_index,
-                      input_tensor_list,index='0',relu_birelu_switch=1,batch_norm=False,leak_rate =0,child_p=.5,
+                      input_tensor_list,index='0',drop_path_rate=1,batch_norm=False,leak_rate =0,child_p=.5
                                       ):
 	result = []
 	indexint=0
@@ -32,14 +32,54 @@ def conv_birelu_expand_on_list_shared(conv_layer,gate_activation,layer_index,
 			result+=[conv_birelu_expand_on_list_shared(conv_layer=conv_layer,
 			                                         gate_activation=gate_activation,
 			                                   layer_index=layer_index,
-                      input_tensor_list=lists_or_tensor,index=index+str(indexint),relu_birelu_switch=relu_birelu_switch,
+                      input_tensor_list=lists_or_tensor,index=index+str(indexint),drop_path_rate=drop_path_rate,
                                                 batch_norm=batch_norm,leak_rate=leak_rate,child_p=child_p)]
 		else:
 			result +=[conv_birelu_expand_shared(conv_layer=conv_layer,gate_activation=gate_activation,
 			                             index=index+str(indexint),
-			                       layer_index=layer_index,input_tensor=lists_or_tensor,relu_birelu_switch=relu_birelu_switch,
+			                       layer_index=layer_index,input_tensor=lists_or_tensor,
 			                                    batch_norm=batch_norm,
-                                         leak_rate=leak_rate,child_p=child_p)]
+                                         leak_rate=leak_rate,child_p=child_p,drop_path_rate=drop_path_rate)]
+
+		indexint+=1
+	return result
+def conv_xavr_expand_on_list_shared(conv_layer,gate_activation,layer_index,
+                      input_tensor_list,index='0',drop_path_rate=1,batch_norm=False,leak_rate =0,child_p=.5
+                                      ):
+	result = []
+	indexint=0
+	for lists_or_tensor in input_tensor_list:
+		if type(lists_or_tensor)==list:
+			result+=[conv_xavr_expand_on_list_shared(conv_layer=conv_layer,
+			                                         gate_activation=gate_activation,
+			                                   layer_index=layer_index,
+                      input_tensor_list=lists_or_tensor,index=index+str(indexint),drop_path_rate=drop_path_rate,
+                                                batch_norm=batch_norm,leak_rate=leak_rate,child_p=child_p)]
+		else:
+			result +=[conv_xavr_expand_shared(conv_layer=conv_layer,
+			                             index=index+str(indexint),
+			                       layer_index=layer_index,input_tensor=lists_or_tensor,
+			                                    batch_norm=batch_norm)]
+
+		indexint+=1
+	return result
+def conv_xavrrelu_expand_on_list_shared(conv_layer,gate_activation,layer_index,
+                      input_tensor_list,index='0',drop_path_rate=1,batch_norm=False,leak_rate =0,child_p=.5
+                                      ):
+	result = []
+	indexint=0
+	for lists_or_tensor in input_tensor_list:
+		if type(lists_or_tensor)==list:
+			result+=[conv_xavrrelu_expand_on_list_shared(conv_layer=conv_layer,
+			                                         gate_activation=gate_activation,
+			                                   layer_index=layer_index,
+                      input_tensor_list=lists_or_tensor,index=index+str(indexint),drop_path_rate=drop_path_rate,
+                                                batch_norm=batch_norm,leak_rate=leak_rate,child_p=child_p)]
+		else:
+			result +=[conv_xavrrelu_expand_shared(conv_layer=conv_layer,
+			                             index=index+str(indexint),
+			                       layer_index=layer_index,input_tensor=lists_or_tensor,
+			                                    batch_norm=batch_norm)]
 
 		indexint+=1
 	return result

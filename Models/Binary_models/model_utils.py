@@ -75,6 +75,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 	leak_rate=0
 	child_probability=.5
 	counter = False # for prelu permutation
+	flatten_flag = False
 	for layer in model_dict:
 		component = layer['type']
 		if layer['type'] not in ['e','s','rm','am','mp','ma','rbe','d']:
@@ -101,13 +102,37 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			#binary expand shared
 			nb_filter = param['f']
 			f_size = param['r']
+			if param.has_key('p'):
+				dropout = param['p']
 			conv_layer_to_pass = Convolution2D(int(nb_filter*expand_rate), f_size, f_size, activation=None,
-			                                   input_shape=input_shape, border_mode='same', W_regularizer=None,
+			                                   input_shape=input_shape, border_mode='same', W_regularizer=get_,
 			                                  )
 			x = conv_birelu_expand_on_list_shared(input_tensor_list=x,
-			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
-			                               relu_birelu_switch=1,batch_norm=0,
-			                               leak_rate=0,child_p = 0,conv_layer=conv_layer_to_pass)
+			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,batch_norm=0,
+			                               leak_rate=0,child_p = 0,conv_layer=conv_layer_to_pass,drop_path_rate
+			                                      = dropout)
+		if component == 'xaesh':
+			# binary expand shared
+			nb_filter = param['f']
+			f_size = param['r']
+			if param.has_key('p'):
+				dropout = param['p']
+			conv_layer_to_pass = Convolution2D(int(nb_filter * expand_rate), f_size, f_size, activation=None,
+			                                   input_shape=input_shape, border_mode='same', W_regularizer=None, )
+			x = conv_xavr_expand_on_list_shared(input_tensor_list=x, gate_activation=get_gate_activation(opts),
+			                                      layer_index=layer_index_t, batch_norm=0, leak_rate=0, child_p=0,
+			                                      conv_layer=conv_layer_to_pass, drop_path_rate=dropout)
+		if component == 'xaresh':
+			# binary expand shared
+			nb_filter = param['f']
+			f_size = param['r']
+			if param.has_key('p'):
+				dropout = param['p']
+			conv_layer_to_pass = Convolution2D(int(nb_filter * expand_rate), f_size, f_size, activation=None,
+			                                   input_shape=input_shape, border_mode='same', W_regularizer=None, )
+			x = conv_xavrrelu_expand_on_list_shared(input_tensor_list=x, gate_activation=get_gate_activation(opts),
+			                                      layer_index=layer_index_t, batch_norm=0, leak_rate=0, child_p=0,
+			                                      conv_layer=conv_layer_to_pass, drop_path_rate=dropout)
 		if component == 'rbe':
 			if param.has_key('p'):
 				dropout = param['p']
@@ -249,6 +274,33 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 					x = concat_on_list(input_tensor_list=x,n=n,layer_index=layer_index_t)
 		if component=='fullydropout':
 			fully_drop = param['p']
+		if component=='leaffully':
+			if param.has_key('n'):
+				n = param['n']
+			else:
+				n = 0
+			x = node_list_to_list(x)
+			x = FullyConnectedTensors(int(n))(x)
+		if component =='shdense':
+
+			n = int(param['n'])
+			if n==-1:
+				n = nb_classes
+			d = param['do']
+			x = node_list_to_list(x)
+			flatten_flag = True
+			dense = Dense(n)
+			res  = []
+			for tensor in x:
+				tensor_f = Flatten()(tensor)
+				if not d ==0:
+					tensor_f = Dropout(d)(tensor_f)
+				tensor_f = dense(tensor_f)
+				res+=[tensor_f]
+			x= merge(res)
+
+			# for i in range(x.__len__()):
+			# 	k =
 		# if component=='flat':
 		# 	if type(x[0]) == list:
 		# 		x = node_list_to_list(x)
@@ -265,15 +317,16 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 		layer_index_t+=1
 		conv_nb_filterindex+=1
 		filter_size_index+=1
-	if type(x[0]) == list:
-		x = node_list_to_list(x)
-		merged =merge(x, mode='concat', concat_axis=1)
-	else:
-		merged = x
-	x = Flatten(name='flatten')(merged)
-	if not fully_drop==0:
-		x = Dropout(fully_drop)(x)
-	x = Dense(nb_classes)(x)
+	if not flatten_flag:
+		if type(x[0]) == list :
+			x = node_list_to_list(x)
+			merged =merge(x, mode='concat', concat_axis=1)
+		else:
+			merged = x
+		x = Flatten(name='flatten')(merged)
+		if not fully_drop==0:
+			x = Dropout(fully_drop)(x)
+		x = Dense(nb_classes)(x)
 	x = Activation('softmax')(x)
 	model = Model(input=img_input, output=x)
 	return model

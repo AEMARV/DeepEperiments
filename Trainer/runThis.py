@@ -51,7 +51,7 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 
 	w_reg = {'l1'}
 	w_reg_value = {1e-6}
-	param_expand = [1] ## in gated all the params are devided by two because we have two layers per channel so
+	param_expand = [1,.5] ## in gated all the params are devided by two because we have two layers per channel so
 	# this ratio can be compared for number of parameters e.g if in lennet param_expand=1 and in gated param_expand=1
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
@@ -188,9 +188,9 @@ def wrapper_gated(model,opts,experiment_name):
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['besh_0']
+	models= ['besh_crelu_2']
 	datasets=['cifar100','cifar10']
-	experiment_name = 'binaryShared_experiment'+time.strftime('%b%d')
+	experiment_name = 'Debug'+time.strftime('%b%d')
 	for dataset_str in datasets:
 		for model_str in models:
 			options={}

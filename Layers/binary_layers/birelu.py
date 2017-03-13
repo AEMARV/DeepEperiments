@@ -3,6 +3,7 @@ from keras.layers import Layer
 from Activation.activations import *
 from keras.layers import Dropout
 from keras import initializations
+import tensorflow as tf
 import numpy as np
 class PBirelu(Layer):
 	"""Parametric Rectified Linear Unit.
@@ -125,8 +126,67 @@ class Slice(Layer):
 		return  output_shape
 	def call(self, x, mask=None):
 		return x[:,:self.nb_filter,:,:]
+class FullyConnectedTensors(Layer):
+	def __init__(self,output_tensors_len=0, init='one', weights=None, shared_axes=[1,2,3], **kwargs):
+		self.output_tensor_len = output_tensors_len
+		self.supports_masking = True
+		self.init = initializations.get(init)
+		self.initial_weights = weights
+		if not isinstance(shared_axes, (list, tuple)):
+			self.shared_axes = [shared_axes]
+		else:
+			self.shared_axes = list(shared_axes)
+		super(FullyConnectedTensors, self).__init__(**kwargs)
+	def get_output_shape_for(self, input_shape):
+		res = []
+		for i in range(self.output_tensor_len):
+			res +=[input_shape[0]]
+		return res
+	def compute_mask(self, input, input_mask=None):
+		res = []
+		for i in range(self.output_tensor_len):
+			res += [None]
+		return res
+	def build(self, input_shape):
+		if self.output_tensor_len==0:
+			self.output_tensor_len = input_shape.__len__()
+		param_shape = [self.output_tensor_len,input_shape.__len__()] + list(input_shape[0][1:])
+		self.param_broadcast = [False] * len(param_shape)
+		#TODO Alpha is only compatible for square fully connected e.g [4x4]
+		weights = np.eye(param_shape[0],param_shape[1])
+		if self.shared_axes[0] is not None:
+			for i in self.shared_axes:
+				param_shape[i+1] = 1
+				weights= np.expand_dims(weights,-1)
+				self.param_broadcast[i+1] = True
+		# self.alphas = K.zeros(param_shape)
+		self.alphas = K.variable(weights,name='{}_alphas'.format(self.name))
+		self.trainable_weights = [self.alphas]
+
+		if self.initial_weights is not None:
+			self.set_weights(self.initial_weights)
+			del self.initial_weights
+
+	def call(self, x, mask=None):
+		# if K.backend() == 'theano':
+		# 	pos = (K.pattern_broadcast(self.alphas, self.param_broadcast) * pos)
+		# else:
+		# 	pos = self.alphas * pos
+		result = []
+		for j in range(self.output_tensor_len):
+			sum = K.zeros_like(x[0])
+			for i in range(x.__len__()):
+				sum+=x[i]*self.alphas[j,i,:,:,:]
+			result+=[sum]
+		return result
+
+	def get_config(self):
+		config = {'init': self.init.__name__}
+		base_config = super(FullyConnectedTensors, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
+
 class Birelu(Layer):
-	def __init__(self, activation,relu_birelu_sel=1,layer_index=0,leak_rate=0,child_p=.5, **kwargs):
+	def __init__(self, activation,relu_birelu_sel=1,layer_index=0,leak_rate=0,child_p=.5,add_data=False, **kwargs):
 		self.supports_masking = False
 		self.activation = get(activation)
 		self.relu_birelu_sel = relu_birelu_sel
@@ -138,6 +198,7 @@ class Birelu(Layer):
 			self.decay_drop=False
 		if not relu_birelu_sel==1:
 			self.uses_learning_phase=True
+		self.add_data = add_data
 		self.leak_rate = leak_rate
 		super(Birelu, self).__init__(**kwargs)
 	def build(self, input_shape):
@@ -166,6 +227,9 @@ class Birelu(Layer):
 			prob = self.activation(x)
 			pas = x * prob
 			inv_pas = x * (prob - 1)
+		if self.add_data:
+			pas = pas+x
+			inv_pas = inv_pas+x
 		if not self.relu_birelu_sel==1:
 			variable_placeholder =K.variable(0)
 			one = K.ones_like(variable_placeholder)
@@ -312,7 +376,7 @@ class Relu(Layer):
 		super(Relu, self).__init__(**kwargs)
 
 	def call(self, x, mask=None):
-		if self.activation.__name__ == 'relu' or self.activation.__name__=='avr':
+		if self.activation.__name__ == 'relu':
 			pas = relu(x)
 		else:
 			prob = self.activation(x)
@@ -322,4 +386,33 @@ class Relu(Layer):
 	def get_config(self):
 		config = {'activation': self.activation.__name__}
 		base_config = super(Relu, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
+class AVR(Layer):
+	"""Applies an activation function to an output.
+
+	# Arguments
+		activation: name of activation function to use
+			(see: [activations](../activations.md)),
+			or alternatively, a Theano or TensorFlow operation.
+
+	# Input shape
+		Arbitrary. Use the keyword argument `input_shape`
+		(tuple of integers, does not include the samples axis)
+		when using this layer as the first layer in a model.
+
+	# Output shape
+		Same shape as input.
+	"""
+
+	def __init__(self,  **kwargs):
+		self.supports_masking = True
+		super(AVR, self).__init__(**kwargs)
+
+	def call(self, x, mask=None):
+		pas = K.abs(x)
+		return pas
+
+	def get_config(self):
+		config = {'activation': 'avr'}
+		base_config = super(AVR, self).get_config()
 		return dict(list(base_config.items()) + list(config.items()))

@@ -1366,6 +1366,174 @@ def besh_0(opts, input_shape, nb_classes,getstring_flag=False):
 	if getstring_flag:
 		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
 	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_0_dp75(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:.75' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:4,r:4' \
+	               '->ap|s:2,r:3'
+
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_0_dp100(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+				'->fullydropout|p:.50'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_xavr_0_dp100(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'xaesh|f:32,r:5,p:1' \
+	               '->ap|s:2,r:3' \
+	               '->xaesh|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->xaesh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->xaesh|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+				'->fullydropout|p:.50'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_xavrrelu_0_dp100(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'xaresh|f:32,r:5,p:1' \
+	               '->ap|s:2,r:3' \
+	               '->xaresh|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->xaresh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->xaresh|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+				'->fullydropout|p:.50'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_xavrrelu_0_dp100_ffully(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->ap|s:2,r:3'\
+				'->leaffully|u:1,n:1'\
+				'->fullydropout|p:.50'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_0_dp100_ffully(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:2' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4,n:2' \
+	               '->ap|s:2,r:3'\
+				'->leaffully|u:1,n:1'\
+				'->fullydropout|p:.50'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+# Experiments March 13
+def besh_crelu_1(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:2' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4,n:2' \
+	               '->ap|s:2,r:3' \
+	               '->shdense|n:-1,do:.5'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_2(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16' \
+	               '->ap|s:2,r:3' \
+	               '->shdense|n:-1,do:.5'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+# Experiment after revelation Mar 13 4:47 AM
+def besh_crelu_3(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16' \
+	               '->ap|s:2,r:3' \
+	               '->shdense|n:-1,do:.5'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_4(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16' \
+	               '->ap|s:2,r:3' \
+	               '->shdense|n:-1,do:.5'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
 def get_model_from_db(identifier,opts,input_shape,nb_classes):
 	model_fun = get_from_module(identifier, globals(), 'activation function')
 	return model_fun(opts,input_shape,nb_classes)
