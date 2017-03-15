@@ -1477,6 +1477,7 @@ def besh_crelu_1(opts, input_shape, nb_classes,getstring_flag=False):
 		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
 	return get_model(opts,input_shape,nb_classes,model_string=model_string)
 def besh_crelu_2(opts, input_shape, nb_classes,getstring_flag=False):
+	# got semi results from here
 	model_string = 'besh|f:32,r:5,p:1' \
 	               '->leaffully|u:1,n:2' \
 	               '->mp|s:2,r:3' \
@@ -1496,18 +1497,15 @@ def besh_crelu_2(opts, input_shape, nb_classes,getstring_flag=False):
 		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
 	return get_model(opts,input_shape,nb_classes,model_string=model_string)
 # Experiment after revelation Mar 13 4:47 AM
+# Fully expand Without fully connected
 def besh_crelu_3(opts, input_shape, nb_classes,getstring_flag=False):
 	model_string = 'besh|f:32,r:5,p:1' \
-	               '->leaffully|u:1,n:2' \
 	               '->mp|s:2,r:3' \
 	               '->besh|f:64,r:3' \
-	               '->leaffully|u:1,n:4' \
 	               '->ap|s:2,r:3' \
 	               '->besh|f:128,r:5' \
-	               '->leaffully|u:1,n:8' \
 	               '->ap|s:2,r:3' \
 	               '->besh|f:64,r:4' \
-	               '->leaffully|u:1,n:16' \
 	               '->ap|s:2,r:3' \
 	               '->shdense|n:-1,do:.5'
 	nb_filter_list = [32,64,128,64]
@@ -1515,7 +1513,34 @@ def besh_crelu_3(opts, input_shape, nb_classes,getstring_flag=False):
 	if getstring_flag:
 		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
 	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+# Deeper model and we want to expand before average in order to sparse the activations
 def besh_crelu_4(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:4' \
+	               '->mp|s:2,r:3' \
+	               '->leaffully|u:1,n:2' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:8' \
+	               '->ap|s:2,r:3' \
+	               '->leaffully|u:1,n:4' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:16' \
+	               '->ap|s:2,r:3' \
+	               '->leaffully|u:1,n:8' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:32' \
+	               '->ap|s:2,r:3' \
+	               '->leaffully|u:1,n:16' \
+	               '->besh|f:64,r:3' \
+	               '->shdense|n:-1,do:.5'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+# Adding Maxpool on dense
+def besh_crelu_5(opts, input_shape, nb_classes,getstring_flag=False):
+	# Added maxpool to besh_crelu_2
 	model_string = 'besh|f:32,r:5,p:1' \
 	               '->leaffully|u:1,n:2' \
 	               '->mp|s:2,r:3' \
@@ -1528,12 +1553,211 @@ def besh_crelu_4(opts, input_shape, nb_classes,getstring_flag=False):
 	               '->besh|f:64,r:4' \
 	               '->leaffully|u:1,n:16' \
 	               '->ap|s:2,r:3' \
-	               '->shdense|n:-1,do:.5'
+	               '->shdense|n:-1,do:.5,m:1'
 	nb_filter_list = [32,64,128,64]
 	filter_size_list = [5,3,3,3,5,3,4,3]
 	if getstring_flag:
 		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
 	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_6(opts, input_shape, nb_classes,getstring_flag=False):
+	# Added avg of maxpool and avgpool to besh_crelu_2
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16' \
+	               '->ap|s:2,r:3' \
+	               '->shdense|n:-1,do:.5,m:.5'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_7(opts, input_shape, nb_classes,getstring_flag=False):
+	# Added avg of maxpool and avgpool to besh_crelu_2
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16' \
+	               '->ap|s:2,r:3' \
+	               '->shdense2|n:-1,do:.5,m:0'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+
+def besh_crelu_8(opts, input_shape, nb_classes,getstring_flag=False):
+	# Added avg of maxpool and avgpool to besh_crelu_2
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16' \
+	               '->ap|s:2,r:3' \
+	               '->shdense2|n:-1,do:.8,m:0'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_10(opts, input_shape, nb_classes,getstring_flag=False):
+	# change dropout location of besh_crelu_5
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16' \
+	               '->ap|s:2,r:3' \
+	               '->shdense3|n:-1,dode:.5,doclas:.5,m:0'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_11(opts, input_shape, nb_classes,getstring_flag=False):
+	# c_relu10 with drop out rate .9
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16' \
+	               '->ap|s:2,r:3' \
+	               '->shdense3|n:-1,dode:.5,doclas:.9,m:0'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_12(opts, input_shape, nb_classes,getstring_flag=False):
+	# c_relu10 with drop out rate .9
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2,ido:-1' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4,ido:-1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8,ido:-1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16,ido:-1' \
+	               '->ap|s:2,r:3' \
+	               '->shdensedoi|n:-1,dode:.5,doclas:-1,m:0'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+
+def besh_crelu_12(opts, input_shape, nb_classes, getstring_flag=False):
+	# c_relu10 with drop out rate .9
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2,ido:-1' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4,ido:-1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8,ido:-1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16,ido:-1' \
+	               '->ap|s:2,r:3' \
+	               '->shdensedoi|n:-1,dode:.5,doclas:-1,m:0'
+	nb_filter_list = [32, 64, 128, 64]
+	filter_size_list = [5, 3, 3, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_13(opts, input_shape, nb_classes, getstring_flag=False):
+	# c_relu10 with drop out rate .9
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->leaffully|u:1,n:2,chw:1' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->leaffully|u:1,n:4,ido:-1,chw:1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8,ido:-1,chw:1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16,ido:-1,chw:1' \
+	               '->ap|s:2,r:3' \
+	               '->shdensedoi|n:-1,dode:.5,doclas:-1,m:0'
+	nb_filter_list = [32, 64, 128, 64]
+	filter_size_list = [5, 3, 3, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def baseline(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'cr|f:32,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->cr|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->cr|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->cr|f:64,r:4' \
+	               '->ap|s:2,r:3' \
+	               '->d|p:.5'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+def springberg_baseline(opts, input_shape, nb_classes, getstring_flag=False):
+
+	model_string = 'd|p:.25'\
+		'->r|f:96,r:3,b:0' \
+	               '->r|f:96,r:3,b:0' \
+	               '->r|f:96,r:3,s:2,b:1' \
+					'->d|p:.5'\
+	               '->r|f:192,r:3,b:0' \
+	               '->r|f:192,r:3,b:0' \
+	               '->r|f:192,r:3,s:2,b:1' \
+					'->d|p:.5'\
+	               '->r|f:192,r:3,b:0' \
+	               '->r|f:192,r:1,b:0' \
+	               '->r|f:10,r:1,b:0' \
+	               '->ap|r:6' \
+	               '->d|p:.5'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
 def get_model_from_db(identifier,opts,input_shape,nb_classes):
 	model_fun = get_from_module(identifier, globals(), 'activation function')
 	return model_fun(opts,input_shape,nb_classes)
@@ -1543,7 +1767,7 @@ def get_model_string_from_db(identifier,opts,input_shape,nb_classes):
 if __name__ == '__main__':
 	opts = default_opt_creator()
 	functions = globals().copy()
-	func_to_test = ['prelu_rb75_child55','prelu_rb75_child75','prelu_rb75_child50','prelu_rb95_child55']
+	func_to_test = ['springberg_baseline']
 	for function in functions:
 		if not function[0] in ['b','l']:
 			continue
@@ -1565,5 +1789,6 @@ if __name__ == '__main__':
 		opts = opt_utils.set_dataset(opts,'cifar100')
 		opt_utils.set_default_opts_based_on_model_dataset(opts)
 		model = model(opts,(3,32,32),10)
+		model.summary()
 		print model.count_params()
 

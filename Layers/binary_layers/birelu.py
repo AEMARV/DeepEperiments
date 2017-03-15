@@ -5,6 +5,19 @@ from keras.layers import Dropout
 from keras import initializations
 import tensorflow as tf
 import numpy as np
+class DropInstanse(Layer):
+	def __init__(self,dropInstance_rate,**kwargs):
+		self.drop_rate = dropInstance_rate
+		self.uses_learning_phase = True
+		self.supports_masking = True
+		super(DropInstanse,self).__init__(**kwargs)
+		pass
+	def call(self, x, mask=None):
+		pass
+	def get_output_shape_for(self, input_shape):
+		pass
+	def compute_mask(self, input, input_mask=None):
+		pass
 class PBirelu(Layer):
 	"""Parametric Rectified Linear Unit.
 
@@ -126,8 +139,78 @@ class Slice(Layer):
 		return  output_shape
 	def call(self, x, mask=None):
 		return x[:,:self.nb_filter,:,:]
+
+class MaxoutDenseOverParallel(Layer):
+	def __init__(self,**kwargs):
+		self.supports_masking = False
+		super(MaxoutDenseOverParallel, self).__init__(**kwargs)
+	def call(self, x, mask=None):
+		y = K.expand_dims(x,-1)
+		y = K.squeeze(y,-1)
+		y = K.permute_dimensions(y,[1,2,0])
+		y = K.max(y,axis=-1)
+		return y
+	def get_output_shape_for(self, input_shape):
+		return input_shape[0]
+	def compute_mask(self, input, input_mask=None):
+		return [None]
+class InstanceDropout(Dropout):
+    """Spatial 2D version of Dropout.
+
+    This version performs the same function as Dropout, however it drops
+    entire 2D feature maps instead of individual elements. If adjacent pixels
+    within feature maps are strongly correlated (as is normally the case in
+    early convolution layers) then regular dropout will not regularize the
+    activations and will otherwise just result in an effective learning rate
+    decrease. In this case, SpatialDropout2D will help promote independence
+    between feature maps and should be used instead.
+
+    # Arguments
+        p: float between 0 and 1. Fraction of the input units to drop.
+        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
+            (the depth) is at index 1, in 'tf' mode is it at index 3.
+            It defaults to the `image_dim_ordering` value found in your
+            Keras config file at `~/.keras/keras.json`.
+            If you never set it, then it will be "tf".
+
+    # Input shape
+        4D tensor with shape:
+        `(samples, channels, rows, cols)` if dim_ordering='th'
+        or 4D tensor with shape:
+        `(samples, rows, cols, channels)` if dim_ordering='tf'.
+
+    # Output shape
+        Same as input
+
+    # References
+        - [Efficient Object Localization Using Convolutional Networks](https://arxiv.org/abs/1411.4280)
+    """
+
+    def __init__(self, p, dim_ordering='default', **kwargs):
+        if dim_ordering == 'default':
+            dim_ordering = K.image_dim_ordering()
+        assert dim_ordering in {'tf', 'th'}, 'dim_ordering must be in {tf, th}'
+        self.dim_ordering = dim_ordering
+        super(InstanceDropout, self).__init__(p, **kwargs)
+
+
+	def _get_noise_shape(self, x):
+		input_shape = K.shape(x)
+		input_shape_list = K.int_shape(x)
+
+
+		if self.dim_ordering == 'th':
+			noise_shape = (input_shape[0], 1, 1, 1)
+		elif self.dim_ordering == 'tf':
+			noise_shape = (input_shape[0], 1, 1, 1)
+		else:
+			raise ValueError('Invalid dim_ordering:', self.dim_ordering)
+		noise_shape = noise_shape[:input_shape_list.__len__()]
+		return noise_shape
 class FullyConnectedTensors(Layer):
-	def __init__(self,output_tensors_len=0, init='one', weights=None, shared_axes=[1,2,3], **kwargs):
+	def __init__(self,output_tensors_len=0, init='one', weights=None, shared_axes=[1,2,3],
+	             **kwargs):
+		'if dropout dim is 0 then disabled if 1 : instances will be dropped'
 		self.output_tensor_len = output_tensors_len
 		self.supports_masking = True
 		self.init = initializations.get(init)
@@ -137,6 +220,7 @@ class FullyConnectedTensors(Layer):
 		else:
 			self.shared_axes = list(shared_axes)
 		super(FullyConnectedTensors, self).__init__(**kwargs)
+
 	def get_output_shape_for(self, input_shape):
 		res = []
 		for i in range(self.output_tensor_len):
@@ -157,22 +241,24 @@ class FullyConnectedTensors(Layer):
 		if self.shared_axes[0] is not None:
 			for i in self.shared_axes:
 				param_shape[i+1] = 1
-				weights= np.expand_dims(weights,-1)
 				self.param_broadcast[i+1] = True
 		# self.alphas = K.zeros(param_shape)
+		for i in range(param_shape.__len__()-2):
+			weights= np.expand_dims(weights,-1)
+		weights = weights*np.ones(param_shape)
 		self.alphas = K.variable(weights,name='{}_alphas'.format(self.name))
 		self.trainable_weights = [self.alphas]
 
 		if self.initial_weights is not None:
 			self.set_weights(self.initial_weights)
 			del self.initial_weights
-
 	def call(self, x, mask=None):
 		# if K.backend() == 'theano':
 		# 	pos = (K.pattern_broadcast(self.alphas, self.param_broadcast) * pos)
 		# else:
 		# 	pos = self.alphas * pos
 		result = []
+
 		for j in range(self.output_tensor_len):
 			sum = K.zeros_like(x[0])
 			for i in range(x.__len__()):

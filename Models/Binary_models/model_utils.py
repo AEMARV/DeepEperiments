@@ -1,7 +1,7 @@
 from Models.binary_net import gate_layer_on_list
 from keras.engine import Model
 from keras.layers import Input, Flatten, Dense, Dropout, Activation, AveragePooling2D, MaxPooling2D, Convolution2D, \
-	merge
+	merge,MaxoutDense
 from Layers.layer_wrappers.on_list_wrappers import *
 from utils.opt_utils import get_filter_size,get_gate_activation
 from keras.utils.generic_utils import get_from_module
@@ -89,6 +89,14 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 		# 	f_size = filter_size_list[filter_size_index]
 		param =layer['param']
 
+		if component=='cr':
+			nb_filter = param['f']
+			f_size = param['r']
+			conv_layer_to_pass = Convolution2D(int(nb_filter * expand_rate), f_size, f_size, activation=None,
+			                                   input_shape=input_shape, border_mode='same', W_regularizer=None )(x)
+			tensors = Birelu('relu')(conv_layer_to_pass)
+			x = [merge(tensors, mode='concat', concat_axis=1)]
+
 
 		if component=='e':
 			nb_filter = param['f']
@@ -105,7 +113,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			if param.has_key('p'):
 				dropout = param['p']
 			conv_layer_to_pass = Convolution2D(int(nb_filter*expand_rate), f_size, f_size, activation=None,
-			                                   input_shape=input_shape, border_mode='same', W_regularizer=get_,
+			                                   input_shape=input_shape, border_mode='same', W_regularizer=None,
 			                                  )
 			x = conv_birelu_expand_on_list_shared(input_tensor_list=x,
 			                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,batch_norm=0,
@@ -256,10 +264,21 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 		if component == 'r':
 			f_size = param['r']
 			nb_filter = param['f']
+			stride=1
+			if param.has_key('s'):
+				stride = param['s']
+			border_mode = 'same'
+			if param.has_key('b'):
+				border_mode = param['b']
+				if border_mode ==1:
+					border_mode= 'valid'
+				else:
+					border_mode= 'same'
+
 			x = conv_relu_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
 			                              filter_size=f_size, input_shape=input_shape, w_reg=None,
 			                              gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
-			                              border_mode='same')
+			                              border_mode=border_mode,stride=stride)
 		if component=='d':
 			p = param['p']
 			x = dropout_on_list(input_tensor_list=x,p=p,layer_index=layer_index_t)
@@ -280,9 +299,23 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			else:
 				n = 0
 			x = node_list_to_list(x)
-			x = FullyConnectedTensors(int(n))(x)
+			# if param.has_key('ido'):
+			# 	instanse_dropout_rate = float(param['ido'])
+			# 	if instanse_dropout_rate == -1:
+			# 		instanse_dropout_rate = (1-(1/float(np.minimum(4,n/2))))
+			# 	dropout_out = []
+			# 	for tensor in x:
+			# 		dropout_out += [InstanceDropout(instanse_dropout_rate)(tensor)]
+			# 	x = dropout_out
+			if param.has_key('chw'):
+				if param['chw']==1:
+					x = FullyConnectedTensors(int(n),shared_axes=[2,3])(x)
+			else:
+				x = FullyConnectedTensors(int(n))(x)
 		if component =='shdense':
-
+			max = 0
+			if param.has_key('m'):
+				max = float(param['m'])
 			n = int(param['n'])
 			if n==-1:
 				n = nb_classes
@@ -297,7 +330,113 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 					tensor_f = Dropout(d)(tensor_f)
 				tensor_f = dense(tensor_f)
 				res+=[tensor_f]
-			x= merge(res)
+			res_sum = merge(res)
+			if max==0:
+				x= res_sum
+			else:
+				# res = K.expand_dims()
+				res_max = MaxoutDenseOverParallel()(res)
+				x = res_max
+				if max ==.5:
+					x = merge([res_max,res_sum])
+				x = merge([res_max, res_sum])
+		if component == 'shdense2':
+			max = 0
+			if param.has_key('m'):
+				max = float(param['m'])
+			n = int(param['n'])
+			if n == -1:
+				n = nb_classes
+			d = param['do']
+			x = node_list_to_list(x)
+			flatten_flag = True
+			dense = Dense(n)
+			res = []
+			for tensor in x:
+				tensor_f = Flatten()(tensor)
+				tensor_f = dense(tensor_f)
+				if not d == 0:
+					tensor_f = Dropout(d)(tensor_f)
+
+				res += [tensor_f]
+			res_sum = merge(res)
+			if max == 0:
+				x = res_sum
+			else:
+				# res = K.expand_dims()
+				res_max = MaxoutDenseOverParallel()(res)
+				x = res_max
+				if max == .5:
+					x = merge([res_max, res_sum])
+				x = merge([res_max, res_sum])
+		if component == 'shdense3':
+			max = 0
+			if param.has_key('m'):
+				max = float(param['m'])
+			n = int(param['n'])
+			if n == -1:
+				n = nb_classes
+			dense_dropout = float(param['dode'])
+			classification_dropout = float(param['doclas'])
+			x = node_list_to_list(x)
+			flatten_flag = True
+			dense = Dense(n)
+			res = []
+			for tensor in x:
+				tensor_f = Flatten()(tensor)
+				if not dense_dropout == 0:
+					tensor_f = Dropout(dense_dropout)(tensor_f)
+				tensor_f = dense(tensor_f)
+				tensor_f = Dropout(classification_dropout)(tensor_f)
+				res += [tensor_f]
+			res_sum = merge(res)
+			if max == 0:
+				x = res_sum
+			else:
+				# res = K.expand_dims()
+				res_max = MaxoutDenseOverParallel()(res)
+				x = res_max
+				if max == .5:
+					x = merge([res_max, res_sum])
+				x = merge([res_max, res_sum])
+		if component == 'shdensedoi':
+			# dropout instanse
+			max = 0
+			if param.has_key('m'):
+				max = float(param['m'])
+			n = int(param['n'])
+			if n == -1:
+				n = nb_classes
+			dense_dropout = float(param['dode'])
+			classification_dropout = float(param['doclas'])
+			x = node_list_to_list(x)
+			if classification_dropout ==-1:
+				classification_dropout=1-(1/float(n/4))
+				classification_dropout = .75
+			flatten_flag = True
+			dense = Dense(n)
+			res = []
+			for tensor in x:
+				tensor_f = Flatten()(tensor)
+				if not dense_dropout == 0:
+					tensor_f = Dropout(dense_dropout)(tensor_f)
+				tensor_f = dense(tensor_f)
+				tensor_f = InstanceDropout(classification_dropout)(tensor_f)
+				res += [tensor_f]
+			# add a drop out here
+			res_sum = merge(res)
+			if max == 0:
+				x = res_sum
+			else:
+				# res = K.expand_dims()
+				res_max = MaxoutDenseOverParallel()(res)
+				x = res_max
+				if max == .5:
+					x = merge([res_max, res_sum])
+				x = merge([res_max, res_sum])
+
+			# x =merge(res,mode='concat')
+				# x = K.max(x,axis=-1)
 
 			# for i in range(x.__len__()):
 			# 	k =
