@@ -158,14 +158,22 @@ def conv_birelu_merge(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_a
 	                      name='BM_Merge_output_layer=' + str(layer_index) + 'index-' + str(index))
 	return output_tensor
 def conv_relu(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
-                      input_tensor,stride = 1):
+                      input_tensor,stride = 1,breg=None):
 	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=None, input_shape=input_shape,
 	                          border_mode=border_mode, W_regularizer=w_reg,
 	                          name='Conv_'+'nbfilter'+str(nb_filter) +'_layer-'+str(layer_index) + '_index' +
 	                               str(
-		index),subsample=(stride,stride))(input_tensor)
+		index),subsample=(stride,stride),b_regularizer=breg,init='glorot_normal')(input_tensor)
 	output_tensor = Relu(gate_activation,name='R_relu_layer-'+str(layer_index)+'_index'+str(index))(data_conv)
 	return output_tensor
+def conv(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
+                      input_tensor,stride = 1,breg=None):
+	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=None, input_shape=input_shape,
+	                          border_mode=border_mode, W_regularizer=w_reg,
+	                          name='Conv_'+'nbfilter'+str(nb_filter) +'_layer-'+str(layer_index) + '_index' +
+	                               str(
+		index),subsample=(stride,stride),b_regularizer=breg,init='glorot_normal')(input_tensor)
+	return data_conv
 def concat(input_tensor_list,index,layer_index):
 	tensor_concat = merge([input_tensor_list[0], input_tensor_list[1]], mode='concat', concat_axis=1,
 	                      name='Merge_' + str(layer_index) + 'index-' + str(index))

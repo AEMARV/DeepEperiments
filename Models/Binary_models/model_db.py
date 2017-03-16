@@ -1739,19 +1739,80 @@ def baseline(opts, input_shape, nb_classes, getstring_flag=False):
 def springberg_baseline(opts, input_shape, nb_classes, getstring_flag=False):
 
 	model_string = 'd|p:.25'\
-		'->r|f:96,r:3,b:0' \
+					'->r|f:96,r:3,b:0' \
 	               '->r|f:96,r:3,b:0' \
-	               '->r|f:96,r:3,s:2,b:1' \
+	               '->r|f:96,r:3,b:0' \
+					'->mp|r:3'\
 					'->d|p:.5'\
 	               '->r|f:192,r:3,b:0' \
 	               '->r|f:192,r:3,b:0' \
-	               '->r|f:192,r:3,s:2,b:1' \
-					'->d|p:.5'\
+	               '->r|f:192,r:3,b:0' \
+	               '->mp|r:3' \
+	               '->d|p:.5'\
 	               '->r|f:192,r:3,b:0' \
 	               '->r|f:192,r:1,b:0' \
-	               '->r|f:10,r:1,b:0' \
-	               '->ap|r:6' \
-	               '->d|p:.5'
+	               '->conv|f:'+str(nb_classes)+',r:1,b:0' \
+	               '->apd|r:6'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+def springberg_baseline2(opts, input_shape, nb_classes, getstring_flag=False):
+
+	model_string = 'r|f:96,r:3,b:0' \
+	               '->r|f:96,r:3,s:2,b:1' \
+	               '->r|f:192,r:3,b:0' \
+	               '->r|f:192,r:3,s:2,b:1' \
+	               '->r|f:'+str(nb_classes)+',r:1,b:0' \
+	               '->apd|r:6'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+def nin_baseline(opts, input_shape, nb_classes, getstring_flag=False):
+
+	model_string ='r|f:192,r:5,b:0' \
+	               '->r|f:160,r:1,b:0' \
+	               '->r|f:96,r:1,b:0' \
+					'->mp|r:3'\
+					'->d|p:.5'\
+	               '->r|f:192,r:5,b:0' \
+	               '->r|f:192,r:1,b:0' \
+	               '->r|f:192,r:1,b:0' \
+	               '->ap|r:3' \
+	               '->d|p:.5'\
+	               '->r|f:192,r:3,b:0' \
+	               '->r|f:192,r:1,b:0' \
+	               '->conv|f:'+str(nb_classes)+',r:1,b:0' \
+	               '->apd|r:7'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+def nin_besh2(opts, input_shape, nb_classes, getstring_flag=False):
+
+	model_string ='besh|f:192,r:5,b:0,p:1' \
+	               '->besh|f:160,r:1,b:0,p:1' \
+	               '->besh|f:96,r:1,b:0,p:1' \
+				'->leaffully|n:2'\
+					'->mp|r:3'\
+					'->d|p:.5'\
+	               '->besh|f:192,r:5,b:0,p:1' \
+	               '->besh|f:192,r:1,b:0,p:1' \
+	               '->besh|f:192,r:1,b:0,p:1' \
+	              '->leaffully|n:4'\
+	              '->ap|r:3'\
+	               '->d|p:.5'\
+	               '->besh|f:192,r:3,b:0,p:1' \
+	               '->besh|f:192,r:1,b:0,p:1' \
+	               '->cshfixedfilter|f:'+str(nb_classes)+',r:1,b:0,p:1' \
+	                                          '->globalpooling|r:7'
 	nb_filter_list = [32, 32, 64, 128, 64, 64]
 	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
 	if getstring_flag:
@@ -1767,7 +1828,7 @@ def get_model_string_from_db(identifier,opts,input_shape,nb_classes):
 if __name__ == '__main__':
 	opts = default_opt_creator()
 	functions = globals().copy()
-	func_to_test = ['springberg_baseline']
+	func_to_test = ['nin_besh2']
 	for function in functions:
 		if not function[0] in ['b','l']:
 			continue

@@ -49,9 +49,9 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 	filter_size_set = [-1]
 	lr = [-2]
 
-	w_reg = {'l1'}
-	w_reg_value = {1e-6}
-	param_expand = [.5] ## in gated all the params are devided by two because we have two layers per channel so
+	w_reg = {'l2'}
+	w_reg_value = {5e-4}
+	param_expand = [1] ## in gated all the params are devided by two because we have two layers per channel so
 	# this ratio can be compared for number of parameters e.g if in lennet param_expand=1 and in gated param_expand=1
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
@@ -171,7 +171,8 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 
 def wrapper_gated(model,opts,experiment_name):
 	opts['experiment_name']= experiment_name
-	method_names = find_key_value_to_str_recursive(opts,'',{'param_expand','gate_activation','stoch'})
+	method_names = find_key_value_to_str_recursive(opts,'',{'param_expand','gate_activation','stoch','lr',
+	                                                        'w_regularizer'})
 	opts['experiment_name'] =method_names+'#param_count:'+str(model.count_params())
 	sgd = SGD(lr=opts['optimizer_opts']['lr'], momentum=opts['optimizer_opts']['momentum'],
 	          decay=opts['optimizer_opts']['decay'], nesterov=opts['optimizer_opts']['nestrov'])
@@ -188,9 +189,9 @@ def wrapper_gated(model,opts,experiment_name):
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['baseline']
+	models= ['nin_besh2']
 	datasets=['cifar100','cifar10']
-	experiment_name = 'Baseline'+time.strftime('%b%d')
+	experiment_name = 'NIN_no_aug'+time.strftime('%b%d')
 	for dataset_str in datasets:
 		for model_str in models:
 			options={}

@@ -201,8 +201,23 @@ def conv_birelu_merge_on_list(nb_filter,filter_size,border_mode,input_shape,w_re
 				                   layer_index, lists_or_tensor)]
 		indexint += 1
 	return result
+def conv_on_list(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,layer_index,
+                      input_tensor_list,index='0',stride = 1,b_reg=None):
+	result = []
+	indexint =0
+	for lists_or_tensor in input_tensor_list:
+		if type(lists_or_tensor) == list:
+			result += [
+				conv_on_list(nb_filter, filter_size, border_mode, input_shape, w_reg, gate_activation,
+				                           layer_index, lists_or_tensor,index=index+str(indexint))]
+		else:
+			result += [conv(nb_filter, filter_size, border_mode, input_shape, w_reg, gate_activation,
+			                            index+str(indexint),
+				                   layer_index, lists_or_tensor,stride=stride,breg=b_reg)]
+		indexint += 1
+	return result
 def conv_relu_on_list(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,layer_index,
-                      input_tensor_list,index='0',stride = 1):
+                      input_tensor_list,index='0',stride = 1,b_reg=None):
 	result = []
 	indexint =0
 	for lists_or_tensor in input_tensor_list:
@@ -213,7 +228,7 @@ def conv_relu_on_list(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_a
 		else:
 			result += [conv_relu(nb_filter, filter_size, border_mode, input_shape, w_reg, gate_activation,
 			                            index+str(indexint),
-				                   layer_index, lists_or_tensor,stride=stride)]
+				                   layer_index, lists_or_tensor,stride=stride,breg=b_reg)]
 		indexint += 1
 	return result
 def max_pool_on_list(input_tensor_list,strides,layer_index,index='0',pool_size =None):

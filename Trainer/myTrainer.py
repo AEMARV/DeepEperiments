@@ -3,7 +3,7 @@ from __future__ import print_function
 import os
 
 import numpy as np
-from keras.callbacks import ReduceLROnPlateau,TensorBoard,History,CSVLogger,LearningRateScheduler
+from keras.callbacks import ReduceLROnPlateau,TensorBoard,History,CSVLogger,LearningRateScheduler,ModelCheckpoint
 from CallBacks.callbacks import *
 from keras.optimizers import SGD
 from keras.preprocessing import image
@@ -64,7 +64,7 @@ def train(model, dataset_abs_path, optimizer, opts,cpu_debug=False):
 		plotter = PlotMetrics(opts)
 		experiments_abs_path = plotter.history_holder.dir_abs_path
 		reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.00001)
-		tensorboard = TensorBoard(log_dir=experiments_abs_path + '/logs', histogram_freq=0, write_images=False)
+		tensorboard = TensorBoard(log_dir=experiments_abs_path + '/logs', histogram_freq=2, write_images=False)
 		csv_logger = CSVLogger(filename=experiments_abs_path + '/training.log', separator=',')
 		lr_sched = LearningRateScheduler(lr_random_multiScale)
 		callback_list = [plotter, tensorboard, csv_logger]
@@ -133,6 +133,8 @@ def lr_permut(index):
 	lr_s = lr[int(i)]
 	print('LearningRate:',lr_s)
 	return lr_s
+def springberg_lr(index):
+	S = [200,250,300]
 def cifar_trainer(opts,model,optimizer):
 	nb_classes=10;
 
@@ -158,47 +160,79 @@ def cifar_trainer(opts,model,optimizer):
 	# 	          nb_epoch=epoch_nb,
 	# 	          validation_data=(X_test, Y_test),
 	# 	          shuffle=True)
+	file_name_extension = 'cifar100_zca:' + str(opts['aug_opts']['zca_whitening']) + '_stdn:' + str(
+		opts['aug_opts']['featurewise_std_normalization']) + '_mn:' + str(
+		opts['aug_opts']['featurewise_center']) + '.npy'
+	train_name = 'xtrain_' + file_name_extension
+	train_file_path = '/home/student/Documents/Git/DeepEperiments/' + train_name
+	test_file_path = '/home/student/Documents/Git/DeepEperiments/' + 'xtest_' + file_name_extension
 	if opts['aug_opts']['enable']:
-		print('Using real-time data augmentation.')
+		if not os.path.exists(os.path.abspath(train_file_path)):
+			print('Using real-time data augmentation.')
+			datagen = ImageDataGenerator(featurewise_center=opts['aug_opts']['featurewise_center'],
+			                             featurewise_std_normalization=opts['aug_opts'][
+				                             'featurewise_std_normalization'], # divide inputs by std of the dataset
+			                             zca_whitening=opts['aug_opts']['zca_whitening'],  # apply ZCA whitening
+			                             )
+			print('Data Augmentation enabled')
+			print(opts['aug_opts'])
+			datagen.fit(X_train)
+			for i in range(X_train.shape[0]):
+				X_train[i] = datagen.standardize(X_train[i])
+			for i in range(X_test.shape[0]):
+				X_test[i] = datagen.standardize(X_test[i])
+			np.save(os.path.abspath(train_file_path), X_train)
+			np.save(os.path.abspath(test_file_path), X_test)
+		else:
+			X_train = np.load(os.path.abspath(train_file_path))
+			X_test = np.load(os.path.abspath(test_file_path))
 
-		# this will do preprocessing and realtime data augmentation
-		datagen = ImageDataGenerator(
-			featurewise_center=opts['augmentation_opts']['featurewise_center'],  # set input mean to 0 over the dataset
-			samplewise_center=opts['augmentation_opts']['samplewise_center'],  # set each sample mean to 0
-			featurewise_std_normalization=opts['augmentation_opts']['featurewise_std_normalization'],  # divide inputs by std of the dataset
-			samplewise_std_normalization=opts['augmentation_opts']['samplewise_std_normalization'],  # divide each input by its std
-			zca_whitening=opts['augmentation_opts']['zca_whitening'],  # apply ZCA whitening
-			rotation_range=opts['augmentation_opts']['rotation_range'],  # randomly rotate images in the range (degrees, 0 to 180)
-			width_shift_range=opts['augmentation_opts']['width_shift_range'],  # randomly shift images horizontally (fraction of total width)
-			height_shift_range=opts['augmentation_opts']['height_shift_range'],  # randomly shift images vertically (fraction of total height)
-			horizontal_flip=opts['augmentation_opts']['horizontal_flip'],  # randomly flip images
-			vertical_flip=opts['augmentation_opts']['vertical_flip'])  # randomly flip images
-	else:
-		datagen=ImageDataGenerator()
+
 		# compute quantities required for featurewise normalization
 		# (std, mean, and principal components if ZCA whitening is applied)
-		datagen.fit(X_train)
+	if opts['aug_opts']['enable']:
+		print('Using real-time data augmentation.')
+		datagen = ImageDataGenerator(# set input mean to 0 over the dataset
+			samplewise_center=opts['aug_opts']['samplewise_center'],  # set each sample mean to 0
+			samplewise_std_normalization=opts['aug_opts']['samplewise_std_normalization'],
+			# divide each input by its std
+			rotation_range=opts['aug_opts']['rotation_range'], # randomly rotate images in the range (degrees, 0 to 180)
+			width_shift_range=opts['aug_opts']['width_shift_range'],
+			# randomly shift images horizontally (fraction of total width)
+			height_shift_range=opts['aug_opts']['height_shift_range'],
+			# randomly shift images vertically (fraction of total height)
+			horizontal_flip=opts['aug_opts']['horizontal_flip'],  # randomly flip images
+			vertical_flip=opts['aug_opts']['vertical_flip'])  # randomly flip images
+		print('Data Augmentation enabled')
+		print(opts['aug_opts'])
+	# compute quantities required for featurewise normalization
+	# (std, mean, and principal components if ZCA whitening is applied)
+	else:
+		datagen = ImageDataGenerator()
 	plotter = PlotMetrics(opts)
 	experiments_abs_path = plotter.history_holder.dir_abs_path
 	reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=10, min_lr=0.0001)
-	tensorboard = TensorboardCostum(log_dir=experiments_abs_path + '/logs', histogram_freq=5, write_graph=False,
+	tensorboard = TensorboardCostum(log_dir=experiments_abs_path + '/logs', histogram_freq=1, write_graph=False,
 	                                write_images=False)
 	csv_logger = CSVLogger(filename=experiments_abs_path+'/training.log',separator=',')
 	lr_sched = LearningRateScheduler(lr_random_multiScale)
 	early_stopping = EarlyStopping('acc', min_delta=.0001, patience=40, mode='max')
-	callback_list = [plotter, csv_logger,early_stopping,tensorboard]
-	if opts['optimizer_opts']['lr']==-1:
-		callback_list = callback_list+[lr_sched]
+	checkpoint = ModelCheckpoint(experiments_abs_path + '/checkpoint', period=10)
+	callback_list = [plotter, csv_logger,tensorboard,checkpoint]
+	# if opts['optimizer_opts']['lr']==-1:
+	# 	callback_list = callback_list+[lr_sched]
 	if opts['optimizer_opts']['lr']==-2:
 		lr_sched = LearningRateScheduler(lr_permut)
-		callback_list = callback_list+[lr_sched]
+	# if opts['optimizer_opts']['lr'] == -3:
+	# lr_sched = LearningNIN()
+
+	callback_list = callback_list+[lr_sched]
 	# fit the model on the batches generated by datagen.flow()
-	model.fit_generator(datagen.flow(X_train, Y_train,
-		                                 batch_size=opts['training_opts']['batch_size'],shuffle=True,seed=opts['seed']),
-		                    samples_per_epoch=samples_per_epoch,
-		                    nb_epoch=opts['training_opts']['epoch_nb'],
-		                    validation_data=(X_test, Y_test),
-		                    callbacks=callback_list)
+	model.fit_generator(
+		datagen.flow(X_train, Y_train, batch_size=opts['training_opts']['batch_size'], shuffle=True, seed=opts[
+			'seed']),
+		samples_per_epoch=samples_per_epoch, nb_epoch=opts['training_opts']['epoch_nb'], callbacks=callback_list,
+		validation_data=datagen.flow(X_test, Y_test), nb_val_samples=X_test.shape[0])
 
 def cifar100_trainer(opts, model, optimizer):
 	nb_classes = 100;
@@ -224,53 +258,86 @@ def cifar100_trainer(opts, model, optimizer):
 	# 	          nb_epoch=epoch_nb,
 	# 	          validation_data=(X_test, Y_test),
 	# 	          shuffle=True)
-	if opts['aug_opts']['enable']:
-		print('Using real-time data augmentation.')
-		datagen = ImageDataGenerator(featurewise_center=opts['augmentation_opts']['featurewise_center'],
-			# set input mean to 0 over the dataset
-			samplewise_center=opts['augmentation_opts']['samplewise_center'],  # set each sample mean to 0
-			featurewise_std_normalization=opts['augmentation_opts']['featurewise_std_normalization'],
-			# divide inputs by std of the dataset
-			samplewise_std_normalization=opts['augmentation_opts']['samplewise_std_normalization'],
-			# divide each input by its std
-			zca_whitening=opts['augmentation_opts']['zca_whitening'],  # apply ZCA whitening
-			rotation_range=opts['augmentation_opts']['rotation_range'],
-			# randomly rotate images in the range (degrees, 0 to 180)
-			width_shift_range=opts['augmentation_opts']['width_shift_range'],
-			# randomly shift images horizontally (fraction of total width)
-			height_shift_range=opts['augmentation_opts']['height_shift_range'],
-			# randomly shift images vertically (fraction of total height)
-			horizontal_flip=opts['augmentation_opts']['horizontal_flip'],  # randomly flip images
-			vertical_flip=opts['augmentation_opts']['vertical_flip'])  # randomly flip images
+	file_name_extension = 'cifar100_zca:'+str(opts['aug_opts']['zca_whitening'])+'_stdn:'+str(opts['aug_opts'][
+		                                                                                 'featurewise_std_normalization'])+'_mn:'+str(opts['aug_opts']['featurewise_center'])+'.npy'
+	train_name = 'xtrain_'+file_name_extension
+	train_file_path = '/home/student/Documents/Git/DeepEperiments/'+train_name
+	test_file_path = '/home/student/Documents/Git/DeepEperiments/'+'xtest_'+file_name_extension
+	if opts['aug_opts']['enable'] :
+		if  not os.path.exists(os.path.abspath(train_file_path)):
+			print('Using real-time data augmentation.')
+			datagen = ImageDataGenerator(featurewise_center=opts['aug_opts']['featurewise_center'],
+				# set input mean to 0 over the dataset
+				featurewise_std_normalization=opts['aug_opts']['featurewise_std_normalization'],
+				# divide inputs by std of the dataset
+				# divide each input by its std
+				zca_whitening=opts['aug_opts']['zca_whitening'],  # apply ZCA whitening
+				# randomly rotate images in the range (degrees, 0 to 180)
+				# randomly shift images horizontally (fraction of total width)
+				# randomly shift images vertically (fraction of total height)
+			                             )  # randomly flip images
+			print('Data Augmentation enabled')
+			print(opts['aug_opts'])
+			datagen.fit(X_train)
+			for i in range(X_train.shape[0]):
+				X_train[i] = datagen.standardize(X_train[i])
+				print(i)
+			for i in range(X_test.shape[0]):
+				X_test[i] = datagen.standardize(X_test[i])
+			np.save(os.path.abspath(train_file_path),X_train)
+			np.save(os.path.abspath(test_file_path),X_test)
+		else:
+			X_train = np.load(os.path.abspath(train_file_path))
+			X_test = np.load(os.path.abspath(test_file_path))
+
 
 		# compute quantities required for featurewise normalization
 		# (std, mean, and principal components if ZCA whitening is applied)
-		datagen.fit(X_train)
+	if opts['aug_opts']['enable']:
+		print('Using real-time data augmentation.')
+		datagen = ImageDataGenerator(
+			# set input mean to 0 over the dataset
+			samplewise_center=opts['aug_opts']['samplewise_center'],  # set each sample mean to 0
+			samplewise_std_normalization=opts['aug_opts']['samplewise_std_normalization'],
+			# divide each input by its std
+			rotation_range=opts['aug_opts']['rotation_range'],
+			# randomly rotate images in the range (degrees, 0 to 180)
+			width_shift_range=opts['aug_opts']['width_shift_range'],
+			# randomly shift images horizontally (fraction of total width)
+			height_shift_range=opts['aug_opts']['height_shift_range'],
+			# randomly shift images vertically (fraction of total height)
+			horizontal_flip=opts['aug_opts']['horizontal_flip'],  # randomly flip images
+			vertical_flip=opts['aug_opts']['vertical_flip'])  # randomly flip images
+		print('Data Augmentation enabled')
+		print(opts['aug_opts'])
+		# compute quantities required for featurewise normalization
+		# (std, mean, and principal components if ZCA whitening is applied)
 	else:
 		datagen=ImageDataGenerator()
 	plotter = PlotMetrics(opts)
 	experiments_abs_path = plotter.history_holder.dir_abs_path
 	reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.00001)
-	tensorboard = TensorBoard(log_dir=experiments_abs_path + '/logs', histogram_freq=5,write_graph=False,
-	write_images=False)
-	tensorboard = TensorboardCostum(log_dir=experiments_abs_path + '/logs', histogram_freq=5, write_graph=False,
+	tensorboard = TensorboardCostum(log_dir=experiments_abs_path + '/logs', histogram_freq=1, write_graph=False,
 	                          write_images=False)
 	csv_logger = CSVLogger(filename=experiments_abs_path + '/training.log', separator=',')
 	lr_sched = LearningRateScheduler(lr_random_multiScale)
 	early_stopping = EarlyStopping('acc',min_delta=.0001,patience=20,mode='max')
 	general_callback = GeneralCallback()
-	callback_list = [plotter, csv_logger,early_stopping,general_callback,tensorboard]
+	checkpoint  = ModelCheckpoint(experiments_abs_path + '/checkpoint',period=10)
+	callback_list = [plotter, csv_logger,general_callback,tensorboard,checkpoint]
 	# callback_list = [tensorboard]
-	if opts['optimizer_opts']['lr'] == -1:
-		callback_list = callback_list + [lr_sched]
-	if opts['optimizer_opts']['lr']==-2:
-		lr_sched = LearningRateScheduler(lr_permut)
-		callback_list = callback_list+[lr_sched]
+	# if opts['optimizer_opts']['lr'] == -1:
+	# 	callback_list = callback_list + [lr_sched]
+	# if opts['optimizer_opts']['lr']==-2:
+	# 	lr_sched = LearningRateScheduler(lr_permut)
+	# 	callback_list = callback_list+[lr_sched]
+	lr_sched = LearningNIN()
+	callback_list = callback_list+[lr_sched]
 	# fit the model on the batches generated by datagen.flow()
 	model.fit_generator(
 		datagen.flow(X_train, Y_train, batch_size=opts['training_opts']['batch_size'], shuffle=True,
-		             seed=opts['seed']), samples_per_epoch=samples_per_epoch,
-		nb_epoch=opts['training_opts']['epoch_nb'], validation_data=(X_test, Y_test), callbacks=callback_list)
+		             seed=opts['seed']),samples_per_epoch=samples_per_epoch,
+		nb_epoch=opts['training_opts']['epoch_nb'],  callbacks=callback_list,validation_data=(X_test,Y_test))
 	# else:
 	# 	model.fit(X_train, Y_train, batch_size=opts['training_opts']['batch_size'],
 	# 	          nb_epoch=opts['training_opts']['epoch_nb'], validation_data=(X_test, Y_test), shuffle=True,

@@ -254,13 +254,65 @@ class TensorboardCostum(Callback):
             summary_value.simple_value = value.item()
             summary_value.tag = name
             self.writer.add_summary(summary, epoch)
+        value = K.eval(self.model.optimizer.lr)
+        name = 'lr'
+        summary = tf.Summary()
+        summary_value = summary.value.add()
+        summary_value.simple_value = value.item()
+        summary_value.tag = name
+        self.writer.add_summary(summary, epoch)
         self.writer.flush()
 
     def on_train_end(self, _):
         K.clear_session()
         self.writer.close()
 
+class LearningSpringberg(Callback):
+    """Learning rate scheduler.
 
+    # Arguments
+        schedule: a function that takes an epoch index as input
+            (integer, indexed from 0) and returns a new
+            learning rate as output (float).
+    """
+
+    def __init__(self, S,initial_lr):
+        super(LearningSpringberg, self).__init__()
+        self.s = S
+        self.initial_lr = initial_lr
+        self.initial_lr_set = False
+
+    def on_epoch_begin(self, epoch, logs=None):
+        if not hasattr(self.model.optimizer, 'lr'):
+            raise ValueError('Optimizer must have a "lr" attribute.')
+        if not self.initial_lr_set:
+            K.set_value(self.model.optimizer.lr,self.initial_lr)
+            self.initial_lr_set = True
+        if epoch in self.s:
+            current_lr = K.eval(self.model.optimizer.lr)
+            K.set_value(self.model.optimizer.lr, current_lr/10)
+        logs['lr'] = K.get_value(self.model.optimizer.lr)
+
+class LearningNIN(Callback):
+    """Learning rate scheduler.
+
+    # Arguments
+        schedule: a function that takes an epoch index as input
+            (integer, indexed from 0) and returns a new
+            learning rate as output (float).
+    """
+    def __init__(self):
+        super(LearningNIN, self).__init__()
+        self.s = [0,1,2,3,83,93,103]
+        self.initial_lr = [2e-3,1e-2,2e-2,4e-2,4e-3,4e-4]
+        self.lr_index =0
+    def on_epoch_begin(self, epoch, logs=None):
+        if not hasattr(self.model.optimizer, 'lr'):
+            raise ValueError('Optimizer must have a "lr" attribute.')
+        if epoch in self.s:
+            K.set_value(self.model.optimizer.lr, self.initial_lr[self.lr_index])
+            print('lr_changed to ',str(self.initial_lr[self.lr_index]))
+            self.lr_index +=1
 class EarlyStopping(Callback):
     """Stop training when a monitored quantity has stopped improving.
 
