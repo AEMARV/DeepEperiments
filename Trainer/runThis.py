@@ -191,7 +191,7 @@ if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
 	models= ['nin_besh2']
 	datasets=['cifar100','cifar10']
-	experiment_name = 'NIN_no_aug'+time.strftime('%b%d')
+	experiment_name = 'NIN_no_aug_whiten'+time.strftime('%b%d')
 	for dataset_str in datasets:
 		for model_str in models:
 			options={}

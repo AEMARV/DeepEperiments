@@ -76,7 +76,7 @@ def set_val(fun_name_without_set,val,opts):## key should  be compatibale to sett
 	return opts
 
 def set_default_opts_based_on_model_dataset(opts):
-	opts['aug_opts']['enable'] = False # enables augmentation
+	opts['aug_opts']['enable'] = True # enables augmentation
 	opts['aug_opts']['featurewise_center'] = True  # set input mean to 0 over the dataset
 	opts['aug_opts']['samplewise_center'] = False  # set each sample mean to 0
 	opts['aug_opts']['featurewise_std_normalization'] = True  # divide inputs by std of the dataset

@@ -17,6 +17,7 @@ class DropInstanse(Layer):
 	def get_output_shape_for(self, input_shape):
 		pass
 	def compute_mask(self, input, input_mask=None):
+		tf.strided_slice()
 		pass
 class PBirelu(Layer):
 	"""Parametric Rectified Linear Unit.
@@ -259,11 +260,18 @@ class FullyConnectedTensors(Layer):
 		# 	pos = self.alphas * pos
 		result = []
 
+		# y = K.expand_dims(x, 2)
+		# y = K.permute_dimensions(y, [1, 2, 0, 3, 4, 5])
+		# y = y*self.alphas
+		# res = K.sum(y,2)
+		# for i in range(self.output_tensor_len):
+		# 	result+=[res[:,i,:,:,:]]
 		for j in range(self.output_tensor_len):
 			sum = K.zeros_like(x[0])
 			for i in range(x.__len__()):
 				sum+=x[i]*self.alphas[j,i,:,:,:]
 			result+=[sum]
+
 		return result
 
 	def get_config(self):
