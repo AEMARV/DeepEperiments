@@ -49,9 +49,9 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 	filter_size_set = [-1]
 	lr = [-2]
 
-	w_reg = {'l2'}
+	w_reg = {None}
 	w_reg_value = {5e-4}
-	param_expand = [1] ## in gated all the params are devided by two because we have two layers per channel so
+	param_expand = [1.4] ## in gated all the params are devided by two because we have two layers per channel so
 	# this ratio can be compared for number of parameters e.g if in lennet param_expand=1 and in gated param_expand=1
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
@@ -66,7 +66,12 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 								for param_expand_sel in param_expand:
 									for gate_stoch in gate_stoch_enable:
 										for f_size in filter_size_set:
-											if model_str.find('be')==-1 and gate_activation=='sigmoid_stoch':
+											if (not model_str.find('baseline')==-1) and param_expand_sel in [1.4,
+											                                                           1] and \
+																	model_str.find('baseline_r')==-1:
+												break
+											if ((not model_str.find('besh')==-1) or (not model_str.find(
+														'baseline_r')==-1))	and param_expand_sel==.7:
 												break
 											opts=set_gate_activation(opts=opts,activation=gate_activation)
 											opts=set_data_activation(opts=opts,activation=data_activation)
@@ -189,9 +194,9 @@ def wrapper_gated(model,opts,experiment_name):
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['nin_besh2']
-	datasets=['cifar100','cifar10']
-	experiment_name = 'NIN_no_aug_whiten'+time.strftime('%b%d')
+	models= ['besh_crelu_6','besh_crelu_14']
+	datasets=['cifar100']
+	experiment_name = 'Lenet'+time.strftime('%b%d')
 	for dataset_str in datasets:
 		for model_str in models:
 			options={}

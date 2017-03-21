@@ -1679,7 +1679,28 @@ def besh_crelu_12(opts, input_shape, nb_classes,getstring_flag=False):
 	filter_size_list = [5,3,3,3,5,3,4,3]
 	if getstring_flag:
 		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
-
+def baseline2_besh12(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->besh|f:64,r:5' \
+	               '->leaffully|u:1,n:2,ido:-1' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:4,ido:-1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->leaffully|u:1,n:8,ido:-1' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->leaffully|u:1,n:16,ido:-1' \
+	               '->ap|s:2,r:3' \
+	               '->shdensedoi|n:-1,dode:.5,doclas:-1,m:0'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
 def besh_crelu_12(opts, input_shape, nb_classes, getstring_flag=False):
 	# c_relu10 with drop out rate .9
 	model_string = 'besh|f:32,r:5,p:1' \
@@ -1720,6 +1741,22 @@ def besh_crelu_13(opts, input_shape, nb_classes, getstring_flag=False):
 	if getstring_flag:
 		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
 	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_14(opts, input_shape, nb_classes,getstring_flag=False):
+	# Added avg of maxpool and avgpool to besh_crelu_2
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->ap|s:2,r:3' \
+	               '->shdense|n:-1,do:.5,m:.5'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
 def baseline(opts, input_shape, nb_classes, getstring_flag=False):
 	model_string = 'cr|f:32,r:5' \
 	               '->mp|s:2,r:3' \
@@ -1736,6 +1773,41 @@ def baseline(opts, input_shape, nb_classes, getstring_flag=False):
 		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
 	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
 	                 conv_filter_size_list=filter_size_list)
+def baseline_r(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'r|f:32,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->r|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->r|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->r|f:64,r:4' \
+	               '->ap|s:2,r:3' \
+	               '->d|p:.5'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+def baseline2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'cr|f:32,r:5' \
+	               '->cr|f:64,r:5' \
+	               '->mp|s:2,r:3' \
+	               '->cr|f:64,r:3' \
+	               '->cr|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->cr|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->cr|f:64,r:4' \
+	               '->ap|s:2,r:3' \
+	               '->d|p:.5'
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+	if getstring_flag:
+		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+	                 conv_filter_size_list=filter_size_list)
+
 def springberg_baseline(opts, input_shape, nb_classes, getstring_flag=False):
 
 	model_string = 'd|p:.25'\
@@ -1828,10 +1900,8 @@ def get_model_string_from_db(identifier,opts,input_shape,nb_classes):
 if __name__ == '__main__':
 	opts = default_opt_creator()
 	functions = globals().copy()
-	func_to_test = ['nin_besh2']
+	func_to_test = ['baseline2','baseline2_besh12','besh_crelu_12']
 	for function in functions:
-		if not function[0] in ['b','l']:
-			continue
 		if function not in func_to_test:
 			continue
 		model = functions.get(function)
@@ -1850,6 +1920,5 @@ if __name__ == '__main__':
 		opts = opt_utils.set_dataset(opts,'cifar100')
 		opt_utils.set_default_opts_based_on_model_dataset(opts)
 		model = model(opts,(3,32,32),10)
-		model.summary()
 		print model.count_params()
 
