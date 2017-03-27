@@ -325,6 +325,8 @@ class Birelu(Layer):
 			pas = pas+x
 			inv_pas = inv_pas+x
 		if not self.relu_birelu_sel==1:
+			dropout_boostA = 1/(dropout_rate+((1-dropout_rate)*self.child_p))
+			dropout_boostB = 1 / (dropout_rate + ((1 - dropout_rate) * (1-self.child_p)))
 			variable_placeholder =K.variable(0)
 			one = K.ones_like(variable_placeholder)
 			birelu_flag = K.random_binomial(K.shape(variable_placeholder),p=dropout_rate)
@@ -337,8 +339,8 @@ class Birelu(Layer):
 			inv_pas_c = K.concatenate([inv_pas,pas[:,:self.concat_filter_num,:,:]],axis=1)
 			pas = pas_c
 			inv_pas = inv_pas_c
-			pas = K.in_train_phase(pas*pas_flag,pas)
-			inv_pas =K.in_train_phase(inv_pas*inv_flag,inv_pas)
+			pas = K.in_train_phase(dropout_boostA*pas*pas_flag,pas)
+			inv_pas =K.in_train_phase(dropout_boostB*inv_pas*inv_flag,inv_pas)
 			return [pas,inv_pas]
 			# return [pas*pas_flag, inv_pas*inv_flag]
 

@@ -1757,6 +1757,85 @@ def besh_crelu_14(opts, input_shape, nb_classes,getstring_flag=False):
 	if getstring_flag:
 		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
 	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_15(opts, input_shape, nb_classes,getstring_flag=False):
+	model_string = 'besh|f:32,r:5,p:1' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4' \
+	               '->ap|s:2,r:3' \
+	               '->shdense|n:-1,do:.5,m:1'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_16(opts, input_shape, nb_classes,getstring_flag=False):
+	# Added avg of maxpool and avgpool to besh_crelu_2
+	model_string = 'besh|f:32,r:5,p:1,p:.75' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3,p:.75' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5,p:.75' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4,p:.75' \
+	               '->ap|s:2,r:3' \
+	               '->shdensedoi|n:-1,dode:.5,m:.5,doclas:.5'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_17(opts, input_shape, nb_classes,getstring_flag=False):
+	# Added avg of maxpool and avgpool to besh_crelu_2
+	model_string = 'besh|f:32,r:5,p:1,p:.75' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3,p:.75' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5,p:.75' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4,p:.75' \
+	               '->ap|s:2,r:3' \
+	               '->shdensedoi|n:-1,dode:.5,m:.5,doclas:.1'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_18(opts, input_shape, nb_classes,getstring_flag=False):
+	# crelu_16 with variable droppath
+	model_string = 'besh|f:32,r:5,p:1,p:.90' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3,p:.80' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5,p:.75' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4,p:.65' \
+	               '->ap|s:2,r:3' \
+	               '->shdensedoi|n:-1,dode:.5,m:.5,doclas:.1'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
+def besh_crelu_19(opts, input_shape, nb_classes,getstring_flag=False):
+	# crelu_16 with prob 80%
+	model_string = 'besh|f:32,r:5,p:1,p:.80' \
+	               '->mp|s:2,r:3' \
+	               '->besh|f:64,r:3,p:.80' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:128,r:5,p:.80' \
+	               '->ap|s:2,r:3' \
+	               '->besh|f:64,r:4,p:.80' \
+	               '->ap|s:2,r:3' \
+	               '->shdensedoi|n:-1,dode:.5,m:.5,doclas:.1'
+	nb_filter_list = [32,64,128,64]
+	filter_size_list = [5,3,3,3,5,3,4,3]
+	if getstring_flag:
+		return {'string':model_string,'nb_filter':nb_filter_list,'filter_size':filter_size_list}
+	return get_model(opts,input_shape,nb_classes,model_string=model_string)
 def baseline(opts, input_shape, nb_classes, getstring_flag=False):
 	model_string = 'cr|f:32,r:5' \
 	               '->mp|s:2,r:3' \

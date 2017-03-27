@@ -387,7 +387,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				x = res_max
 				if max ==.5:
 					x = merge([res_max,res_sum])
-				x = merge([res_max, res_sum])
+				# x = merge([res_max, res_sum])
 		if component == 'globalpooling':
 			max = 0
 			if param.has_key('m'):
@@ -429,7 +429,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				if not dense_dropout == 0:
 					tensor_f = Dropout(dense_dropout)(tensor_f)
 				tensor_f = dense(tensor_f)
-				tensor_f = Dropout(classification_dropout)(tensor_f)
+				tensor_f = InstanceDropout(classification_dropout)(tensor_f)
 				res += [tensor_f]
 			res_sum = merge(res)
 			if max == 0:

@@ -36,7 +36,7 @@ def train(model, dataset_abs_path, optimizer, opts,cpu_debug=False):
 	              optimizer=optimizer,
 	              metrics=['accuracy','categorical_accuracy','mean_absolute_percentage_error','precision','recall'])
 
-	imdg = image.ImageDataGenerator(featurewise_center=True, dim_ordering='th')
+	imdg = image.ImageDataGenerator()
 	training_abs_path = os.path.join(dataset_abs_path, "training")
 	validation_abs_path = os.path.join(dataset_abs_path, "validation")
 
@@ -63,14 +63,19 @@ def train(model, dataset_abs_path, optimizer, opts,cpu_debug=False):
 		##TODO: change samples per epoch to trainer_from_generator.nbsamples
 		plotter = PlotMetrics(opts)
 		experiments_abs_path = plotter.history_holder.dir_abs_path
-		reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.00001)
-		tensorboard = TensorBoard(log_dir=experiments_abs_path + '/logs', histogram_freq=2, write_images=False)
+		tensorboard = TensorboardCostum(log_dir=experiments_abs_path + '/logs', histogram_freq=1, write_graph=False,
+		                                write_images=False)
 		csv_logger = CSVLogger(filename=experiments_abs_path + '/training.log', separator=',')
 		lr_sched = LearningRateScheduler(lr_random_multiScale)
-		callback_list = [plotter, tensorboard, csv_logger]
-		if opts['optimizer_opts']['lr'] == -1:
-			callback_list = callback_list + [lr_sched]
-		# Debugger
+		early_stopping = EarlyStopping('acc', min_delta=.0001, patience=40, mode='max')
+		checkpoint = ModelCheckpoint(experiments_abs_path + '/checkpoint', period=10)
+		callback_list = [plotter, csv_logger, tensorboard, checkpoint]
+		if opts['optimizer_opts']['lr'] == -2:
+			lr_sched = LearningRateScheduler(lr_permut)
+		# if opts['optimizer_opts']['lr'] == -3:
+		# lr_sched = LearningNIN()
+
+		callback_list = callback_list + [lr_sched]
 		model.fit_generator(generator=train_generator, samples_per_epoch=samples_per_epoch_training,
 		                    nb_epoch=opts['training_opts']['epoch_nb'],
 		                    validation_data=validation_generator, nb_val_samples=samples_per_epoch_validation,
