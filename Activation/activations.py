@@ -1,9 +1,10 @@
 from keras.activations import sigmoid
 import keras.backend as K
 import tensorflow as tf
-from keras.utils.generic_utils import get_from_module
+# from keras.utils.generic_utils import get_from_module
 from keras.layers import SpatialDropout2D
-from utils.opt_utils import get_stoc_flip
+import six
+from keras.utils.generic_utils import serialize_keras_object,deserialize_keras_object
 def softplus_stoch(x):
     y = softplus(x)
     shape_x = K.shape(y)
@@ -71,7 +72,17 @@ def hard_sigmoid(x):
 def linear(x):
     return x
 
+def serialize(initializer):
+    return serialize_keras_object(initializer)
+
+
+def deserialize(config, custom_objects=None):
+    return deserialize_keras_object(config,
+                                    module_objects=globals(),
+                                    custom_objects=custom_objects,
+                                    printable_module_name='initializer')
+
+
 def get(identifier):
-    if identifier is None:
-        return linear
-    return get_from_module(identifier, globals(), 'activation function')
+    return globals()[identifier]
+

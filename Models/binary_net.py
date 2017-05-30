@@ -5,7 +5,7 @@ from keras.layers import Input, Flatten, Dense, Dropout, Activation, AveragePool
 	merge
 from keras.optimizers import SGD
 from keras.regularizers import l1, l2
-from keras.utils.visualize_util import plot
+from keras.utils.vis_utils import plot_model
 
 from Layers.gate_layer import gate_layer, gate_layer_on_list, maxpool_on_list, averagepool_on_list
 from utils.opt_utils import get_filter_size

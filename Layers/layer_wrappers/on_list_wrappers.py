@@ -43,6 +43,50 @@ def conv_birelu_expand_on_list_shared(conv_layer,gate_activation,layer_index,
 
 		indexint+=1
 	return result
+def conv_birelu_expand_on_list_shared_permute_channels(conv_layer,gate_activation,layer_index,
+                      input_tensor_list,index='0',drop_path_rate=1,batch_norm=False,leak_rate =0,child_p=.5
+                                      ,max_perm=2,random_permute_flag=0):
+	result = []
+	indexint=0
+	for lists_or_tensor in input_tensor_list:
+		if type(lists_or_tensor)==list:
+			result+=[conv_birelu_expand_on_list_shared_permute_channels(conv_layer=conv_layer,
+			                                         gate_activation=gate_activation,
+			                                   layer_index=layer_index,
+                      input_tensor_list=lists_or_tensor,index=index+str(indexint),drop_path_rate=drop_path_rate,
+                                                batch_norm=batch_norm,leak_rate=leak_rate,child_p=child_p,
+                                                                        max_perm=max_perm,random_permute_flag=random_permute_flag)]
+		else:
+			result +=[conv_birelu_expand_shared_permute_channels(conv_layer=conv_layer,gate_activation=gate_activation,
+			                             index=index+str(indexint),
+			                       layer_index=layer_index,input_tensor=lists_or_tensor,
+			                                    batch_norm=batch_norm,
+                                         leak_rate=leak_rate,child_p=child_p,drop_path_rate=drop_path_rate,
+                                                                 max_perm=max_perm,random_permute_flag=random_permute_flag)]
+
+		indexint+=1
+	return result
+def conv_relu_expand_on_list_shared(conv_layer,gate_activation,layer_index,
+                      input_tensor_list,index='0',drop_path_rate=1,batch_norm=False,leak_rate =0,child_p=.5
+                                      ):
+	result = []
+	indexint=0
+	for lists_or_tensor in input_tensor_list:
+		if type(lists_or_tensor)==list:
+			result+=[conv_relu_expand_on_list_shared(conv_layer=conv_layer,
+			                                         gate_activation=gate_activation,
+			                                   layer_index=layer_index,
+                      input_tensor_list=lists_or_tensor,index=index+str(indexint),drop_path_rate=drop_path_rate,
+                                                batch_norm=batch_norm,leak_rate=leak_rate,child_p=child_p)]
+		else:
+			result +=[conv_relu_expand_shared(conv_layer=conv_layer,gate_activation=gate_activation,
+			                             index=index+str(indexint),
+			                       layer_index=layer_index,input_tensor=lists_or_tensor,
+			                                    batch_norm=batch_norm,
+                                         leak_rate=leak_rate,child_p=child_p,drop_path_rate=drop_path_rate)]
+
+		indexint+=1
+	return result
 def conv_xavr_expand_on_list_shared(conv_layer,gate_activation,layer_index,
                       input_tensor_list,index='0',drop_path_rate=1,batch_norm=False,leak_rate =0,child_p=.5
                                       ):
@@ -235,16 +279,18 @@ def max_pool_on_list(input_tensor_list,strides,layer_index,index='0',pool_size =
 	result = []
 	indexint = 0
 	if pool_size is None:
-		p_size = 3
+		p_size = int(3)
 	else:
-		p_size= pool_size
+		p_size= int(pool_size)
 	for lists_or_tensor in input_tensor_list:
 		if type(lists_or_tensor) == list:
 			result += [
-				max_pool_on_list(lists_or_tensor,strides=strides,layer_index=layer_index, index=index + str(indexint))]
+				max_pool_on_list(lists_or_tensor,strides=(strides),layer_index=layer_index, index=index + str(
+					indexint))]
 		else:
-			result += [MaxPooling2D(pool_size=(p_size,p_size),strides=strides,name='Maxpool_stride'+str(
-				strides)+'_psize-'+str(p_size)+'_layer'+str(layer_index)+'index'+index+str(indexint))(lists_or_tensor)]
+			scope = 'Maxpool_stride'+str(strides[0])+'_psize-'+str(p_size)+'_layer'+str(layer_index)+'index'+index+str(
+				indexint)
+			result += [MaxPooling2D(pool_size=(p_size,p_size),strides=(strides),name=scope)(lists_or_tensor)]
 		indexint += 1
 	return result
 def avg_pool_on_list(input_tensor_list,strides,layer_index,index='0',pool_size=None):
@@ -259,9 +305,8 @@ def avg_pool_on_list(input_tensor_list,strides,layer_index,index='0',pool_size=N
 			result += [avg_pool_on_list(lists_or_tensor, strides=strides, layer_index=layer_index,
 			                            index=index + str(indexint))]
 		else:
-			result += [AveragePooling2D(pool_size=(p_size,p_size),strides=strides, name='AvgPool_stride' + str(strides) + \
-			                                                                 '_psize-'+str(p_size)+'_layer' + str(
-				layer_index) + '_index' + index + str(indexint))(lists_or_tensor)]
+			scope = 'AvgPool_stride' + str(strides[0]) + '_psize-'+str(p_size)+'_layer' + str(layer_index) + '_index' + index + str(indexint)
+			result += [AveragePooling2D(pool_size=(p_size,p_size),strides=strides, name=scope)(lists_or_tensor)]
 		indexint += 1
 	return result
 def dropout_on_list(input_tensor_list,p,layer_index,index='0'):

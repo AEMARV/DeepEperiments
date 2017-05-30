@@ -2,95 +2,163 @@ from keras.layers import Layer
 
 from Activation.activations import *
 from keras.layers import Dropout
-from keras import initializations
+from keras import initializers
 import tensorflow as tf
 import numpy as np
-class DropInstanse(Layer):
-	def __init__(self,dropInstance_rate,**kwargs):
-		self.drop_rate = dropInstance_rate
-		self.uses_learning_phase = True
-		self.supports_masking = True
-		super(DropInstanse,self).__init__(**kwargs)
-		pass
-	def call(self, x, mask=None):
-		pass
-	def get_output_shape_for(self, input_shape):
-		pass
+
+class Birelu(Layer):
+	def __init__(self, activation,relu_birelu_sel=1,layer_index=0,leak_rate=0,child_p=.5,add_data=False, **kwargs):
+		self.supports_masking = False
+		self.activation = get(activation)
+		super(Birelu, self).__init__(**kwargs)
+	def compute_output_shape(self, input_shape):
+		return [input_shape, input_shape]
 	def compute_mask(self, input, input_mask=None):
-		tf.strided_slice()
-		pass
-class PBirelu(Layer):
-	"""Parametric Rectified Linear Unit.
-
-	It follows:
-	`f(x) = alphas * x for x < 0`,
-	`f(x) = x for x >= 0`,
-	where `alphas` is a learned array with the same shape as x.
-
-	# Input shape
-	    Arbitrary. Use the keyword argument `input_shape`
-	    (tuple of integers, does not include the samples axis)
-	    when using this layer as the first layer in a model.
-
-	# Output shape
-	    Same shape as the input.
-
-	# Arguments
-	    init: initialization function for the weights.
-	    weights: initial weights, as a list of a single Numpy array.
-	    shared_axes: the axes along which to share learnable
-	        parameters for the activation function.
-	        For example, if the incoming feature maps
-	        are from a 2D convolution
-	        with output shape `(batch, height, width, channels)`,
-	        and you wish to share parameters across space
-	        so that each filter only has one set of parameters,
-	        set `shared_axes=[1, 2]`.
-
-	# References
-	    - [Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification](https://arxiv.org/abs/1502.01852)
-	"""
-
-	def __init__(self, init='zero', weights=None, shared_axes=None, **kwargs):
-		self.supports_masking = True
-		self.init = initializations.get(init)
-		self.initial_weights = weights
-		if not isinstance(shared_axes, (list, tuple)):
-			self.shared_axes = [shared_axes]
-		else:
-			self.shared_axes = list(shared_axes)
-		super(PBirelu, self).__init__(**kwargs)
-
-	def build(self, input_shape):
-		param_shape = list(input_shape[1:])
-		self.param_broadcast = [False] * len(param_shape)
-		if self.shared_axes[0] is not None:
-			for i in self.shared_axes:
-				param_shape[i - 1] = 1
-				self.param_broadcast[i - 1] = True
-
-		self.alphas = self.init(param_shape, name='{}_alphas'.format(self.name))
-		self.trainable_weights = [self.alphas]
-
-		if self.initial_weights is not None:
-			self.set_weights(self.initial_weights)
-			del self.initial_weights
+		return [None, None]
 
 	def call(self, x, mask=None):
-		pos = K.relu(x)
-		if K.backend() == 'theano':
-			neg = (K.pattern_broadcast(self.alphas, self.param_broadcast) * (x - K.abs(x)) * 0.5)
+		if self.activation.__name__ == 'relu':
+			pas = self.activation(x)
+			inv_pas = self.activation(-x)
 		else:
-			neg = self.alphas * (x - K.abs(x)) * 0.5
-		return pos + neg
+			assert 'activation is not relu'
+		return [pas,inv_pas]
 
 	def get_config(self):
-		config = {'init': self.init.__name__}
-		base_config = super(PBirelu, self).get_config()
+		config = {'activation': self.activation.__name__}
+		base_config = super(Birelu, self).get_config()
 		return dict(list(base_config.items()) + list(config.items()))
+class Birelu_old(Layer):
+	def __init__(self, activation,relu_birelu_sel=1,layer_index=0,leak_rate=0,child_p=.5,add_data=False, **kwargs):
+		self.supports_masking = False
+		self.activation = get(activation)
+		self.relu_birelu_sel = relu_birelu_sel
+		self.layer_index = layer_index
+		self.child_p = child_p
+		if relu_birelu_sel==-1:
+			self.decay_drop=True
+		else:
+			self.decay_drop=False
+		if not relu_birelu_sel==1:
+			self.uses_learning_phase=True
+		self.add_data = add_data
+		self.leak_rate = leak_rate
+		super(Birelu, self).__init__(**kwargs)
+	def build(self, input_shape):
+		self.concat_filter_num = int(self.leak_rate*input_shape[1])
+	def get_output_shape_for(self, input_shape):
+		output_filter_num = self.concat_filter_num+input_shape[1]
+		output_shape = (input_shape[0],output_filter_num,input_shape[2],input_shape[3])
+		return [output_shape, output_shape]
+	def compute_output_shape(self, input_shape):
+		output_filter_num = self.concat_filter_num + input_shape[1]
+		output_shape = (input_shape[0], output_filter_num, input_shape[2], input_shape[3])
+		return [output_shape, output_shape]
+	def compute_mask(self, input, input_mask=None):
+		return [None, None]
 
+	def call(self, x, mask=None):
+		if self.decay_drop:
+			a = .01*(2*self.layer_index+1)
+			time_tensor= K.variable(value=0)
+			time_update = K.update_add(time_tensor,0.002)
+			dropout_rate = 1/(1+K.exp(-a*(time_update+3)))
+			dropout_rate = (K.cos((a*time_update)+3)/10)+.8
+		else:
+			dropout_rate=self.relu_birelu_sel
+		if self.activation.__name__ == 'relu':
+			pas = relu(x)
+			inv_pas = relu(-x)
+		else:
+			prob = self.activation(x)
+			pas = x * prob
+			inv_pas = x * (prob - 1)
+		if self.add_data:
+			pas = pas+x
+			inv_pas = inv_pas+x
+		if not self.relu_birelu_sel==1:
+			dropout_boostA = 1/(dropout_rate+((1-dropout_rate)*self.child_p))
+			dropout_boostB = 1 / (dropout_rate + ((1 - dropout_rate) * (1-self.child_p)))
+			variable_placeholder =K.variable(0)
+			one = K.ones_like(variable_placeholder)
+			birelu_flag = K.random_binomial(K.shape(variable_placeholder),p=dropout_rate)
+			pas_flag = K.random_binomial(K.shape(variable_placeholder),p=self.child_p)
+			inv_flag = one-pas_flag
+			inv_flag = inv_flag+birelu_flag
+			pas_flag = K.minimum(pas_flag+birelu_flag,one)
+			inv_flag = K.minimum(inv_flag+birelu_flag,one)
+			pas_c = K.concatenate([pas, inv_pas[:,:self.concat_filter_num,:,:]],axis=1)
+			inv_pas_c = K.concatenate([inv_pas,pas[:,:self.concat_filter_num,:,:]],axis=1)
+			pas = pas_c
+			inv_pas = inv_pas_c
+			pas = K.in_train_phase(dropout_boostA*pas*pas_flag,pas)
+			inv_pas =K.in_train_phase(dropout_boostB*inv_pas*inv_flag,inv_pas)
+			return [pas,inv_pas]
+			return [pas*pas_flag, inv_pas*inv_flag]
 
+		return [pas,inv_pas]
 
+	def get_config(self):
+		config = {'activation': self.activation.__name__}
+		base_config = super(Birelu, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
+class PermuteChannels(Layer):
+	# Gets two tensors as input return 2^C output Tensors with selected channels from 2 tensors
+	def __init__(self,max_perm,random_permute=False,**kwargs):
+		self.supports_masking = False
+		self.max_perm = max_perm
+		self.output_number_of_tensor=max_perm
+		self.random_permute = random_permute
+		super(PermuteChannels, self).__init__(**kwargs)
+	def build(self, input_shape):
+		self.output_number_of_tensor= np.min((self.max_perm, 2 ** input_shape[0][1]))
+		self.randomGen_op=[]
+		if self.random_permute:
+			for i in range(self.output_number_of_tensor):
+				self.randomGen_op = self.randomGen_op+[K.random_binomial(shape=(1,input_shape[0][1],1,1),p=.8)]
+		else:
+			for i in range(self.output_number_of_tensor):
+				self.randomGen_op +=[K.variable(np.random.randint(0, 2, (1, input_shape[0][1], 1, 1)))]
+				# np.random.randint(0, 2, (1, input_shape[0][1], 1, 1)),
+	def call(self, x, mask=None):
+		pos = x[0]
+		neg = x[1]
+		permuted_tensor_list = []
+		for i in range(self.output_number_of_tensor):
+			index = self.randomGen_op[i]
+			permuted_tensor_list+=[pos*index + neg*(1-index)]
+		# output_tensor_filters = K.int_shape(pos)[1]
+		# permuted_tensor_list = []
+		# tensor_break_down = [[], []]
+		# for i in range(output_tensor_filters):
+		# 	tensor_break_down[0] = tensor_break_down[0] + [K.expand_dims(pos[:, i, :, :], 1)]
+		# 	tensor_break_down[1] = tensor_break_down[1] + [K.expand_dims(neg[:, i, :, :], 1)]
+		#
+		# base_tensor = 0
+		# tensor_index_list = np.random.randint(0,2**output_tensor_filters,self.output_number_of_tensor)
+		# K.random_uniform(shape=)
+		# for tensor_index in np.random.randint(0,2**output_tensor_filters):
+		# 	perm_tensor = tensor_break_down[base_tensor]
+		# 	base_tensor=1-base_tensor
+		# 	binary_index = np.binary_repr(tensor_index, output_tensor_filters)
+		# 	for channel_index in range(output_tensor_filters):
+		# 		selector = int(binary_index[channel_index])
+		# 		perm_tensor[channel_index] = tensor_break_down[selector][channel_index]
+		# 	res_tensor = tf.concat(perm_tensor, 1)
+		# 	permuted_tensor_list = permuted_tensor_list + [res_tensor]
+		return permuted_tensor_list
+	def compute_output_shape(self, input_shape):
+		return self.output_number_of_tensor*[input_shape[0]]
+
+	def get_output_shape_for(self, input_shape):
+		shape = [input_shape]
+		return input_shape
+	def compute_mask(self, input, input_mask=None):
+		return self.output_number_of_tensor*[None]
+	def get_config(self):
+		config = {'output_num_sensor': self.output_number_of_tensor}
+		base_config = super(PermuteChannels, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
 class Duplicator(Layer):
 	def __init__(self, relu_birelu_sel=1,layer_index=0,child_p=.5, **kwargs):
 		self.supports_masking = False
@@ -155,6 +223,7 @@ class MaxoutDenseOverParallel(Layer):
 		return input_shape[0]
 	def compute_mask(self, input, input_mask=None):
 		return [None]
+
 class InstanceDropout(Dropout):
     """Spatial 2D version of Dropout.
 
@@ -214,7 +283,7 @@ class FullyConnectedTensors(Layer):
 		'if dropout dim is 0 then disabled if 1 : instances will be dropped'
 		self.output_tensor_len = output_tensors_len
 		self.supports_masking = True
-		self.init = initializations.get(init)
+		self.init = initializers.get(init)
 		self.initial_weights = weights
 		if not isinstance(shared_axes, (list, tuple)):
 			self.shared_axes = [shared_axes]
@@ -279,77 +348,7 @@ class FullyConnectedTensors(Layer):
 		base_config = super(FullyConnectedTensors, self).get_config()
 		return dict(list(base_config.items()) + list(config.items()))
 
-class Birelu(Layer):
-	def __init__(self, activation,relu_birelu_sel=1,layer_index=0,leak_rate=0,child_p=.5,add_data=False, **kwargs):
-		self.supports_masking = False
-		self.activation = get(activation)
-		self.relu_birelu_sel = relu_birelu_sel
-		self.layer_index = layer_index
-		self.child_p = child_p
-		if relu_birelu_sel==-1:
-			self.decay_drop=True
-		else:
-			self.decay_drop=False
-		if not relu_birelu_sel==1:
-			self.uses_learning_phase=True
-		self.add_data = add_data
-		self.leak_rate = leak_rate
-		super(Birelu, self).__init__(**kwargs)
-	def build(self, input_shape):
-		self.concat_filter_num = int(self.leak_rate*input_shape[1])
-	def get_output_shape_for(self, input_shape):
-		output_filter_num = self.concat_filter_num+input_shape[1]
-		output_shape = (input_shape[0],output_filter_num,input_shape[2],input_shape[3])
-		return [output_shape, output_shape]
 
-	def compute_mask(self, input, input_mask=None):
-		return [None, None]
-
-	def call(self, x, mask=None):
-		if self.decay_drop:
-			a = .01*(2*self.layer_index+1)
-			time_tensor= K.variable(value=0)
-			time_update = K.update_add(time_tensor,0.002)
-			dropout_rate = 1/(1+K.exp(-a*(time_update+3)))
-			dropout_rate = (K.cos((a*time_update)+3)/10)+.8
-		else:
-			dropout_rate=self.relu_birelu_sel
-		if self.activation.__name__ == 'relu':
-			pas = relu(x)
-			inv_pas = relu(-x)
-		else:
-			prob = self.activation(x)
-			pas = x * prob
-			inv_pas = x * (prob - 1)
-		if self.add_data:
-			pas = pas+x
-			inv_pas = inv_pas+x
-		if not self.relu_birelu_sel==1:
-			dropout_boostA = 1/(dropout_rate+((1-dropout_rate)*self.child_p))
-			dropout_boostB = 1 / (dropout_rate + ((1 - dropout_rate) * (1-self.child_p)))
-			variable_placeholder =K.variable(0)
-			one = K.ones_like(variable_placeholder)
-			birelu_flag = K.random_binomial(K.shape(variable_placeholder),p=dropout_rate)
-			pas_flag = K.random_binomial(K.shape(variable_placeholder),p=self.child_p)
-			inv_flag = one-pas_flag
-			inv_flag = inv_flag+birelu_flag
-			pas_flag = K.minimum(pas_flag+birelu_flag,one)
-			inv_flag = K.minimum(inv_flag+birelu_flag,one)
-			pas_c = K.concatenate([pas, inv_pas[:,:self.concat_filter_num,:,:]],axis=1)
-			inv_pas_c = K.concatenate([inv_pas,pas[:,:self.concat_filter_num,:,:]],axis=1)
-			pas = pas_c
-			inv_pas = inv_pas_c
-			pas = K.in_train_phase(dropout_boostA*pas*pas_flag,pas)
-			inv_pas =K.in_train_phase(dropout_boostB*inv_pas*inv_flag,inv_pas)
-			return [pas,inv_pas]
-			# return [pas*pas_flag, inv_pas*inv_flag]
-
-		return [pas,inv_pas]
-
-	def get_config(self):
-		config = {'activation': self.activation.__name__}
-		base_config = super(Birelu, self).get_config()
-		return dict(list(base_config.items()) + list(config.items()))
 class Slice(Layer):
 	def __init__(self,nb_filter_to_slice, **kwargs):
 		self.nb_filter = nb_filter_to_slice
@@ -448,6 +447,89 @@ class Birelu_nary(Layer):
 		base_config = super(Birelu_nary, self).get_config()
 		return dict(list(base_config.items()) + list(config.items()))
 
+class DropInstanse(Layer):
+	def __init__(self,dropInstance_rate,**kwargs):
+		self.drop_rate = dropInstance_rate
+		self.uses_learning_phase = True
+		self.supports_masking = True
+		super(DropInstanse,self).__init__(**kwargs)
+		pass
+	def call(self, x, mask=None):
+		pass
+	def get_output_shape_for(self, input_shape):
+		pass
+	def compute_mask(self, input, input_mask=None):
+		tf.strided_slice()
+		pass
+class PBirelu(Layer):
+	"""Parametric Rectified Linear Unit.
+
+	It follows:
+	`f(x) = alphas * x for x < 0`,
+	`f(x) = x for x >= 0`,
+	where `alphas` is a learned array with the same shape as x.
+
+	# Input shape
+	    Arbitrary. Use the keyword argument `input_shape`
+	    (tuple of integers, does not include the samples axis)
+	    when using this layer as the first layer in a model.
+
+	# Output shape
+	    Same shape as the input.
+
+	# Arguments
+	    init: initialization function for the weights.
+	    weights: initial weights, as a list of a single Numpy array.
+	    shared_axes: the axes along which to share learnable
+	        parameters for the activation function.
+	        For example, if the incoming feature maps
+	        are from a 2D convolution
+	        with output shape `(batch, height, width, channels)`,
+	        and you wish to share parameters across space
+	        so that each filter only has one set of parameters,
+	        set `shared_axes=[1, 2]`.
+
+	# References
+	    - [Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification](https://arxiv.org/abs/1502.01852)
+	"""
+
+	def __init__(self, init='zero', weights=None, shared_axes=None, **kwargs):
+		self.supports_masking = True
+		self.init = initializers.get(init)
+		self.initial_weights = weights
+		if not isinstance(shared_axes, (list, tuple)):
+			self.shared_axes = [shared_axes]
+		else:
+			self.shared_axes = list(shared_axes)
+		super(PBirelu, self).__init__(**kwargs)
+
+	def build(self, input_shape):
+		param_shape = list(input_shape[1:])
+		self.param_broadcast = [False] * len(param_shape)
+		if self.shared_axes[0] is not None:
+			for i in self.shared_axes:
+				param_shape[i - 1] = 1
+				self.param_broadcast[i - 1] = True
+
+		self.alphas = self.init(param_shape, name='{}_alphas'.format(self.name))
+		self.trainable_weights = [self.alphas]
+
+		if self.initial_weights is not None:
+			self.set_weights(self.initial_weights)
+			del self.initial_weights
+
+	def call(self, x, mask=None):
+		pos = K.relu(x)
+		if K.backend() == 'theano':
+			neg = (K.pattern_broadcast(self.alphas, self.param_broadcast) * (x - K.abs(x)) * 0.5)
+		else:
+			neg = self.alphas * (x - K.abs(x)) * 0.5
+		return pos + neg
+
+	def get_config(self):
+		config = {'init': self.init.__name__}
+		base_config = super(PBirelu, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
 
 class Relu(Layer):
 	"""Applies an activation function to an output.

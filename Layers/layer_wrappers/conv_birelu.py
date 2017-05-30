@@ -1,11 +1,14 @@
-from keras.layers import Convolution2D,Activation,merge,BatchNormalization
+from keras.layers import Convolution2D,Activation,merge,BatchNormalization,Conv2D,Merge
 from keras.layers.advanced_activations import PReLU
+from keras.layers.merge import concatenate
+import numpy as np
 from theano.gof.cc import DualLinker
-
+import tensorflow as tf
 from Layers.binary_layers.fundamental_layers_binary import Inverter,Negater,StochActivation
 from utils.opt_utils import *
+import tensorflow as tf
 from Layers.binary_layers.birelu import *
-def conv_birelu_expand_shared(conv_layer,gate_activation,index,layer_index,
+def conv_relu_expand_shared(conv_layer,gate_activation,index,layer_index,
                       input_tensor,drop_path_rate=1,leak_rate=0,batch_norm=0,child_p=.5):
 	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
 	'returns list'
@@ -13,10 +16,47 @@ def conv_birelu_expand_shared(conv_layer,gate_activation,index,layer_index,
 	data_conv = conv_layer(input_tensor)
 	if batch_norm==1:
 		data_conv = BatchNormalization(axis=1)(data_conv)
-	output_tensor_list = Birelu(gate_activation,relu_birelu_sel=drop_path_rate,name='E_Birelu_layer-'+str(
-		layer_index)+'_index-'+str(index),layer_index=layer_index,leak_rate=leak_rate,child_p=child_p)(
+	name = 'RELU_L' + str(layer_index) + '_I' + str(index)
+	output_tensor = Relu(activation='relu', name=name)(
 		data_conv)
+	return output_tensor
+def conv_birelu_expand_shared(conv_layer,gate_activation,index,layer_index,
+                      input_tensor,drop_path_rate=1,leak_rate=0,batch_norm=0,child_p=.5,random_permute_flag=False):
+	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
+	'returns list'
+
+	data_conv = conv_layer(input_tensor)
+	# if batch_norm==1:
+	# 	data_conv = BatchNormalization(axis=1)(data_conv)
+	name = 'BER_L'+str(layer_index)+'_I'+str(index)
+	output_tensor_list = Birelu(gate_activation,relu_birelu_sel=drop_path_rate,name=name,layer_index=layer_index,
+	                            leak_rate=leak_rate,child_p=child_p)(data_conv)
+	# output_tensor_list = Relu(activation='relu',name=name)
 	return output_tensor_list
+def conv_birelu_expand_shared_permute_channels(conv_layer,gate_activation,index,layer_index,
+                      input_tensor,drop_path_rate=1,leak_rate=0,batch_norm=0,child_p=.5,max_perm =2,
+                                               random_permute_flag=False):
+	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
+	'returns list'
+
+	data_conv = conv_layer(input_tensor)
+	if batch_norm==1:
+		data_conv = BatchNormalization(axis=1)(data_conv)
+	name = 'BER_L'+str(layer_index)+'_I'+str(index)
+	output_tensor_list = Birelu(gate_activation,relu_birelu_sel=drop_path_rate,name=name,layer_index=layer_index,
+	                            leak_rate=leak_rate,child_p=child_p)(
+		data_conv)
+	with tf.name_scope('Permute') as scope:
+		permuted_tensor_list = PermuteChannels(max_perm,random_permute=random_permute_flag)(output_tensor_list)
+
+
+
+
+
+
+
+
+	return permuted_tensor_list
 def conv_xavr_expand_shared(conv_layer,index,layer_index,
                       input_tensor,batch_norm=0):
 	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
@@ -65,11 +105,10 @@ def conv_birelu_expand(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_
                       input_tensor,relu_birelu_switch=1,leak_rate=0,batch_norm=0,child_p=.5):
 	"this function is passing data through a convolution and then pass it through the birelu (doubles channels)"
 	'returns list'
-
+	conv_name = 'E_conv_exp_'+'nbfilter-'+str(nb_filter)+'_layer'+str(layer_index)+'_index-'+str(index)
 	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=None,
 	                          input_shape=input_shape, border_mode=border_mode, W_regularizer=w_reg,
-	                          name='E_conv_exp_'+'nbfilter-'+str(nb_filter)+'_layer'+str(layer_index)+'_index-'+str(
-		                          index))(
+	                          name=conv_name)(
 		input_tensor)
 	if batch_norm==1:
 		data_conv = BatchNormalization(axis=1)(data_conv)
@@ -159,18 +198,17 @@ def conv_birelu_merge(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_a
 	return output_tensor
 def conv_relu(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
                       input_tensor,stride = 1,breg=None):
-	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=None, input_shape=input_shape,
-	                          border_mode=border_mode, W_regularizer=w_reg,
-	                          name='Conv_'+'nbfilter'+str(nb_filter) +'_layer-'+str(layer_index) + '_index' +
-	                               str(
-		index),subsample=(stride,stride),b_regularizer=breg,init='glorot_normal')(input_tensor)
-	output_tensor = Relu(gate_activation,name='R_relu_layer-'+str(layer_index)+'_index'+str(index))(data_conv)
+	data_conv = Conv2D(nb_filter, (filter_size, filter_size), activation=None, input_shape=input_shape,
+	                          padding=border_mode, kernel_regularizer=w_reg,
+	                          name='CONV_L'+str(layer_index) + '_I' +
+	                               str(index),b_regularizer=breg,init='glorot_normal')(input_tensor)
+	output_tensor = Relu(gate_activation,name='RELU_layer-'+str(layer_index)+'_index'+str(index))(data_conv)
 	return output_tensor
 def conv(nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
                       input_tensor,stride = 1,breg=None):
 	data_conv = Convolution2D(nb_filter, filter_size, filter_size, activation=None, input_shape=input_shape,
 	                          border_mode=border_mode, W_regularizer=w_reg,
-	                          name='Conv_'+'nbfilter'+str(nb_filter) +'_layer-'+str(layer_index) + '_index' +
+	                          name='CONV_'+'nbfilter'+str(nb_filter) +'_layer-'+str(layer_index) + '_index' +
 	                               str(
 		index),subsample=(stride,stride),b_regularizer=breg,init='glorot_normal')(input_tensor)
 	return data_conv

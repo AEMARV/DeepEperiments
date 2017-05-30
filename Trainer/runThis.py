@@ -4,7 +4,6 @@ from Models.Binary_models.model_db import get_model_from_db
 from utils.opt_utils import *
 from Models.vgg16_zisserman import VGG16
 from Models.lenet_amir import lenet_amir_model
-from keras.utils.visualize_util import plot
 import numpy as np
 
 import time
@@ -17,30 +16,6 @@ def find_key_value_to_str_recursive(dictionary,parent_dict_name,method_name_excl
 			result_str+=find_key_value_to_str_recursive(i[1],i[0],method_name_exclusive_list)
 	return result_str
 def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
-	if experiment_name==None:
-		opts['experiment_name'] = raw_input('experiment_name?')
-		experiment_name=opts['experiment_name']
-	else:
-		opts['experiment_name'] = experiment_name
-	opts['experiment_tag']=experiment_name+'/'+dataset_str+'/'+model_str
-	if model_str==None:model_str = raw_input('model?')
-	if dataset_str==None:opts['training_opts']['dataset']['method'] = raw_input('dataset?')
-	else:opts['training_opts']['dataset']['method'] = dataset_str
-	opts = set_model_string(opts,model_str)
-	# activation_set = {'softplus','elu','softsign','relu','tanh','softmax','linear'}
-	# loss_set = {'kld','poisson','mape','categorical_crossentropy'}
-	if opts['training_opts']['dataset']['method']=='cifar100':
-		opts['training_opts']['dataset']['nb_classes']=100
-		opts['training_opts']['dataset']['input_shape'] = (3,32,32)
-	if opts['training_opts']['dataset']['method']=='cifar10':
-		opts['training_opts']['dataset']['nb_classes']=10
-		opts['training_opts']['dataset']['input_shape'] = (3, 32, 32)
-	if opts['training_opts']['dataset']['method']=='voc':
-		opts['training_opts']['dataset']['nb_classes']=20
-		opts['training_opts']['dataset']['input_shape'] = (3, 224, 224)
-	opts = set_default_opts_based_on_model_dataset(opts)
-
-
 	gate_activation_set = ['relu']
 	gate_stoch_enable =[True]
 	data_activation_set = [None]
@@ -48,10 +23,9 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 	lenet_activation = ['elu']
 	filter_size_set = [-1]
 	lr = [-2]
-
 	w_reg = {None}
 	w_reg_value = {5e-4}
-	param_expand = [.7,1,1.4] ## in gated all the params are devided by two because we have two layers per channel so
+	param_expand = [1.4] ## in gated all the params are devided by two because we have two layers per channel so
 	# this ratio can be compared for number of parameters e.g if in lennet param_expand=1 and in gated param_expand=1
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
@@ -65,13 +39,6 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 							for param_expand_sel in param_expand:
 								for gate_stoch in gate_stoch_enable:
 									for f_size in filter_size_set:
-										if (not model_str.find('baseline')==-1) and param_expand_sel in [1.4,
-										                                                           1] and \
-																model_str.find('baseline_r')==-1:
-											break
-										if ((not model_str.find('besh')==-1) or (not model_str.find(
-													'baseline_r')==-1))	and param_expand_sel==.7:
-											break
 										opts=set_gate_activation(opts=opts,activation=gate_activation)
 										opts=set_data_activation(opts=opts,activation=data_activation)
 										opts=set_loss(opts=opts,loss_string=loss_objective)
@@ -106,18 +73,59 @@ def wrapper_gated(model,opts,experiment_name):
 	if opts['training_opts']['dataset']['method'] == 'cifar10':
 		cifar_trainer(opts, model, optimizer=sgd)
 	if opts['training_opts']['dataset']['method'] == 'cifar100':
-		cifar100_trainer(opts, model, optimizer=sgd)
+		cifar_trainer(opts, model, optimizer=sgd)
 
 
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['baseline','baseline_r']
-	datasets=['cifar100','cifar10']
-	experiment_name = 'Debug'
+	models= ['besh_crelu_3']
+	#TODO create a maxpool for permute maxpool select the classification from the branch with the least entropy
+	datasets=['cifar100']
+	print "please select the Experiment name or Define a new one"
+	dirs = [d for d in os.listdir('./Results') if os.path.isdir(os.path.join('./Results', d)) and not d[0]=='.']
+	dirs = [d for d in dirs]
+	a = ['[' + str(index) + ']' + d+ ' \n'  for index, d in enumerate(dirs)]
+	a = a+ ['[' + str(index+1) + ']'+'New Experiment']
+	print(''.join(a))
+	experiment_index = raw_input('Please type in the index of option \n')
+	if int(experiment_index) == index + 1:
+		experiment_name = raw_input('Type in Experiment Name \n')
+		experiment_description = raw_input('Please Type in Experiment Description \n')
+	else:
+		experiment_name = dirs[int(experiment_index)]
+		experiment_description =''
+
+
+
 	for dataset_str in datasets:
 		for model_str in models:
-			options={}
-			options = default_opt_creator()
-			options['description'] = 'Hopefully final results,checked dropout '
-			grid_search(options,experiment_name=experiment_name,model_str=model_str,dataset_str=dataset_str)
+			opts={}
+			opts = default_opt_creator()
+			opts['description'] = ''
+			if experiment_name == None:
+				opts['experiment_name'] = raw_input('experiment_name?')
+				experiment_name = opts['experiment_name']
+			else:
+				opts['experiment_name'] = experiment_name
+			opts['experiment_tag'] = experiment_name + '/' + dataset_str + '/' + model_str
+			if model_str == None:
+				model_str = raw_input('model?')
+			if dataset_str == None:
+				opts['training_opts']['dataset']['method'] = raw_input('dataset?')
+			else:
+				opts['training_opts']['dataset']['method'] = dataset_str
+			opts = set_model_string(opts, model_str)
+			# activation_set = {'softplus','elu','softsign','relu','tanh','softmax','linear'}
+			# loss_set = {'kld','poisson','mape','categorical_crossentropy'}
+			if opts['training_opts']['dataset']['method'] == 'cifar100':
+				opts['training_opts']['dataset']['nb_classes'] = 100
+				opts['training_opts']['dataset']['input_shape'] = (3, 32, 32)
+			if opts['training_opts']['dataset']['method'] == 'cifar10':
+				opts['training_opts']['dataset']['nb_classes'] = 10
+				opts['training_opts']['dataset']['input_shape'] = (3, 32, 32)
+			if opts['training_opts']['dataset']['method'] == 'voc':
+				opts['training_opts']['dataset']['nb_classes'] = 20
+				opts['training_opts']['dataset']['input_shape'] = (3, 224, 224)
+			opts = set_default_opts_based_on_model_dataset(opts)
+			grid_search(opts,experiment_name=experiment_name,model_str=model_str,dataset_str=dataset_str)

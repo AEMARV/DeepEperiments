@@ -10,7 +10,7 @@ from __future__ import print_function
 
 from keras.layers import Flatten, Dense, Input, Activation,Dropout
 from keras.layers import Convolution2D, MaxPooling2D,AveragePooling2D
-from keras.regularizers import l1,l2,l1l2
+from keras.regularizers import l1,l2,l1_l2
 from keras.engine import Model
 from utils.opt_utils import get_data_activation,get_filter_size
 import numpy as np
