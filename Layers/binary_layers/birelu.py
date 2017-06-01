@@ -5,7 +5,29 @@ from keras.layers import Dropout
 from keras import initializers
 import tensorflow as tf
 import numpy as np
+class MaxEntropy(Layer):
+	def __init__(self, **kwargs):
+		self.supports_masking = False
+		super(MaxEntropy, self).__init__(**kwargs)
+	def compute_output_shape(self, input_shape):
+		return (input_shape[0],input_shape[2])
+	def compute_mask(self, input, input_mask=None):
+		return None
 
+	def call(self, x, mask=None):
+		# Input should be of size (batch,instance,class_nb)
+		entropy = -K.sum(x*K.log(x),2)
+		index = K.argmax(entropy,axis=1)
+
+		K.gather()
+		res = entropy[:,index,:]
+
+		res = K.squeeze(res)
+		return res
+	def get_config(self):
+		config = {'activation': self.activation.__name__}
+		base_config = super(MaxEntropy, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
 class Birelu(Layer):
 	def __init__(self, activation,relu_birelu_sel=1,layer_index=0,leak_rate=0,child_p=.5,add_data=False, **kwargs):
 		self.supports_masking = False
@@ -344,7 +366,7 @@ class FullyConnectedTensors(Layer):
 		return result
 
 	def get_config(self):
-		config = {'init': self.init.__name__}
+		config = {}
 		base_config = super(FullyConnectedTensors, self).get_config()
 		return dict(list(base_config.items()) + list(config.items()))
 

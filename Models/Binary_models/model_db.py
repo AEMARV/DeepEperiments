@@ -1,11 +1,18 @@
-from Models.Binary_models.model_utils import get_model
+from Models.Binary_models.model_utils import get_model,node_list_to_list
 from utils import opt_utils
 from utils.opt_utils import default_opt_creator
 from keras.models import Sequential
-from keras.layers import Convolution2D,Dense,ZeroPadding2D,MaxPooling2D,Flatten,Dropout,Conv2D
+from keras.layers import Convolution2D,Dense,ZeroPadding2D,MaxPooling2D,Flatten,Dropout,Conv2D,Input
 from keras.utils import serialize_keras_object,deserialize_keras_object
 from keras.applications.vgg16 import VGG16
+from Models.Binary_models.VGG_besh import besh_vgg1
 import six
+def Layer_on_list(layer, tensor_list):
+	res = []
+	tensor_list = node_list_to_list(tensor_list)
+	for x in tensor_list:
+		res+=[layer(x)]
+	return res
 def be0(opts, input_shape, nb_classes,getstring_flag=False):
 	'eeee'
 	model_string = 'e|f:32,r:5' \
@@ -1950,7 +1957,50 @@ def baseline2(opts, input_shape, nb_classes, getstring_flag=False):
 		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
 	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
 	                 conv_filter_size_list=filter_size_list)
+def vgg16_baseline_relu(opts, input_shape, nb_classes, getstring_flag=False):
 
+	nb_filter_list = [32, 32, 64, 128, 64, 64]
+	model_string ='r|f:64,r:3,b:0,p:1' \
+	              '->dropoutsh|p:.3' \
+	              '->r|f:64,r:3,b:0,p:1' \
+	              '->mp|r:2' \
+					'->r|f:128,r:3,b:0,p:1' \
+	              '->dropoutsh|p:.4' \
+	              '->r|f:128,r:3,b:0,p:1' \
+					'->mp|r:2' \
+	              '->r|f:256,r:3,b:0,p:1' \
+	              '->dropoutsh|p:.4' \
+	              '->r|f:256,r:3,b:0,p:1' \
+	              '->dropoutsh|p:.4' \
+	              '->r|f:256,r:3,b:0,p:1' \
+	              '->mp|r:2' \
+	              '->r|f:512,r:3,b:0,p:1' \
+	              '->dropoutsh|p:.4' \
+	              '->r|f:512,r:3,b:0,p:1' \
+	              '->dropoutsh|p:.4' \
+	              '->r|f:512,r:3,b:0,p:1' \
+	              '->mp|r:2' \
+	              '->r|f:512,r:3,b:0,p:1' \
+	              '->dropoutsh|p:.4' \
+	              '->r|f:512,r:3,b:0,p:1' \
+	              '->dropoutsh|p:.4' \
+	              '->r|f:512,r:3,b:0,p:1' \
+	              '->mp|r:2' \
+				'->flattensh|null:1'\
+				'->densesh|n:512,act:relu'\
+				'->dropoutsh|p:.5' \
+	              '->densesh|n:512,act:relu' \
+	              '->dropoutsh|p:.5' \
+					'->densesh|n:-1'\
+
+	if getstring_flag:
+		return {'string': model_string}
+	model  = get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list)
+	return model
+def vgg16_baseline_imgnet(opts, input_shape, nb_classes, getstring_flag=False):
+	return VGG16(include_top=False,classes=nb_classes)
+def vgg16_besh_imgnet(opts, input_shape, nb_classes, getstring_flag=False):
+	m = besh_vgg1(classes =nb_classes,include_top=False)
 def springberg_baseline(opts, input_shape, nb_classes, getstring_flag=False):
 
 	model_string = 'd|p:.25'\
@@ -1988,7 +2038,7 @@ def springberg_baseline2(opts, input_shape, nb_classes, getstring_flag=False):
 		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
 	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
 	                 conv_filter_size_list=filter_size_list)
-def nin_baseline(opts, input_shape, nb_classes, getstring_flag=False):
+def nin_baseline_relu(opts, input_shape, nb_classes, getstring_flag=False):
 
 	model_string ='r|f:192,r:5,b:0' \
 	               '->r|f:160,r:1,b:0' \
@@ -2010,35 +2060,60 @@ def nin_baseline(opts, input_shape, nb_classes, getstring_flag=False):
 		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
 	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
 	                 conv_filter_size_list=filter_size_list)
-def nin_besh2(opts, input_shape, nb_classes, getstring_flag=False):
+def nin_besh(opts, input_shape, nb_classes, getstring_flag=False):
 
-	model_string ='besh|f:192,r:5,b:0,p:1' \
-	               '->besh|f:160,r:1,b:0,p:1' \
-	               '->besh|f:96,r:1,b:0,p:1' \
-				'->leaffully|n:2'\
+	model_string ='rsh|f:192,r:5,b:0,p:1' \
+	               '->rsh|f:160,r:1,b:0,p:1' \
+	               '->rsh|f:96,r:1,b:0,p:1' \
 					'->mp|r:3'\
 					'->d|p:.5'\
-	               '->besh|f:192,r:5,b:0,p:1' \
+	               '->rsh|f:192,r:5,b:0,p:1' \
+	               '->rsh|f:192,r:1,b:0,p:1' \
 	               '->besh|f:192,r:1,b:0,p:1' \
-	               '->besh|f:192,r:1,b:0,p:1' \
-	              '->leaffully|n:4'\
 	              '->ap|r:3'\
 	               '->d|p:.5'\
 	               '->besh|f:192,r:3,b:0,p:1' \
 	               '->besh|f:192,r:1,b:0,p:1' \
 	               '->cshfixedfilter|f:'+str(nb_classes)+',r:1,b:0,p:1' \
-	                                          '->globalpooling|r:7'
-	nb_filter_list = [32, 32, 64, 128, 64, 64]
-	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
-	if getstring_flag:
-		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
-	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
-	                 conv_filter_size_list=filter_size_list)
+	                '->globalpooling|r:7'
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+def nin_besh_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5->ber' \
+	               '->convsh|f:160,r:1->relu' \
+	               '->convsh|f:96,r:1->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5'\
+					'->convsh|f:192,r:5->ber'\
+					'->convsh|f:192,r:1->relu'\
+					'->convsh|f:192,r:1->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5'\
+					'->convsh|f:192,r:3->ber' \
+					'->convsh|f:192,r:1->relu' \
+	               '->convsh|f:'+str(nb_classes)+',r:1->relu'\
+					'->averagepool|r:7,s:1'\
+					'->flattensh->softmax'\
+					'->merge_branch_add->softmax->fin'
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+def nin_besh_2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5->ber' \
+	               '->convsh|f:160,r:1->relu' \
+	               '->convsh|f:96,r:1->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5'\
+					'->convsh|f:192,r:5->ber'\
+					'->convsh|f:192,r:1->relu'\
+					'->convsh|f:192,r:1->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5'\
+					'->convsh|f:192,r:3->ber' \
+					'->convsh|f:192,r:1->relu' \
+	               '->convsh|f:'+str(nb_classes)+',r:1->relu'\
+					'->averagepool|r:7,s:1'\
+					'->flattensh->softmax'\
+					'->merge_branch_average->fin'
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
 def besh_vggcrelu(opts, input_shape, nb_classes, getstring_flag=False):
 
 	nb_filter_list = [32, 32, 64, 128, 64, 64]
-	model_string ='r|f:64,r:3,b:0,p:1' \
-	              '->cr|f:64,r:3,b:0,p:1' \
+	model_string ='cr|f:64,r:3,b:0,p:1' \
+	              '->r|f:64,r:3,b:0,p:1' \
 	              '->mp|r:2' \
 					'->cr|f:128,r:3,b:0,p:1' \
 					'->cr|f:128,r:3,b:0,p:1' \

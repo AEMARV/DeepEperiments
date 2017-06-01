@@ -4,9 +4,15 @@ from keras.layers import Input, Flatten, Dense, Conv2D,SpatialDropout2D
 from Layers.layer_wrappers.on_list_wrappers import *
 from utils.opt_utils import get_filter_size,get_gate_activation
 from keras.regularizers import l1,l2
-from keras.layers.merge import add,concatenate
+from keras.layers.merge import add,concatenate,average
 import numpy as np
 layer_index=0
+def Layer_on_list(layer, tensor_list):
+	res = []
+	tensor_list = node_list_to_list(tensor_list)
+	for x in tensor_list:
+		res+=[layer(x)]
+	return res
 def get_layer_index():
 	global layer_index
 	layer_index=layer_index+1
@@ -41,8 +47,6 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			w_reg = l2(opts['model_opts']['param_dict']['w_regularizer']['value'])
 			b_reg = l2(opts['model_opts']['param_dict']['w_regularizer']['value'])
 		component = layer['type']
-		if layer['type'] not in ['e','s','rm','am','mp','ma','rbe','d']:
-			assert 'Invalid Layer'
 
 		if not layer_index_t == 0:
 			input_shape = (None,None,None)
@@ -52,6 +56,78 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 		# 	f_size = filter_size_list[filter_size_index]
 		param =layer['param']
 		with tf.name_scope(component) as scope:
+			if component == 'convsh':
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				kernel_size = (f_size,f_size)
+				x = node_list_to_list(x)
+				x = Layer_on_list(Conv2D(filters=nb_filter,kernel_size=kernel_size,padding='same',
+				                         kernel_initializer='he_normal',kernel_regularizer=w_reg,activation=None,
+				                         name='CONV_'+str(layer_index_t) ),x)
+			if component == 'ber':
+				x = node_list_to_list(x)
+				res = []
+				for index,tensor in enumerate(x):
+					res += [Birelu('relu', name='ACT_BER_L' + str(layer_index_t)+'I_'+str(index))(tensor)]
+				x = res
+			if component == 'relu':
+				x = node_list_to_list(x)
+				res = []
+				for index,tensor in enumerate(x):
+					res+=[Activation('relu',name='ACT_RELU_L' + str(layer_index_t)+'I_'+str(index))(tensor)]
+				x = res
+			if component == 'averagepool':
+				pool_size = int(param['r'])
+				strides = int(param['s'])
+				pool_size = (pool_size,pool_size)
+				strides = (strides, strides)
+				x = node_list_to_list(x)
+				x = Layer_on_list(AveragePooling2D(pool_size=pool_size,strides=strides, name='POOL_AVERAGE_' + str(
+					layer_index_t)), x)
+			if component == 'maxpool':
+				pool_size = int(param['r'])
+				strides = int(param['s'])
+				pool_size = (pool_size, pool_size)
+				strides = (strides,strides)
+				x = node_list_to_list(x)
+				x = Layer_on_list(MaxPooling2D(pool_size=pool_size,strides=strides, name='POOL_MAX_' + str(
+					layer_index_t)), x)
+			if component == 'dropout':
+				drop_rate = param['p']
+				x = node_list_to_list(x)
+				x = Layer_on_list(Dropout(rate=drop_rate,name='Dropout_' + str(layer_index_t)),x)
+			if component == 'densesh':
+				n = int(param['n'])
+				x = node_list_to_list(x)
+				x = Layer_on_list(Dense(n,kernel_initializer='he_uniform'),x)
+			if component=='flattensh':
+				x = node_list_to_list(x)
+				x = Layer_on_list(Flatten(), x)
+			if component == 'softmax':
+				x = node_list_to_list(x)
+				x = Layer_on_list(Activation('softmax'),x)
+			if component == 'merge_branch_add':
+				x = node_list_to_list(x)
+				if not x.__len__()==1:
+					x = [add(x)]
+				else:
+					Warning('merge branch not needed. only one branch')
+			if component == 'merge_branch_average':
+				x = node_list_to_list(x)
+				if not x.__len__()==1:
+					x = [average(x)]
+				else:
+					Warning('merge branch not needed. only one branch')
+			if component == 'max_entropy_instance':
+				#TODO: COMPLETE THIS
+				x = node_list_to_list(x)
+
+			if component == 'fin':
+				if not x.__len__()==1:
+					assert 'output node is a list'
+				x = x[0]
+				return Model(input=img_input, output=x)
+			#
 			if component =='besh':
 				#binary expand shared
 				nb_filter = param['f']
@@ -59,10 +135,6 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				if param.has_key('p'):
 					dropout = param['p']
 				stride=1
-				# x = conv_relu_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
-				#                               filter_size=f_size, input_shape=input_shape, w_reg=w_reg,
-				#                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
-				#                               border_mode='same',stride=stride,b_reg= b_reg)
 				conv_layer_to_pass = Conv2D(int(nb_filter*expand_rate), (f_size, f_size), activation=None,
 				                                   input_shape=input_shape, padding='same', kernel_regularizer=w_reg,
 				                                  name='CONV_L'+str(layer_index_t))
@@ -220,7 +292,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				conv_layer_to_pass = Conv2D(int(nb_filter * expand_rate), (f_size, f_size), activation=None,
 				                                   input_shape=input_shape, padding='same', kernel_regularizer=w_reg,
 				                                    name='CONV_L'+str(layer_index_t))(x[0])
-				tensors = Birelu('relu',name='BER_CR')(conv_layer_to_pass)
+				tensors = Birelu('relu',name='BER_CR'+str(layer_index_t))(conv_layer_to_pass)
 				x = [concatenate(tensors,axis=1)]
 			if component=='e':
 				nb_filter = param['f']
@@ -232,24 +304,25 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				branch=2*branch
 			if component =='rsh':
 				#binary expand shared
-				nb_filter = param['f']
-				f_size = param['r']
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
 				if param.has_key('p'):
 					dropout = param['p']
 
-				conv_layer_to_pass = Conv2D(int(nb_filter*expand_rate), f_size, f_size, activation=None,
+				conv_layer_to_pass = Conv2D(int(nb_filter*expand_rate), (f_size, f_size), activation=None,
 				                                   input_shape=input_shape, padding='same', kernel_regularizer=w_reg,
-				                                  )
+				                                  kernel_initializer='he_normal')
 				x = conv_relu_expand_on_list_shared(input_tensor_list=x,
 				                               gate_activation=get_gate_activation(opts), layer_index=layer_index_t,batch_norm=0,
 				                               leak_rate=0,child_p = 0,conv_layer=conv_layer_to_pass,drop_path_rate
 				                                      = dropout)
 			if component == 'cshfixedfilter':
 				#expand rate does not affect num of filter for this convolution
-				nb_filter = param['f']
-				f_size = param['r']
-				conv_to_pass = Conv2D(int(nb_filter), f_size, f_size,
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				conv_to_pass = Conv2D(int(nb_filter), (f_size, f_size),
 				 activation = None, input_shape = input_shape, padding = 'same', W_regularizer = w_reg,
+				                      kernel_initializer='he_normal'
 				)
 				x= node_list_to_list(x)
 				for i in range(x.__len__()):
@@ -424,6 +497,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 					else:
 						border_mode= 'same'
 
+
 				x = conv_relu_on_list(input_tensor_list=x, nb_filter=int(nb_filter * expand_rate / branch),
 				                              filter_size=f_size, input_shape=input_shape, w_reg=w_reg,
 				                              gate_activation=get_gate_activation(opts), layer_index=layer_index_t,
@@ -441,7 +515,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 					for i in range(int(n)):
 						x = concat_on_list(input_tensor_list=x,n=n,layer_index=layer_index_t)
 
-			if component =='flattensh':
+			if component =='flattensh_legacy':
 				res = []
 				x = node_list_to_list(x)
 				flatten_flag = True
@@ -459,7 +533,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 					tensor_f = Dropout(d)(tensor)
 					res+=[tensor_f]
 				x = res
-			if component =='densesh':
+			if component =='densesh_legacy':
 				#TODO:  remove dropout and flatten from densesh .
 				n = int(param['n'])
 				if param.has_key('act'):
@@ -468,8 +542,9 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 					activation = None
 				if n==-1:
 					n = nb_classes
+					no_class_dense==True
 				x = node_list_to_list(x)
-				dense = Dense(n,activation=activation)
+				dense = Dense(n,activation=activation,kernel_initializer='he_normal')
 				res  = []
 				for tensor in x:
 					tensor = dense(tensor)
@@ -487,24 +562,16 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				if param.has_key('m'):
 					max = float(param['m'])
 				f_size = param['r']
-				x = node_list_to_list(x)
-				x = avg_pool_on_list(input_tensor_list=x, strides=(1, 1), layer_index=layer_index_t, pool_size=f_size)
-				no_class_dense = True
-				flatten_flag = True
-				res = []
-				for tensor in x:
-					tensor_f = Flatten()(tensor)
-					res += [tensor_f]
-				res_sum = add(res)
-				if max == 0:
-					x = res_sum
+				res = node_list_to_list(x)
+				if res.__len__()==1:
+					res_sum=res[0]
 				else:
-					# res = K.expand_dims()
-					res_max = MaxoutDenseOverParallel()(res)
-					x = res_max
-					if max == .5:
-						x = add([res_max, res_sum])
-					x = add([res_max, res_sum])
+					res_sum = add(res)
+				x = avg_pool_on_list(input_tensor_list=[res_sum], strides=(1, 1), layer_index=layer_index_t, \
+				                                                                                 pool_size=f_size)
+				no_class_dense = True
+				flatten_flag = False
+
 			if component == 'shdense3':
 				max = 0
 				if param.has_key('m'):
@@ -564,93 +631,6 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 def remove_pooling_from_string(model_string):
 	model_string.replace('-ap')
 
-def model_a(opts, input_shape, nb_classes, input_tensor=None, include_top=True, initialization='glorot_normal'):
-	if include_top:
-		input_shape = input_shape
-	else:
-		input_shape = (3, None, None)
-	if input_tensor is None:
-		img_input = Input(shape=input_shape, name='image_batch')
-	else:
-		img_input = input_tensor
-
-	expand_rate = opts['model_opts']['param_dict']['param_expand']['rate']
-	filter_size = get_filter_size(opts)
-	if filter_size == -1:
-		f_size = [3, 5, 5, 4]
-	else:
-		f_size = np.min([[32, 16, 7, 3], [filter_size, (filter_size + 1) / 2, filter_size, filter_size - 1]], 0)
-	# Layer 1 Conv 5x5 32ch  border 'same' Max Pooling 3x3 stride 2 border valid
-	# x = gate_layer_on_list([img_input], int(32 * expand_rate), f_size[0], input_shape=input_shape, opts=opts,
-	#                        border_mode='same', merge_flag=False, layer_index=0)
-	#nb_filter,filter_size,border_mode,input_shape,w_reg,gate_activation,index,layer_index,
-                      #input_tensor_list
-	global layer_index
-	layer_index=0
-	x = conv_birelu_expand_on_list(input_tensor_list=[img_input],nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                               input_shape=input_shape, w_reg=None,
-	                       gate_activation=get_gate_activation(opts), layer_index=get_layer_index(),border_mode='same')
-	x = conv_birelu_expand_on_list(input_tensor_list=x,nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                               input_shape=input_shape, w_reg=None,
-	                       gate_activation=get_gate_activation(opts), layer_index=get_layer_index(),border_mode='same')
-	x = conv_birelu_expand_on_list(input_tensor_list=x, nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                               input_shape=input_shape, w_reg=None, gate_activation=get_gate_activation(opts),
-	                               layer_index=get_layer_index(), border_mode='same')
-	x = conv_birelu_expand_on_list(input_tensor_list=x, nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                               input_shape=input_shape, w_reg=None, gate_activation=get_gate_activation(opts),
-	                               layer_index=get_layer_index(), border_mode='same')
-	# x = max_pool_on_list(x, strides=(2, 2), layer_index=get_layer_index())
-	x = conv_birelu_swap_on_list(input_tensor_list=x,nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                               input_shape=input_shape, w_reg=None,
-	                       gate_activation=get_gate_activation(opts), layer_index=get_layer_index(),border_mode='same')
-	x = conv_birelu_swap_on_list(input_tensor_list=x,nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                               input_shape=input_shape, w_reg=None,
-	                       gate_activation=get_gate_activation(opts), layer_index=get_layer_index(),border_mode='same')
-	x = conv_birelu_merge_on_list(input_tensor_list=x,nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                               input_shape=input_shape, w_reg=None,
-	                       gate_activation=get_gate_activation(opts), layer_index=get_layer_index(),border_mode='same')
-	# x = max_pool_on_list(x, strides=(2, 2), layer_index=get_layer_index())
-	x = conv_birelu_merge_on_list(input_tensor_list=x,nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                               input_shape=input_shape, w_reg=None,
-	                       gate_activation=get_gate_activation(opts), layer_index=get_layer_index(),border_mode='same')
-	x = conv_birelu_merge_on_list(input_tensor_list=x, nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                              input_shape=input_shape, w_reg=None, gate_activation=get_gate_activation(opts),
-	                              layer_index=get_layer_index(), border_mode='same')
-	x = conv_birelu_merge_on_list(input_tensor_list=x, nb_filter=int(32 * expand_rate), filter_size=f_size[0],
-	                              input_shape=input_shape, w_reg=None, gate_activation=get_gate_activation(opts),
-	                              layer_index=get_layer_index(), border_mode='same')
-	# TODO add stride for conv layer
-	# x = maxpool_on_list(x, pool_size=(3, 3), strides=(2, 2),layer_index=1, border_mode='same')
-	# #                           Layer 2 Conv 5x5 64ch  border 'same' AveragePooling 3x3 stride 2
-	# x = gate_layer_on_list(x, int(64 * expand_rate / 2), f_size[1],
-	#                        input_shape=(32, (input_shape[1] - 2), (input_shape[2]) - 2), opts=opts,
-	#                        border_mode='same', merge_flag=False, layer_index=2)
-	# x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2),layer_index=3)
-	#
-	# #                           Layer 3 Conv 5x5 128ch  border 'same' AveragePooling3x3 stride 2
-	# x = gate_layer_on_list(x, int(128 * expand_rate / 4), f_size[2],
-	#                        input_shape=(32, (input_shape[1] - 2) / 2, (input_shape[2] - 2) / 2), opts=opts,
-	#                        border_mode='same', merge_flag=False,layer_index=4)
-	# x = averagepool_on_list(x, pool_size=(3, 3), strides=(2, 2), border_mode='same',layer_index=5)
-	# #                           Layer 4 Conv 4x4 64ch  border 'same' no pooling
-	# x = gate_layer_on_list(x, int(64 * expand_rate / 8), f_size[3],
-	#                        input_shape=(64, ((input_shape[1] - 2) / 2) - 2, ((input_shape[2] - 2) / 2) - 2), opts=opts,
-	#                        border_mode='valid', merge_flag=False,layer_index=6)
-	# option 1 average pool all x
-	# option 2 concat x list into one tensor
-	x = node_list_to_list(x)
-	merged = x[0]
-	if not x.__len__()==1:
-		for input1 in x[1:]:
-			merged = concatenate([merged, input1],axis=1)
-	if not include_top:
-		model = Model(input=img_input, output=x)
-	else:
-		x = Flatten(name='flatten')(merged)
-		x = Dense(nb_classes)(x)
-		x = Activation('softmax')(x)
-		model = Model(input=img_input, output=x)
-	return model
 def node_list_to_list(array_tensor):
 	'convert a hiearchial list to flat list'
 	result =[]
@@ -678,6 +658,9 @@ def parse_model_string(model_string):
 		filter_name = filter[0]
 		filter_dict['type'] = filter_name
 		filter_dict['param'] = {}
+		if filter.__len__()==1:
+			model_filter_list += [filter_dict]
+			continue
 		parameters = filter[1]
 		parameters = parameters.split(',')
 		for parameter in parameters:

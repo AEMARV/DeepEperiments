@@ -5,7 +5,7 @@ from utils.opt_utils import *
 from Models.vgg16_zisserman import VGG16
 from Models.lenet_amir import lenet_amir_model
 import numpy as np
-
+import keras
 import time
 def find_key_value_to_str_recursive(dictionary,parent_dict_name,method_name_exclusive_list):
 	result_str = ''
@@ -25,7 +25,7 @@ def grid_search(opts,experiment_name=None,model_str=None,dataset_str=None):
 	lr = [-2]
 	w_reg = {None}
 	w_reg_value = {5e-4}
-	param_expand = [1.4] ## in gated all the params are devided by two because we have two layers per channel so
+	param_expand = [1] ## in gated all the params are devided by two because we have two layers per channel so
 	# this ratio can be compared for number of parameters e.g if in lennet param_expand=1 and in gated param_expand=1
 	#  means they have the same number of parameters
 	new_opts = [{'gate_activation':['softplus']},{'data_activation':[None]},{'loss':['categorical_crossentropy']}]
@@ -79,9 +79,10 @@ def wrapper_gated(model,opts,experiment_name):
 
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models= ['besh_crelu_3']
+	print keras.__version__
+	models= ['nin_besh_2']
 	#TODO create a maxpool for permute maxpool select the classification from the branch with the least entropy
-	datasets=['cifar100']
+	datasets=['cifar100','cifar10']
 	print "please select the Experiment name or Define a new one"
 	dirs = [d for d in os.listdir('./Results') if os.path.isdir(os.path.join('./Results', d)) and not d[0]=='.']
 	dirs = [d for d in dirs]

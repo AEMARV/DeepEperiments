@@ -12,6 +12,7 @@ from keras.datasets import cifar10
 from keras.datasets import cifar100
 from keras.utils import np_utils
 from keras.preprocessing.image import ImageDataGenerator
+from keras.applications import imagenet_utils
 import matplotlib.pyplot as plt
 
 cpu_debug = False
@@ -132,7 +133,10 @@ def lr_random_multiScale(index):
 		print('learningrate:',ler)
 	return ler
 def lr_permut(index):
-	lr = [1e-2,1e-2,1e-2,1e-3,1e-4,1e-4]
+	# for lenet model
+	# lr = [1e-2, 1e-2, 1e-2, 1e-3, 1e-4, 1e-4]
+	# for NIN
+	lr = [1e-1,1e-2,1e-2,1e-3,1e-4,1e-4]
 	k=(index/60)
 	i = np.floor(k)
 	if i<0:
@@ -144,6 +148,90 @@ def lr_permut(index):
 	return lr_s
 def springberg_lr(index):
 	S = [200,250,300]
+def image_net_trainer(opts,model,optimizer):
+	nb_classes = opts['training_opts']['dataset']['nb_classes'];
+	dataset_name = opts['training_opts']['dataset']['method']
+	if dataset_name == 'cifar100':
+		(X_train, y_train), (X_test, y_test) = cifar100.load_data()
+	if dataset_name == 'cifar10':
+		(X_train, y_train), (X_test, y_test) = cifar10.load_data()
+	Y_train = np_utils.to_categorical(y_train, nb_classes)
+	Y_test = np_utils.to_categorical(y_test, nb_classes)
+	X_train = X_train.astype('float32')
+	X_test = X_test.astype('float32')
+	X_train /= 255
+	X_test /= 255
+	samples_per_epoch = opts['training_opts']['samples_per_epoch']
+	if opts['training_opts']['samples_per_epoch'] == -1:
+		samples_per_epoch = X_train.shape[0]
+
+	model.compile(loss=opts['optimizer_opts']['loss']['method'], optimizer=optimizer,
+	              metrics=['accuracy', 'mean_absolute_percentage_error', 'cosine_proximity',
+	                       'top_k_categorical_accuracy'])
+	file_name_extension = dataset_name + '_zca:' + str(opts['aug_opts']['zca_whitening']) + '_stdn:' + str(
+		opts['aug_opts']['featurewise_std_normalization']) + '_mn:' + str(
+		opts['aug_opts']['featurewise_center']) + '.npy'
+	train_name = 'xtrain_' + file_name_extension
+	train_file_path = '/home/student/Documents/Git/DeepEperiments/' + train_name
+	test_file_path = '/home/student/Documents/Git/DeepEperiments/' + 'xtest_' + file_name_extension
+	if opts['aug_opts']['enable']:
+		if not os.path.exists(os.path.abspath(train_file_path)):
+			print('Using real-time data augmentation.')
+			datagen = ImageDataGenerator(featurewise_center=opts['aug_opts']['featurewise_center'],
+			                             featurewise_std_normalization=opts['aug_opts'][
+				                             'featurewise_std_normalization'],  # divide inputs by std of the dataset
+			                             zca_whitening=opts['aug_opts']['zca_whitening'])  # apply ZCA whitening)
+			print('Data Augmentation enabled')
+			print(opts['aug_opts'])
+			datagen.fit(X_train)
+			for i in range(X_train.shape[0]):
+				X_train[i] = datagen.standardize(X_train[i])
+			for i in range(X_test.shape[0]):
+				X_test[i] = datagen.standardize(X_test[i])
+			np.save(os.path.abspath(train_file_path), X_train)
+			np.save(os.path.abspath(test_file_path), X_test)
+		else:
+			X_train = np.load(os.path.abspath(train_file_path))
+			X_test = np.load(os.path.abspath(test_file_path))
+
+
+		# compute quantities required for featurewise normalization
+		# (std, mean, and principal components if ZCA whitening is applied)
+	if opts['aug_opts']['enable']:
+		print('Using real-time data augmentation.')
+		datagen = ImageDataGenerator(  # set input mean to 0 over the dataset
+			samplewise_center=opts['aug_opts']['samplewise_center'],  # set each sample mean to 0
+			samplewise_std_normalization=opts['aug_opts']['samplewise_std_normalization'],
+			# divide each input by its std
+			rotation_range=opts['aug_opts']['rotation_range'],
+			# randomly rotate images in the range (degrees, 0 to 180)
+			width_shift_range=opts['aug_opts']['width_shift_range'],
+			# randomly shift images horizontally (fraction of total width)
+			height_shift_range=opts['aug_opts']['height_shift_range'],
+			# randomly shift images vertically (fraction of total height)
+			horizontal_flip=opts['aug_opts']['horizontal_flip'],  # randomly flip images
+			vertical_flip=opts['aug_opts']['vertical_flip'])  # randomly flip images
+		print('Data Augmentation enabled')
+		print(opts['aug_opts'])
+	# compute quantities required for featurewise normalization
+	# (std, mean, and principal components if ZCA whitening is applied)
+	else:
+		datagen = ImageDataGenerator()
+	plotter = PlotMetrics(opts)
+	experiments_abs_path = plotter.history_holder.dir_abs_path
+	tensorboard = TensorboardCostum(log_dir=experiments_abs_path + '/logs', histogram_freq=1, write_graph=True,
+	                                write_images=False)
+
+	csv_logger = CSVLogger(filename=experiments_abs_path + '/training.log', separator=',')
+	checkpoint = ModelCheckpoint(experiments_abs_path + '/checkpoint', period=10)
+	callback_list = [plotter, csv_logger, tensorboard, checkpoint]
+	lr_sched = LearningRateScheduler(lr_permut)
+	callback_list = callback_list + [lr_sched]
+
+	model.fit_generator(
+		datagen.flow(X_train, Y_train, batch_size=opts['training_opts']['batch_size'], shuffle=True, seed=opts['seed']),
+		samples_per_epoch=samples_per_epoch, nb_epoch=opts['training_opts']['epoch_nb'], callbacks=callback_list,
+		validation_data=(X_test, Y_test))
 def cifar_trainer(opts,model,optimizer):
 	nb_classes=opts['training_opts']['dataset']['nb_classes'];
 	dataset_name = opts['training_opts']['dataset']['method']
