@@ -50,6 +50,31 @@ class Birelu(Layer):
 		config = {'activation': self.activation.__name__}
 		base_config = super(Birelu, self).get_config()
 		return dict(list(base_config.items()) + list(config.items()))
+class Crelu(Layer):
+	def __init__(self, activation, **kwargs):
+		self.supports_masking = False
+		self.activation = get(activation)
+		super(Crelu, self).__init__(**kwargs)
+	def compute_output_shape(self, input_shape):
+		output_dim = 2*input_shape[1]
+		output_shape = (input_shape[0],output_dim,input_shape[2],input_shape[3])
+		return output_shape
+	def compute_mask(self, input, input_mask=None):
+		return None
+
+	def call(self, x, mask=None):
+		if self.activation.__name__ == 'relu':
+			pas = self.activation(x)
+			inv_pas = self.activation(-x)
+			res=K.concatenate([pas,inv_pas],axis=1)
+		else:
+			raise ValueError('Activation is not Relu, For now Crelu only workds on relu')
+		return res
+
+	def get_config(self):
+		config = {'activation': self.activation.__name__}
+		base_config = super(Crelu, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
 class Birelu_old(Layer):
 	def __init__(self, activation,relu_birelu_sel=1,layer_index=0,leak_rate=0,child_p=.5,add_data=False, **kwargs):
 		self.supports_masking = False

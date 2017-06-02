@@ -80,7 +80,7 @@ def wrapper_gated(model,opts,experiment_name):
 if __name__ == '__main__':
 	#gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
 	print keras.__version__
-	models= ['nin_besh_2']
+	models= ['nin_besh_caffe2','nin_besh_caffe3']
 	#TODO create a maxpool for permute maxpool select the classification from the branch with the least entropy
 	datasets=['cifar100','cifar10']
 	print "please select the Experiment name or Define a new one"

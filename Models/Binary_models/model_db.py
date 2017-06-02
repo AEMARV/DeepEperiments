@@ -2038,28 +2038,28 @@ def springberg_baseline2(opts, input_shape, nb_classes, getstring_flag=False):
 		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
 	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
 	                 conv_filter_size_list=filter_size_list)
-def nin_baseline_relu(opts, input_shape, nb_classes, getstring_flag=False):
-
-	model_string ='r|f:192,r:5,b:0' \
-	               '->r|f:160,r:1,b:0' \
-	               '->r|f:96,r:1,b:0' \
-					'->mp|r:3'\
-					'->d|p:.5'\
-	               '->r|f:192,r:5,b:0' \
-	               '->r|f:192,r:1,b:0' \
-	               '->r|f:192,r:1,b:0' \
-	               '->ap|r:3' \
-	               '->d|p:.5'\
-	               '->r|f:192,r:3,b:0' \
-	               '->r|f:192,r:1,b:0' \
-	               '->conv|f:'+str(nb_classes)+',r:1,b:0' \
-	               '->apd|r:7'
-	nb_filter_list = [32, 32, 64, 128, 64, 64]
-	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
-	if getstring_flag:
-		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
-	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
-	                 conv_filter_size_list=filter_size_list)
+# def nin_baseline_relu(opts, input_shape, nb_classes, getstring_flag=False):
+#
+# 	model_string ='r|f:192,r:5,b:0' \
+# 	               '->r|f:160,r:1,b:0' \
+# 	               '->r|f:96,r:1,b:0' \
+# 					'->mp|r:3'\
+# 					'->d|p:.5'\
+# 	               '->r|f:192,r:5,b:0' \
+# 	               '->r|f:192,r:1,b:0' \
+# 	               '->r|f:192,r:1,b:0' \
+# 	               '->ap|r:3' \
+# 	               '->d|p:.5'\
+# 	               '->r|f:192,r:3,b:0' \
+# 	               '->r|f:192,r:1,b:0' \
+# 	               '->conv|f:'+str(nb_classes)+',r:1,b:0' \
+# 	               '->apd|r:7'
+# 	nb_filter_list = [32, 32, 64, 128, 64, 64]
+# 	filter_size_list = [5, 5, 3, 5, 3, 5, 3, 4, 3]
+# 	if getstring_flag:
+# 		return {'string': model_string, 'nb_filter': nb_filter_list, 'filter_size': filter_size_list}
+# 	return get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list,
+# 	                 conv_filter_size_list=filter_size_list)
 def nin_besh(opts, input_shape, nb_classes, getstring_flag=False):
 
 	model_string ='rsh|f:192,r:5,b:0,p:1' \
@@ -2108,7 +2108,116 @@ def nin_besh_2(opts, input_shape, nb_classes, getstring_flag=False):
 					'->averagepool|r:7,s:1'\
 					'->flattensh->softmax'\
 					'->merge_branch_average->fin'
+
 	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+def nin_besh_3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5->ber' \
+	               '->convsh|f:160,r:1->relu' \
+	               '->convsh|f:96,r:1->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5->relu' \
+	               '->convsh|f:192,r:1->relu' \
+	               '->convsh|f:192,r:1->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3->relu' \
+	               '->convsh|f:192,r:1->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:7,s:1' \
+	                                                 '->flattensh' \
+	                                                 '->merge_branch_average->softmax->fin'
+
+
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+def nin_relu_baseline(opts, input_shape, nb_classes, getstring_flag=False):
+	# Same Structure as nin besh 1 2 3
+	model_string = 'convsh|f:192,r:5->relu' \
+	               '->convsh|f:160,r:1->relu' \
+	               '->convsh|f:96,r:1->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5->relu' \
+	               '->convsh|f:192,r:1->relu' \
+	               '->convsh|f:192,r:1->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3->relu' \
+	               '->convsh|f:192,r:1->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:7,s:1' \
+	                                                 '->flattensh' \
+	                                                 '->softmax->fin'
+
+
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+def nin_relu_baseline_caffe(opts, input_shape, nb_classes, getstring_flag=False):
+	# Same Structure as nin besh 1 2 3
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:7,s:1' \
+	                                                 '->flattensh' \
+	                                                 '->softmax->fin'
+
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+def nin_besh_caffe(opts, input_shape, nb_classes, getstring_flag=False):
+	# Same Structure as nin besh 1 2 3
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:7,s:1' \
+	                                                 '->flattensh->merge_branch_average' \
+	                                                 '->softmax->fin'
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+
+def nin_besh_caffe2(opts, input_shape, nb_classes, getstring_flag=False):
+	# Same Structure as nin besh 1 2 3
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:7,s:1' \
+	                                                 '->flattensh->merge_branch_average' \
+	                                                 '->softmax->fin'
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+def nin_besh_caffe3(opts, input_shape, nb_classes, getstring_flag=False):
+	# Same Structure as nin besh 1 2 3
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:7,s:1' \
+	                                                 '->flattensh->merge_branch_average' \
+	                                                 '->softmax->fin'
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+
 def besh_vggcrelu(opts, input_shape, nb_classes, getstring_flag=False):
 
 	nb_filter_list = [32, 32, 64, 128, 64, 64]
