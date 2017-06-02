@@ -3,7 +3,7 @@ from keras.layers import Input, Flatten, Dense, Conv2D,SpatialDropout2D
 
 from Layers.layer_wrappers.on_list_wrappers import *
 from utils.opt_utils import get_filter_size,get_gate_activation
-from keras.regularizers import l1,l2
+from keras.regularizers import l1,l2,l1_l2
 from keras.layers.merge import add,concatenate,average
 import numpy as np
 layer_index=0
@@ -22,6 +22,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 	'nb_filter_list is total filters used in each layer.filter size is for convolution'
 
 	img_input = Input(shape=input_shape, name='image_batch')
+	print K.floatx()
 	x = [img_input]
 	expand_rate = opts['model_opts']['param_dict']['param_expand']['rate']
 	layer_index_t = 0
@@ -59,10 +60,18 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 			if component == 'convsh':
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if param.has_key('l1_val') else 0
+				w_reg_l2_val = param['l2_val'] if param.has_key('l2_val') else 0
+				# w_reg_l1_val=0
+				# w_reg_l2_val=0
+				padding = param['padding'] if param.has_key('padding') else 'same'
+				activation = param['activation'] if param.has_key('activation') else None
+				initializion = param['int'] if param.has_key('init') else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val,l2=w_reg_l2_val)
 				kernel_size = (f_size,f_size)
 				x = node_list_to_list(x)
-				x = Layer_on_list(Conv2D(filters=nb_filter,kernel_size=kernel_size,padding='same',
-				                         kernel_initializer='he_normal',kernel_regularizer=w_reg,activation=None,
+				x = Layer_on_list(Conv2D(filters=nb_filter,kernel_size=kernel_size,padding=padding,
+				                         kernel_initializer=initializion,kernel_regularizer=w_reg,activation=activation,
 				                         name='CONV_'+str(layer_index_t) ),x)
 			if component == 'ber':
 				x = node_list_to_list(x)
@@ -123,8 +132,9 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				x = node_list_to_list(x)
 
 			if component == 'fin':
+				x = node_list_to_list(x)
 				if not x.__len__()==1:
-					assert 'output node is a list'
+					raise ValueError('output node is a list of tensor, Probably forgot about merging branch')
 				x = x[0]
 				return Model(input=img_input, output=x)
 			#
