@@ -1,6 +1,6 @@
 from keras.engine import Model
 from keras.layers import Input, Flatten, Dense, Conv2D,SpatialDropout2D
-
+import warnings
 from Layers.layer_wrappers.on_list_wrappers import *
 from utils.opt_utils import get_filter_size,get_gate_activation
 from keras.regularizers import l1,l2,l1_l2
@@ -26,14 +26,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 	x = [img_input]
 	expand_rate = opts['model_opts']['param_dict']['param_expand']['rate']
 	layer_index_t = 0
-	filter_size_index =0
-	conv_nb_filterindex=0
-	branch = 1
-	batch_norm = False
 	fully_drop =0
-	leak_rate=0
-	child_probability=.5
-	counter = False # for prelu permutation
 	flatten_flag = False
 	no_class_dense=False
 	for layer in model_dict:
@@ -51,10 +44,6 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 
 		if not layer_index_t == 0:
 			input_shape = (None,None,None)
-		# if nb_filter_list is not None and component in ['e','s','rm','am','rbe','rbs']:
-		# 	nb_filter=nb_filter_list[conv_nb_filterindex]
-		# if filter_size_list is not None:
-		# 	f_size = filter_size_list[filter_size_index]
 		param =layer['param']
 		with tf.name_scope(component) as scope:
 			if component == 'convsh':
@@ -68,7 +57,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				w_reg = l1_l2(l1=w_reg_l1_val,l2=w_reg_l2_val)
 				kernel_size = (f_size,f_size)
 				x = node_list_to_list(x)
-				x = Layer_on_list(Conv2D(filters=nb_filter,kernel_size=kernel_size,padding=padding,
+				x = Layer_on_list(Conv2D(filters=nb_filter*expand_rate,kernel_size=kernel_size,padding=padding,
 				                         kernel_initializer=initializion,kernel_regularizer=w_reg,activation=activation,
 				                         name='CONV_'+str(layer_index_t) ),x)
 			elif component == 'ber':
@@ -124,13 +113,13 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				if not x.__len__()==1:
 					x = [add(x)]
 				else:
-					raise ValueError('Merge Branch ADD tried to merge but list has only one element')
+					warnings.warn('tensor list has one element, Merge Branch is not needed')
 			elif component == 'merge_branch_average':
 				x = node_list_to_list(x)
 				if not x.__len__() == 1:
 					x = [average(x)]
 				else:
-					raise ValueError('Merge Branch Average tried to merge but list has only one element')
+					warnings.warn('tensor list has one element, Merge Branch is not needed')
 			elif component == 'fin':
 				x = node_list_to_list(x)
 				if not x.__len__()==1:
@@ -141,27 +130,7 @@ def model_constructor(layer_sequence,opts,nb_classes,input_shape,nb_filter_list=
 				raise ValueError(component+' Not Found')
 
 			layer_index_t+=1
-			conv_nb_filterindex+=1
-			filter_size_index+=1
 
-	if not flatten_flag:
-		if type(x)==list and (type(x[0]) == list or not x.__len__()==1) :
-			x = node_list_to_list(x)
-			merged =concatenate(x, axis=1)
-		else:
-			if type(x)==list:
-				x = x[0]
-			merged = x
-		with tf.name_scope('Flatten'):
-			x = Flatten(name='flatten')(merged)
-		with tf.name_scope('Dropout'):
-			if not fully_drop==0:
-				x = Dropout(fully_drop)(x)
-		with tf.name_scope('Dense'):
-			if not no_class_dense:
-				x = Dense(int(nb_classes))(x)
-		with tf.name_scope('SoftMax'):
-			x = Activation('softmax')(x)
 	model = Model(input=img_input, output=x)
 	return model
 def remove_pooling_from_string(model_string):

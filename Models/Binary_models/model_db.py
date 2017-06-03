@@ -2217,7 +2217,58 @@ def nin_besh_caffe3(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->flattensh->merge_branch_average' \
 	                                                 '->softmax->fin'
 	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+def nin_crelu_caffe(opts, input_shape, nb_classes, getstring_flag=False):
+	# Same Structure as nin besh 1 2 3
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->crelu' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:7,s:1' \
+	                                                 '->flattensh->merge_branch_average' \
+	                                                 '->softmax->fin'
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
 
+def nin_crelu_caffe2(opts, input_shape, nb_classes, getstring_flag=False):
+	# Same Structure as nin besh 1 2 3
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->crelu' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:7,s:1' \
+	                                                 '->flattensh->merge_branch_average' \
+	                                                 '->softmax->fin'
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
+def nin_crelu_caffe3(opts, input_shape, nb_classes, getstring_flag=False):
+	# Same Structure as nin besh 1 2 3
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->crelu' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->crelu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->crelu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:7,s:1' \
+	                                                 '->flattensh->merge_branch_average' \
+	                                                 '->softmax->fin'
+	return get_model(opts, input_shape, nb_classes, model_string=model_string)
 def besh_vggcrelu(opts, input_shape, nb_classes, getstring_flag=False):
 
 	nb_filter_list = [32, 32, 64, 128, 64, 64]

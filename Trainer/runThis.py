@@ -82,7 +82,7 @@ if __name__ == '__main__':
 	print keras.__version__
 	models= ['nin_besh_caffe2','nin_besh_caffe3']
 	#TODO create a maxpool for permute maxpool select the classification from the branch with the least entropy
-	datasets=['cifar100','cifar10']
+	datasets=['cifar10','cifar100']
 	print "please select the Experiment name or Define a new one"
 	dirs = [d for d in os.listdir('./Results') if os.path.isdir(os.path.join('./Results', d)) and not d[0]=='.']
 	dirs = [d for d in dirs]
