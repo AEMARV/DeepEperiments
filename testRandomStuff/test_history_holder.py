@@ -1,4 +1,4 @@
-from ResultManager.history_holder import test_HH
+from utils.resultmanager import test_HH
 def default_opt_creator():
 	aug_opts = {}
 	aug_opts['enable'] = False  # enables augmentation
