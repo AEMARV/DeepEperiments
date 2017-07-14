@@ -288,8 +288,8 @@ if __name__ == '__main__':
 	model.compile(optimizer=sgd, loss='mse')
 	np.random.seed(0)
 	input_im = np.random.randint(0, 256, (1, 3, 4, 4))
-	print "input data: \n", input_im
+	print("input data: \n", input_im)
 	a = model.predict(input_im)
-	print "Predictions"
-	print a
-	print a.shape
+	print("Predictions")
+	print(a)
+	print(a.shape)

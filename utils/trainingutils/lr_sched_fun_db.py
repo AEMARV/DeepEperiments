@@ -7,7 +7,7 @@ def lr_sched_function_load(dataset, network):
 
 def cifar10_nin(index):
 	lr = [2e-3] + [1e-2] + [2e-2] + 80 * [4e-2] + 10 * [4e-3] + 100 * [4e-4]
-	print('LearningRate:', lr[index])
+	print(('LearningRate:', lr[index]))
 	return lr[index]
 
 
@@ -20,7 +20,7 @@ def default_LR_scheduler_funciton(index):
 	if i >= lr.__len__():
 		i = lr.__len__() - 1
 	lr_s = lr[int(i)]
-	print('LearningRate:', float(lr_s))
+	print(('LearningRate:', float(lr_s)))
 	return lr_s
 
 
@@ -33,7 +33,7 @@ def cifar100_nin(index):
 	if i >= lr.__len__():
 		i = lr.__len__() - 1
 	lr_s = lr[int(i)]
-	print('LearningRate:', lr_s)
+	print(('LearningRate:', lr_s))
 	return lr_s
 
 

@@ -345,9 +345,11 @@ def max_entropy_perm_nin_model1(opts, input_shape, nb_classes, getstring_flag=Fa
 	               '->fin'.format(nb_classes)
 	return get_model(opts, model_string=model_string)
 
+
 """"Structure Test"""
+
+
 def nin_tree_structure_1(opts, input_shape, nb_classes, getstring_flag=False):
-	# interconv fc are not shared
 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->relu' \
 	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
 	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
@@ -386,6 +388,230 @@ def nin_tree_structure_2(opts, input_shape, nb_classes, getstring_flag=False):
 	return get_model(opts, model_string=model_string)
 
 
+def nin_tree_structure_3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_structure_4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->conv|f:{},r:1,l2_val:1e-4->relu' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_structure_5(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->ber' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->max_entropy_branch_select' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_structure_6(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxav|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->maxav|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->maxav|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_structure_7(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxav|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->maxav|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->maxav|r:7,s:1' \
+	               '->concat' \
+	               '->flattensh' \
+	               '->densesh|n:10' \
+	               '->softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_structure_8(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+					'->ifc|out:1'\
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+					'->ifc|out:1'\
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_structure_9(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->maxav|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_structure_10(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_structure_11(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:1' \
+	               '->maxav|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_structure_12(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:1' \
+	               '->maxav|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model(opts, model_string=model_string)
+
+
+def nin_columnar_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:1' \
+	               '->maxav|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model(opts, model_string=model_string)
 def nin_tree_structure_2_perm(opts, input_shape, nb_classes, getstring_flag=False):
 	# interconv fc are not shared
 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:8,random_permute:0' \
@@ -424,6 +650,7 @@ def nin_tree_structure_2_perm(opts, input_shape, nb_classes, getstring_flag=Fals
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
 	return get_model(opts, model_string=model_string)
+
 
 def nin_tree_structure_2_perm_rand_activity(opts, input_shape, nb_classes, getstring_flag=False):
 	# interconv fc are not shared
@@ -463,6 +690,7 @@ def nin_tree_structure_2_perm_rand_activity_1(opts, input_shape, nb_classes, get
 	               'softmax->softmax_activity_reg->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
 	return get_model(opts, model_string=model_string)
+
 
 def nin_tree_structure_2_perm_activity(opts, input_shape, nb_classes, getstring_flag=False):
 	# interconv fc are not shared
@@ -522,6 +750,7 @@ def nin_tree_structure_2_perm_rand_1(opts, input_shape, nb_classes, getstring_fl
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
 	return get_model(opts, model_string=model_string)
+
 
 def nin_tree_structure_1_perm(opts, input_shape, nb_classes, getstring_flag=False):
 	# interconv fc are not shared
@@ -601,6 +830,321 @@ def nin_tree_structure_2_average(opts, input_shape, nb_classes, getstring_flag=F
 	               'softmax->merge_branch_average' \
 	               '->fin'.format(nb_classes)
 	return get_model(opts, model_string=model_string)
+
+
+""" PERM EXPERIMENT """
+
+
+def nin_tree_berp_1(opts, input_shape, nb_classes, getstring_flag=False):
+	# interconv fc are not shared
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:3,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:3,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:3,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_berp_2(opts, input_shape, nb_classes, getstring_flag=False):
+	# interconv fc are not shared
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:8,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_berp_3(opts, input_shape, nb_classes, getstring_flag=False):
+	# interconv fc are not shared
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:2,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+# Good results
+def nin_tree_biperm_1(opts, input_shape, nb_classes, getstring_flag=False):
+	# interconv fc are not shared
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->biperm|max_perm:4,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+# bad Results
+def nin_tree_biperm_2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->biperm|max_perm:2,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->biperm|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->biperm|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_perm_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_perm_2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_perm_3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_perm_4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_perm_5(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_perm_5_load(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_perm_6(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.7' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_perm_3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:8,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_perm_4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:8,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_biperm_4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->biperm|max_perm:8,random_permute:1,p:.9' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.9' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
+def nin_tree_biperm_5(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->biperm|max_perm:8,random_permute:1,p:.8' \
+	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->berp|max_perm:1,random_permute:1,p:.8' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax->weighted_average_pred_1' \
+	               '->fin'.format(nb_classes)
+	return get_model(opts, model_string=model_string)
+
+
 """MAX ENTROPY _ AV ENTROPY _ FULL EXPERIMENT"""
 
 
@@ -831,8 +1375,6 @@ def get_model_from_db(identifier, opts):
 	return model_fun(opts, opt_utils.get_input_shape(opts), opt_utils.get_nb_classes(opts))
 
 
-
-
 if __name__ == '__main__':
 	opts = default_opt_creator()
 	functions = globals().copy()
@@ -841,7 +1383,7 @@ if __name__ == '__main__':
 		if function not in func_to_test:
 			continue
 		model = functions.get(function)
-		print function
+		print(function)
 		opts = opt_utils.set_model_string(opts, function)
 		opts = opt_utils.set_dataset(opts, 'cifar100')
 		opt_utils.set_default_opts_based_on_model_dataset(opts)
@@ -851,9 +1393,9 @@ if __name__ == '__main__':
 		if not function in func_to_test:
 			continue
 		model = functions.get(function)
-		print function
+		print(function)
 		opts = opt_utils.set_model_string(opts, function)
 		opts = opt_utils.set_dataset(opts, 'cifar100')
 		opt_utils.set_default_opts_based_on_model_dataset(opts)
 		model = model(opts, (3, 32, 32), 10)
-		print model.count_params()
+		print((model.count_params()))

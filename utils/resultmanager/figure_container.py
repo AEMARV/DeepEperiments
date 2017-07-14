@@ -54,5 +54,5 @@ class FigureContainer(object):
 	def save_all_fig(self,path_abs=None):
 		if path_abs==None:
 			path_abss=self.result_dir_abs_path
-		for name_fig in self.figure_handles.keys():
+		for name_fig in list(self.figure_handles.keys()):
 			self.save_fig_as_png(name_fig,path_abss)

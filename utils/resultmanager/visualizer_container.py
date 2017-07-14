@@ -3,7 +3,7 @@ import numpy as np
 import pylab as pl
 from matplotlib import pyplot as plt
 import matplotlib.cm as cm
-from figure_container import FigureContainer
+from .figure_container import FigureContainer
 from utils import visualizer_utils as vu
 class VisualizerContainer(FigureContainer):
 	# used source : https://github.com/julienr/ipynb_playground/blob/master/keras/convmnist/keras_cnn_mnist.ipynb

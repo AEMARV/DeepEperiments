@@ -23,7 +23,8 @@ def check_model_list(model_list, datasets):
 
 if __name__ == '__main__':
 	# gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models = ['nin_tree_structure_11', 'nin_tree_structure_10', 'nin_tree_structure_9', 'nin_tree_structure_12',]
+	weight_model = 'nin_tree_structure_6'
+	models = ['nin_tree_structure_7']
 	datasets = ['cifar10']
 	#
 	experiment_name = get_experiment_name_prompt()
@@ -36,7 +37,7 @@ if __name__ == '__main__':
 				print(100 * '*', 3 * '\n', model_str, '\n', dataset_str, 3 * '\n', 100 * '*')
 				opts = default_opt_creator()
 				opts['experiment_name'] = experiment_name
-				opts['experiment_tag'] = experiment_name + '/' + dataset_str + '/' + model_str
+				opts['experiment_tag'] = experiment_name + '/' + dataset_str + '/' + model_str+'_loaded_'+weight_model+'_weights'
 				set_dataset(opts, dataset=dataset_str)
 				opts = set_model_string(opts, model_str)
 				opts = set_default_opts_based_on_model_dataset(opts)
@@ -50,9 +51,9 @@ if __name__ == '__main__':
 				""" MODEL PREPARE """
 				model = get_model_from_db(model_str, opts)
 				model.summary()
-				# model_modification_utils.load_weights_by_block_index_list(model, [1, 2, 3, 4, 5, 6, 7, 8, 9], os.path.join(
-				# 	global_constant_var.get_experimentcase_abs_path(experiment_name, dataset_str, 'nin_tree_berp_1'), 'checkpoint'),
-				#                                                           model_constructor_utils.CONVSH_NAME)
+				model_modification_utils.load_weights_by_block_index_list(model, [1, 2, 3, 4, 5, 6, 7, 8, 9], os.path.join(
+					global_constant_var.get_experimentcase_abs_path(experiment_name, dataset_str, weight_model), 'checkpoint'),
+				                                                          model_constructor_utils.CONVSH_NAME)
 				model.compile(loss=opt_utils.get_loss(opts), optimizer=optimizer, metrics=opt_utils.get_metrics(opts))
 				method_names = find_key_value_to_str_recursive(opts, '', {'param_expand'})
 				opts['experiment_name'] = method_names

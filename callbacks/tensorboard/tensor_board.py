@@ -43,6 +43,7 @@ class TensorboardVisualizer(Callback):
 					o = layer.output
 					o = tf.transpose(o, [0, 2, 3, 1])
 					# hist_summary_list+=[tf.summary.image('{}_image'.format(layer.name), o, max_outputs=1)]
+					image_show_list +=[tf.summary.image('{}_image'.format(layer.name), o, max_outputs=1)]
 				elif not layer.name.find('CONV') == -1:
 					tensor_list = tensor_board_utills.get_outbound_tensors_as_list(layer)
 					weights_raw = layer.weights[0]
@@ -58,12 +59,12 @@ class TensorboardVisualizer(Callback):
 				elif not layer.name.find('ACT') == -1:
 					image_show_list+=tensorboard_layer_viz.activation_map_image_visualizer(layer, filter_num_to_show_max)
 				elif not layer.name.find('SOFTMAX_Weighted'):
-					for idx, input_tensor in enumerate(layer.input):
-						soft_max_input = K.softmax(input_tensor)
-						entropy = -K.sum(K.log(soft_max_input + K.epsilon()) * soft_max_input, axis=1)
-						average_entropy = K.mean(entropy, axis=0)
-						scalar_summary_list+=[tf.summary.scalar(name='SOFTMAX_{}_AVG_ENTROPY'.format(idx), tensor=average_entropy)]
-						hist_summary_list += [tf.summary.histogram(name='SOFTMAX_{}_ENTROPYHIST'.format(idx), values=entropy)]
+					# for idx, input_tensor in enumerate(layer.input):
+					# 	soft_max_input = K.softmax(input_tensor)
+					# 	entropy = -K.sum(K.log(soft_max_input + K.epsilon()) * soft_max_input, axis=1)
+					# 	average_entropy = K.mean(entropy, axis=0)
+					# 	scalar_summary_list+=[tf.summary.scalar(name='SOFTMAX_{}_AVG_ENTROPY'.format(idx), tensor=average_entropy)]
+					# 	hist_summary_list += [tf.summary.histogram(name='SOFTMAX_{}_ENTROPYHIST'.format(idx), values=entropy)]
 					pdf = layer.output
 					entropy = -K.sum(K.log(pdf + K.epsilon()) * pdf, axis=1)
 					average_entropy = K.mean(entropy, axis=0)
@@ -71,12 +72,17 @@ class TensorboardVisualizer(Callback):
 					hist_summary_list += [tf.summary.histogram(name='{}_ENTROPYHIST'.format(layer.name), values=entropy)]
 				elif not layer.name.find('SOFTMAX') == -1:
 					tensor_list = tensor_board_utills.get_outbound_tensors_as_list(layer)
+					img_tensor = []
 					for idx, tensor in enumerate(tensor_list):
+						img_tensor +=[tensor]
 						pdf = tensor
 						entropy = -K.sum(K.log(pdf + K.epsilon()) * pdf, axis=1)
 						average_entropy = K.mean(entropy, axis=0)
 						scalar_summary_list+=[tf.summary.scalar(name='{}_{}_AVG_ENTROPY'.format(layer.name, idx), tensor=average_entropy)]
 						hist_summary_list += [tf.summary.histogram(name='{}_{}_ENTROPYHIST'.format(layer.name, idx), values=entropy)]
+					img_tensor = K.stack(img_tensor,axis=2)
+					img_tensor = K.expand_dims(img_tensor)
+					image_show_list+=[tf.summary.image(name = 'SOFTMAX_BRANCH_PREDICTIONS',tensor=img_tensor,max_outputs=9)]
 				elif layer.outbound_nodes.__len__() == 0:  # TODO not sure the last layer name is out
 					pdf = layer.output
 					entropy = -K.sum(K.log(pdf + K.epsilon()) * pdf, axis=1)
@@ -119,20 +125,20 @@ class TensorboardVisualizer(Callback):
 					batch_val.append(val_data[2][i:i + step])
 					if self.model.uses_learning_phase:
 						batch_val.append(val_data[3])
-					feed_dict = dict(zip(tensors, batch_val))
+					feed_dict = dict(list(zip(tensors, batch_val)))
 					result = self.sess.run([self.image_hist_dist_merged], feed_dict=feed_dict)
 					summary_str = result[0]
 					self.writer.add_summary(summary_str, epoch)
 					i += self.batch_size
 				## Image Show
 				batch_val = []
-				batch_val.append(val_data[0][0:2])
-				batch_val.append(val_data[1][0:2])
-				batch_val.append(val_data[2][0:2])
+				batch_val.append(val_data[0][0:10])
+				batch_val.append(val_data[1][0:10])
+				batch_val.append(val_data[2][0:10])
 				if self.model.uses_learning_phase:
 					batch_val.append(val_data[3])
-				feed_dict = dict(zip(tensors, batch_val))
-				result = self.sess.run([self.image_hist_dist_merged], feed_dict=feed_dict)
+				feed_dict = dict(list(zip(tensors, batch_val)))
+				result = self.sess.run([self.image_show_merged], feed_dict=feed_dict)
 				summary_str = result[0]
 				self.writer.add_summary(summary_str, epoch)
 		"""For scalar values"""
@@ -142,7 +148,7 @@ class TensorboardVisualizer(Callback):
 		batch_val.append(val_data[2][0:500])
 		if self.model.uses_learning_phase:
 			batch_val.append(val_data[3])
-		result_1 = self.sess.run([self.scalar_summary_merged],feed_dict = dict(zip(tensors, batch_val)))
+		result_1 = self.sess.run([self.scalar_summary_merged],feed_dict = dict(list(zip(tensors, batch_val))))
 		summary_str=result_1[0]
 		self.writer.add_summary(summary_str,epoch)
 		# if self.histogram_freq and self.validation_data:
@@ -165,7 +171,7 @@ class TensorboardVisualizer(Callback):
 		# 		summary_str = result[0]
 		# 		self.writer.add_summary(summary_str, epoch)
 
-		for name, value in logs.items():
+		for name, value in list(logs.items()):
 			if name in ['batch', 'size']:
 				continue
 			summary = tf.Summary()

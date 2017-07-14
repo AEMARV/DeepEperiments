@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 from keras.callbacks import CSVLogger, LearningRateScheduler, ModelCheckpoint,ReduceLROnPlateau,TerminateOnNaN
 from keras.datasets import cifar10

@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 from keras.callbacks import Callback
 from tensorflow.contrib.tensorboard.plugins import projector
 import os
@@ -164,12 +164,12 @@ class TensorBoard(Callback):
                 embeddings_metadata = self.embeddings_metadata
             else:
                 embeddings_metadata = {layer_name: self.embeddings_metadata
-                                       for layer_name in embeddings.keys()}
+                                       for layer_name in list(embeddings.keys())}
 
             config = projector.ProjectorConfig()
             self.embeddings_logs = []
 
-            for layer_name, tensor in embeddings.items():
+            for layer_name, tensor in list(embeddings.items()):
                 embedding = config.embeddings.add()
                 embedding.tensor_name = tensor.name
 
@@ -195,7 +195,7 @@ class TensorBoard(Callback):
                 else:
                     val_data = self.validation_data
                     tensors = self.model.inputs
-                feed_dict = dict(zip(tensors, val_data))
+                feed_dict = dict(list(zip(tensors, val_data)))
                 result = self.sess.run([self.merged], feed_dict=feed_dict)
                 summary_str = result[0]
                 self.writer.add_summary(summary_str, epoch)
@@ -205,7 +205,7 @@ class TensorBoard(Callback):
                 for log in self.embeddings_logs:
                     self.saver.save(self.sess, log, epoch)
 
-        for name, value in logs.items():
+        for name, value in list(logs.items()):
             if name in ['batch', 'size']:
                 continue
             summary = tf.Summary()
@@ -325,12 +325,12 @@ class TensorBoardDefault(Callback):
                 embeddings_metadata = self.embeddings_metadata
             else:
                 embeddings_metadata = {layer_name: self.embeddings_metadata
-                                       for layer_name in embeddings.keys()}
+                                       for layer_name in list(embeddings.keys())}
 
             config = projector.ProjectorConfig()
             self.embeddings_logs = []
 
-            for layer_name, tensor in embeddings.items():
+            for layer_name, tensor in list(embeddings.items()):
                 embedding = config.embeddings.add()
                 embedding.tensor_name = tensor.name
 
@@ -358,7 +358,7 @@ class TensorBoardDefault(Callback):
                     val_data = self.validation_data
                     val_data = [val_data[0][0:10, :, :, :], val_data[1], val_data[2]]
                     tensors = self.model.inputs
-                feed_dict = dict(zip(tensors, val_data))
+                feed_dict = dict(list(zip(tensors, val_data)))
                 result = self.sess.run([self.merged], feed_dict=feed_dict)
                 summary_str = result[0]
                 self.writer.add_summary(summary_str, epoch)
@@ -368,7 +368,7 @@ class TensorBoardDefault(Callback):
                 for log in self.embeddings_logs:
                     self.saver.save(self.sess, log, epoch)
 
-        for name, value in logs.items():
+        for name, value in list(logs.items()):
             if name in ['batch', 'size']:
                 continue
             summary = tf.Summary()
@@ -581,12 +581,12 @@ class TensorboardCostum(Callback):
                     q = [val_data[0][0:10, :, :, :], val_data[1], val_data[2]]
                     val_data = q
                     tensors = self.model.inputs
-                feed_dict = dict(zip(tensors, val_data))
+                feed_dict = dict(list(zip(tensors, val_data)))
                 result = self.sess.run([self.merged], feed_dict=feed_dict)
                 summary_str = result[0]
                 self.writer.add_summary(summary_str, epoch)
 
-        for name, value in logs.items():
+        for name, value in list(logs.items()):
             if name in ['batch', 'size']:
                 continue
             summary = tf.Summary()

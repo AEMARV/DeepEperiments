@@ -2,7 +2,7 @@ import warnings
 
 from keras.engine import Model
 from keras.layers import Input, Flatten, Dense, Conv2D, Activation, AveragePooling2D, Lambda, MaxPooling2D
-from keras.layers.merge import add, average
+from keras.layers.merge import add, average, concatenate
 from keras.regularizers import l1_l2
 
 from utils.modelutils.layers.binary_layers.birelu import *
@@ -45,26 +45,70 @@ def model_constructor(opts, model_dict=None):
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
-				w_reg_l1_val = param['l1_val'] if param.has_key('l1_val') else 0
-				w_reg_l2_val = param['l2_val'] if param.has_key('l2_val') else 0
-				padding = param['padding'] if param.has_key('padding') else 'same'
-				activation = param['activation'] if param.has_key('activation') else None
-				initializion = param['int'] if param.has_key('init') else 'he_normal'
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
 				x = Layer_on_list(Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
 				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index)), x)
-
+			elif component == 'colconvsh':
+				# block_index += 1
+				# nb_filter = int(param['f'])
+				# f_size = int(param['r'])
+				# col = int(param['col'])
+				# w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				# w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				# padding = param['padding'] if 'padding' in param else 'same'
+				# activation = param['activation'] if 'activation' in param else None
+				# initializion = param['int'] if 'init' in param else 'he_normal'
+				# w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				# kernel_size = (f_size, f_size)
+				# # x = node_list_to_list(x)
+				# res = []
+				# convcol_list = []
+				# for conv_idx in np.arange(col):
+				# 	convcol_list+=[Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+				# 	       kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format('{}_COL_{}'.format(block_index, conv_idx)))]
+				# res = []
+				# for branch in x:
+				#
+				# 	for tensor in branch:
+				# 		for conv_col in convcol_list:
+				# 			res+=
+				# block_index += 1
+				# nb_filter = int(param['f'])
+				#
+				# f_size = int(param['r'])
+				# w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				# w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				# padding = param['padding'] if 'padding' in param else 'same'
+				# activation = param['activation'] if 'activation' in param else None
+				# initializion = param['int'] if 'init' in param else 'he_normal'
+				# w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				# kernel_size = (f_size, f_size)
+				# x = node_list_to_list(x)
+				# res = []
+				# if len(x) == 1:
+				# 	raise ValueError('one branch for convolution use convsh instead for load weight compatibility')
+				# for idx, tensor in enumerate(x):
+				# 	for conv_idx in np.arange(col):
+				# 		res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+				# 		               kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, str(idx)+'_COL_'+str(
+				# 				conv_idx)))(
+				# 			tensor)]
 			elif component == 'conv':
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
-				w_reg_l1_val = param['l1_val'] if param.has_key('l1_val') else 0
-				w_reg_l2_val = param['l2_val'] if param.has_key('l2_val') else 0
-				padding = param['padding'] if param.has_key('padding') else 'same'
-				activation = param['activation'] if param.has_key('activation') else None
-				initializion = param['int'] if param.has_key('init') else 'he_normal'
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
@@ -149,8 +193,25 @@ def model_constructor(opts, model_dict=None):
 
 
 			############################################ TEMP LAYERS##############################
-
-
+			elif component == 'ifc':
+				out_len = int(param['out'])
+				x = node_list_to_list(x)
+				x = [FullyConnectedTensors(output_tensors_len=out_len,shared_axes=[2,3])(x)]
+			elif component == 'concat':
+				x = node_list_to_list(x)
+				if not x.__len__() == 1:
+					x = [concatenate(x)]
+				else:
+					warnings.warn('tensor list has one element, Merge Branch is not needed')
+			elif component == 'maxav':
+				pool_size = int(param['r'])
+				strides = int(param['s'])
+				pool_size = (pool_size, pool_size)
+				strides = (strides, strides)
+				x = node_list_to_list(x)
+				x_max = Layer_on_list(MaxPooling2D(pool_size=pool_size, strides=strides, name=POOL_NAME_RULE.format(block_index, 'MAX')), x)
+				x_av = Layer_on_list(AveragePooling2D(pool_size=pool_size, strides=strides, name=POOL_NAME_RULE.format(block_index, 'AVERAGE')), x)
+				x=x_max+x_av
 			elif component == 'maxaverage_entropy_select':
 				# selects  max entropy and combines it with the average of all tensors. must be after softmax.
 				average_rate = float(param['average_rate'])
@@ -195,6 +256,19 @@ def model_constructor(opts, model_dict=None):
 						PermuteChannels(max_perm=max_perm, random_permute=random_permute_flag,p=prob, name=ACT_NAME_RULE.format(block_index, 'BERP',
 						                                                                                                     idx))(
 							ber_tensor_list)]
+				x = res
+			elif component == 'biperm':
+				# #the output tensors would be 2^(n+C) if we have n input tensors and C as kernel channels
+				random_permute_flag = int(param['random_permute'])
+				prob = float(param['p']) if random_permute_flag == 1 else 0
+
+				max_perm = int(param['max_perm'])
+				x = node_list_to_list(x)
+				res = []
+				for idx, tensor in enumerate(x):
+					ber_tensor_list = Birelu('relu', name='ACT_BER_L' + str(block_index) + 'I_' + str(idx))(tensor)
+					res += [BiPermuteChannels(max_perm=max_perm, random_permute=random_permute_flag, p=prob,
+					                        name=ACT_NAME_RULE.format(block_index, 'BIBERP', idx))(ber_tensor_list)]
 				x = res
 
 			else:
@@ -278,4 +352,4 @@ if __name__ == '__main__':
 	               '->s|f:256,r:4' \
 	               '->ap|s:2,r:3'
 	x = parse_model_string(model_string)
-	print x
+	print(x)

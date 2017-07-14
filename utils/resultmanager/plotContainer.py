@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from figure_container import FigureContainer
+from .figure_container import FigureContainer
 import os
 
 class PlotContainer(FigureContainer):
@@ -39,7 +39,7 @@ class PlotContainer(FigureContainer):
 
 	def add_line_to_all_figs(self, name_label_list):
 		"""add a legend to all figures in contained in this object"""
-		for fig_name in self.figure_handles.keys():
+		for fig_name in list(self.figure_handles.keys()):
 			for label_name in name_label_list:
 				self.line_add(fig_name, name_label=label_name)
 

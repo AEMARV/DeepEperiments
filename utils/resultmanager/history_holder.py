@@ -73,4 +73,4 @@ def test_HH(opts):
 if __name__ == '__main__':
     hh = HistoryHolder(experiment_name="test_hh",opts=None)
     # hh.metric_plot_container.create_random_plots()
-    print hh.relative_result_path
+    print((hh.relative_result_path))

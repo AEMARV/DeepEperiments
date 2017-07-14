@@ -6,7 +6,7 @@
 - [Very Deep Convolutional Networks for Large-Scale Image Recognition](https://arxiv.org/abs/1409.1556)
 
 '''
-from __future__ import print_function
+
 
 from keras.models import Sequential
 from keras.layers import Flatten, Dense, Input, Activation,Dropout
