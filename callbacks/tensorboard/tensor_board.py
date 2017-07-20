@@ -47,11 +47,11 @@ class TensorboardVisualizer(Callback):
 				elif not layer.name.find('CONV') == -1:
 					tensor_list = tensor_board_utills.get_outbound_tensors_as_list(layer)
 					weights_raw = layer.weights[0]
-					cosine_similarity = tensor_board_utills.weight_cosine_similarity(weights_raw)
-					cosine_similarity_hist = cosine_similarity[0]
-					cosine_similarity_max_hist = cosine_similarity[1]
-					hist_summary_list+=[tf.summary.histogram(name='{}_Dispersion'.format(layer.name), values=cosine_similarity_hist)]
-					hist_summary_list+=[tf.summary.histogram(name='{}_Dispersion_Max'.format(layer.name), values=cosine_similarity_max_hist)]
+					# cosine_similarity = tensor_board_utills.weight_cosine_similarity(weights_raw)
+					# cosine_similarity_hist = cosine_similarity[0]
+					# cosine_similarity_max_hist = cosine_similarity[1]
+					# hist_summary_list+=[tf.summary.histogram(name='{}_Dispersion'.format(layer.name), values=cosine_similarity_hist)]
+					# hist_summary_list+=[tf.summary.histogram(name='{}_Dispersion_Max'.format(layer.name), values=cosine_similarity_max_hist)]
 					for idx, tensor in enumerate(tensor_list):
 						hist_summary_list += [tf.summary.histogram(name='{}_{}_OUT'.format(layer.name, idx), values=tensor)]
 						img = tensorboard_layer_viz.multichannel_tensor_image_visualizer(tensor, filter_num_to_show_max)

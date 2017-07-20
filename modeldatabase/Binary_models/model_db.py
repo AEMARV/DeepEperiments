@@ -3,7 +3,7 @@ from keras.applications.vgg16 import VGG16
 from keras.layers import Dense, Flatten
 from keras.utils import serialize_keras_object, deserialize_keras_object
 
-from modeldatabase.Binary_models.model_constructor_utils import get_model, node_list_to_list
+from modeldatabase.Binary_models.model_constructor_utils import get_model_out_dict, node_list_to_list
 from utils import opt_utils
 from utils.opt_utils import default_opt_creator
 
@@ -29,7 +29,7 @@ def simplenn_BE(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->averagepool|r:3,s:1' \
 	                                                 '->flattensh->merge_branch_average' \
 	                                                 '->softmax->fin'
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_relu_baseline(opts, input_shape, nb_classes, getstring_flag=False):
@@ -49,7 +49,7 @@ def nin_relu_baseline(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->flattensh' \
 	                                                 '->softmax->fin'
 
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_relu_baseline_caffe(opts, input_shape, nb_classes, getstring_flag=False):
@@ -69,7 +69,7 @@ def nin_relu_baseline_caffe(opts, input_shape, nb_classes, getstring_flag=False)
 	                                                 '->flattensh' \
 	                                                 '->softmax->fin'
 
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_besh_caffe(opts, input_shape, nb_classes, getstring_flag=False):
@@ -88,7 +88,7 @@ def nin_besh_caffe(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->averagepool|r:7,s:1' \
 	                                                 '->flattensh->merge_branch_average' \
 	                                                 '->softmax->fin'
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_besh_caffe2(opts, input_shape, nb_classes, getstring_flag=False):
@@ -107,7 +107,7 @@ def nin_besh_caffe2(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->averagepool|r:7,s:1' \
 	                                                 '->flattensh->merge_branch_average' \
 	                                                 '->softmax->fin'
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_besh_caffe3(opts, input_shape, nb_classes, getstring_flag=False):
@@ -126,7 +126,7 @@ def nin_besh_caffe3(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->averagepool|r:7,s:1' \
 	                                                 '->flattensh->merge_branch_average' \
 	                                                 '->softmax->fin'
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_besh_caffe3(opts, input_shape, nb_classes, getstring_flag=False):
@@ -145,7 +145,7 @@ def nin_besh_caffe3(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->averagepool|r:7,s:1' \
 	                                                 '->flattensh->merge_branch_average' \
 	                                                 '->softmax->fin'
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_debug(opts, input_shape, nb_classes, getstring_flag=False):
@@ -164,7 +164,7 @@ def max_entropy_debug(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->averagepool|r:7,s:1' \
 	                                                 '->flattensh->softmax->max_entropy_branch_select' \
 	                                                 '->fin'
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_debug2(opts, input_shape, nb_classes, getstring_flag=False):
@@ -183,7 +183,7 @@ def max_entropy_debug2(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->averagepool|r:7,s:1' \
 	               '->flattensh->softmax->max_entropy_branch_select' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model1(opts, input_shape, nb_classes, getstring_flag=False):
@@ -203,7 +203,7 @@ def max_entropy_nin_model1(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->maxaverage_entropy_select|average_rate:.8' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model2(opts, input_shape, nb_classes, getstring_flag=False):
@@ -223,7 +223,7 @@ def max_entropy_nin_model2(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model3(opts, input_shape, nb_classes, getstring_flag=False):
@@ -243,7 +243,7 @@ def max_entropy_nin_model3(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'weighted_softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model4(opts, input_shape, nb_classes, getstring_flag=False):
@@ -263,7 +263,7 @@ def max_entropy_nin_model4(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->softmax->' \
 	               'weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model5(opts, input_shape, nb_classes, getstring_flag=False):
@@ -283,7 +283,7 @@ def max_entropy_nin_model5(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->softmax->' \
 	               'weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model6(opts, input_shape, nb_classes, getstring_flag=False):
@@ -303,7 +303,7 @@ def max_entropy_nin_model6(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model7(opts, input_shape, nb_classes, getstring_flag=False):
@@ -323,7 +323,7 @@ def max_entropy_nin_model7(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->softmax_activity_reg->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_perm_nin_model1(opts, input_shape, nb_classes, getstring_flag=False):
@@ -343,7 +343,7 @@ def max_entropy_perm_nin_model1(opts, input_shape, nb_classes, getstring_flag=Fa
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 """"Structure Test"""
@@ -365,7 +365,7 @@ def nin_tree_structure_1(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_2(opts, input_shape, nb_classes, getstring_flag=False):
@@ -385,7 +385,7 @@ def nin_tree_structure_2(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_3(opts, input_shape, nb_classes, getstring_flag=False):
@@ -404,7 +404,7 @@ def nin_tree_structure_3(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_4(opts, input_shape, nb_classes, getstring_flag=False):
@@ -423,7 +423,7 @@ def nin_tree_structure_4(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_5(opts, input_shape, nb_classes, getstring_flag=False):
@@ -442,7 +442,7 @@ def nin_tree_structure_5(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->max_entropy_branch_select' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_6(opts, input_shape, nb_classes, getstring_flag=False):
@@ -461,7 +461,7 @@ def nin_tree_structure_6(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_7(opts, input_shape, nb_classes, getstring_flag=False):
@@ -482,7 +482,7 @@ def nin_tree_structure_7(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->densesh|n:10' \
 	               '->softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_8(opts, input_shape, nb_classes, getstring_flag=False):
@@ -503,7 +503,7 @@ def nin_tree_structure_8(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_9(opts, input_shape, nb_classes, getstring_flag=False):
@@ -524,7 +524,7 @@ def nin_tree_structure_9(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_10(opts, input_shape, nb_classes, getstring_flag=False):
@@ -545,7 +545,7 @@ def nin_tree_structure_10(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_11(opts, input_shape, nb_classes, getstring_flag=False):
@@ -567,7 +567,7 @@ def nin_tree_structure_11(opts, input_shape, nb_classes, getstring_flag=False):
 	               'softmax' \
 	               '->fin'.format(nb_classes)
 
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_12(opts, input_shape, nb_classes, getstring_flag=False):
@@ -589,15 +589,195 @@ def nin_tree_structure_12(opts, input_shape, nb_classes, getstring_flag=False):
 	               'softmax' \
 	               '->fin'.format(nb_classes)
 
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+
+
+## EXPERIMENT COLUMNAR
 
 
 def nin_columnar_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convcolsh|f:24,r:5,l2_val:1e-4,col:8->relucol' \
+	               '->convcolsh|f:20,r:3,l2_val:1e-4,col:1->relucol' \
+	               '->convcolsh|f:12,r:1,l2_val:1e-4,col:1->relucol' \
+	               '->concat_col' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_columnar_2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convcolsh|f:24,r:5,l2_val:1e-4,col:4->relucol' \
+	               '->convcolsh|f:40,r:3,l2_val:1e-4,col:2->relucol' \
+	               '->convcolsh|f:12,r:1,l2_val:1e-4,col:1->relucol' \
+	               '->concat_col' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_columnar_3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convcolsh|f:48,r:5,l2_val:1e-4,col:4->relucol' \
+	               '->convcolsh|f:40,r:3,l2_val:1e-4,col:2->relucol' \
+	               '->convcolsh|f:12,r:1,l2_val:1e-4,col:1->relucol' \
+	               '->concat_col' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convcolsh|f:48,r:5,l2_val:1e-4,col:4->relucol' \
+	               '->convcolsh|f:48,r:1,l2_val:1e-4,col:2->relucol' \
+	               '->convcolsh|f:24,r:1,l2_val:1e-4,col:1->relucol' \
+	               '->concat_col' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_columnar_4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convcolsh|f:24,r:5,l2_val:1e-4,col:8->relucol' \
+	               '->convcolsh|f:20,r:3,l2_val:1e-4,col:1->relucol' \
+	               '->convcolsh|f:12,r:1,l2_val:1e-4,col:1->relucol' \
+	               '->concat_col' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convcolsh|f:24,r:5,l2_val:1e-4,col:8->relucol' \
+	               '->convcolsh|f:24,r:1,l2_val:1e-4,col:1->relucol' \
+	               '->convcolsh|f:24,r:1,l2_val:1e-4,col:1->relucol' \
+	               '->concat_col' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+def nin_ifc_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:4' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:2' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_2(opts, input_shape, nb_classes, getstring_flag=False):
 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
 	               '->convsh|f:160,r:3,l2_val:1e-4->ber' \
 	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
 	               '->ifc|out:1' \
-	               '->maxav|r:3,s:2->dropout|p:.5' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:2' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:4' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:4' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:2' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+def nin_columnar_ber_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convcolsh|f:96,r:5,l2_val:1e-4,col:2->bercol' \
+	               '->convcolsh|f:80,r:3,l2_val:1e-4,col:1->bercol' \
+	               '->convcolsh|f:48,r:1,l2_val:1e-4,col:1->bercol' \
+	               '->concat_col' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
 	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
@@ -611,7 +791,242 @@ def nin_columnar_1(opts, input_shape, nb_classes, getstring_flag=False):
 	               'softmax' \
 	               '->fin'.format(nb_classes)
 
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_columnar_ber_2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convcolsh|f:48,r:5,l2_val:1e-4,col:4->bercol' \
+	               '->convcolsh|f:20,r:3,l2_val:1e-4,col:1->bercol' \
+	               '->convcolsh|f:16,r:1,l2_val:1e-4,col:1->bercol' \
+	               '->concat_col' \
+	               '->ifc|out:2' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convcolsh|f:48,r:5,l2_val:1e-4,col:4->bercol' \
+	               '->convcolsh|f:48,r:1,l2_val:1e-4,col:1->relucol' \
+	               '->convcolsh|f:48,r:1,l2_val:1e-4,col:1->relucol' \
+	               '->concat_col' \
+	               '->ifc|out:4' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_5(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_6(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_7(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifctanh_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->ber' \
+	               '->ifctan|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->ifctan|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->ber' \
+	               '->ifctan|out:1' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_convtanh_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convtansh|f:192,r:5,l2_val:1e-4,k_max:0.2->relu' \
+	               '->convtansh|f:160,r:3,l2_val:1e-4,k_max:0.2->relu' \
+	               '->convtansh|f:96,r:1,l2_val:1e-4,k_max:0.2->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:5,l2_val:1e-4,k_max:0.2->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:0.2->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:0.2->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:3,l2_val:1e-4,k_max:0.2->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:0.2->relu' \
+	               '->convtansh|f:{},r:1,l2_val:1e-4,k_max:0.2->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_convtanh_2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convtansh|f:192,r:5,l2_val:1e-4,k_max:1->relu' \
+	               '->convtansh|f:160,r:3,l2_val:1e-4,k_max:1->relu' \
+	               '->convtansh|f:96,r:1,l2_val:1e-4,k_max:1->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:5,l2_val:1e-4,k_max:1->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:1->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:1->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:3,l2_val:1e-4,k_max:1->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:1->relu' \
+	               '->convtansh|f:{},r:1,l2_val:1e-4,k_max:1->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_convtanh_3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convtansh|f:192,r:5,l2_val:1e-4,k_max:0.3->relu' \
+	               '->convtansh|f:160,r:3,l2_val:1e-4,k_max:0.3->relu' \
+	               '->convtansh|f:96,r:1,l2_val:1e-4,k_max:0.3->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:5,l2_val:1e-4,k_max:0.3->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:0.3->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:0.3->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:3,l2_val:1e-4,k_max:0.3->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:0.3->relu' \
+	               '->convtansh|f:{},r:1,l2_val:1e-4,k_max:0.3->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_convtanh_4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convtansh|f:192,r:5,l2_val:1e-4,k_max:0.5->relu' \
+	               '->convtansh|f:160,r:3,l2_val:1e-4,k_max:0.5->relu' \
+	               '->convtansh|f:96,r:1,l2_val:1e-4,k_max:0.5->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:5,l2_val:1e-4,k_max:0.5->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:0.5->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:0.5->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:3,l2_val:1e-4,k_max:0.5->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-4,k_max:0.5->relu' \
+	               '->convtansh|f:{},r:1,l2_val:1e-4,k_max:0.5->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_convtanh_5(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convtansh|f:192,r:5,l2_val:1e-6,k_max:1->relu' \
+	               '->convtansh|f:160,r:3,l2_val:1e-6,k_max:1->relu' \
+	               '->convtansh|f:96,r:1,l2_val:1e-6,k_max:1->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:5,l2_val:1e-6,k_max:1->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-6,k_max:1->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-6,k_max:1->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convtansh|f:192,r:3,l2_val:1e-6,k_max:1->relu' \
+	               '->convtansh|f:192,r:1,l2_val:1e-6,k_max:1->relu' \
+	               '->convtansh|f:{},r:1,l2_val:1e-6,k_max:1->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+def nin_dropneg2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->noise_mul|p:.8,chw:1->relu' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->noise_mul|p:.5,chw:0->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->noise_mul|p:.5,chw:0->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
 def nin_tree_structure_2_perm(opts, input_shape, nb_classes, getstring_flag=False):
 	# interconv fc are not shared
 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:8,random_permute:0' \
@@ -629,7 +1044,7 @@ def nin_tree_structure_2_perm(opts, input_shape, nb_classes, getstring_flag=Fals
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_2_perm(opts, input_shape, nb_classes, getstring_flag=False):
@@ -649,7 +1064,7 @@ def nin_tree_structure_2_perm(opts, input_shape, nb_classes, getstring_flag=Fals
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_2_perm_rand_activity(opts, input_shape, nb_classes, getstring_flag=False):
@@ -669,7 +1084,7 @@ def nin_tree_structure_2_perm_rand_activity(opts, input_shape, nb_classes, getst
 	               '->flattensh->' \
 	               'softmax->softmax_activity_reg->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_2_perm_rand_activity_1(opts, input_shape, nb_classes, getstring_flag=False):
@@ -689,7 +1104,7 @@ def nin_tree_structure_2_perm_rand_activity_1(opts, input_shape, nb_classes, get
 	               '->flattensh->' \
 	               'softmax->softmax_activity_reg->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_2_perm_activity(opts, input_shape, nb_classes, getstring_flag=False):
@@ -709,7 +1124,7 @@ def nin_tree_structure_2_perm_activity(opts, input_shape, nb_classes, getstring_
 	               '->flattensh->' \
 	               'softmax->softmax_activity_reg->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_2_perm_rand(opts, input_shape, nb_classes, getstring_flag=False):
@@ -729,7 +1144,7 @@ def nin_tree_structure_2_perm_rand(opts, input_shape, nb_classes, getstring_flag
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_2_perm_rand_1(opts, input_shape, nb_classes, getstring_flag=False):
@@ -749,7 +1164,7 @@ def nin_tree_structure_2_perm_rand_1(opts, input_shape, nb_classes, getstring_fl
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_1_perm(opts, input_shape, nb_classes, getstring_flag=False):
@@ -769,7 +1184,7 @@ def nin_tree_structure_1_perm(opts, input_shape, nb_classes, getstring_flag=Fals
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_1_perm_rand(opts, input_shape, nb_classes, getstring_flag=False):
@@ -789,7 +1204,7 @@ def nin_tree_structure_1_perm_rand(opts, input_shape, nb_classes, getstring_flag
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_1_average(opts, input_shape, nb_classes, getstring_flag=False):
@@ -809,7 +1224,7 @@ def nin_tree_structure_1_average(opts, input_shape, nb_classes, getstring_flag=F
 	               '->flattensh->' \
 	               'softmax->merge_branch_average' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_structure_2_average(opts, input_shape, nb_classes, getstring_flag=False):
@@ -829,7 +1244,7 @@ def nin_tree_structure_2_average(opts, input_shape, nb_classes, getstring_flag=F
 	               '->flattensh->' \
 	               'softmax->merge_branch_average' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 """ PERM EXPERIMENT """
@@ -852,7 +1267,7 @@ def nin_tree_berp_1(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_berp_2(opts, input_shape, nb_classes, getstring_flag=False):
@@ -872,7 +1287,7 @@ def nin_tree_berp_2(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_berp_3(opts, input_shape, nb_classes, getstring_flag=False):
@@ -892,7 +1307,7 @@ def nin_tree_berp_3(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 # Good results
@@ -913,7 +1328,7 @@ def nin_tree_biperm_1(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 # bad Results
@@ -933,7 +1348,7 @@ def nin_tree_biperm_2(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_perm_1(opts, input_shape, nb_classes, getstring_flag=False):
@@ -952,7 +1367,7 @@ def nin_perm_1(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_perm_2(opts, input_shape, nb_classes, getstring_flag=False):
@@ -971,7 +1386,7 @@ def nin_perm_2(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_perm_3(opts, input_shape, nb_classes, getstring_flag=False):
@@ -990,7 +1405,7 @@ def nin_perm_3(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_perm_4(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1009,7 +1424,7 @@ def nin_perm_4(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_perm_5(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1028,7 +1443,7 @@ def nin_perm_5(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_perm_5_load(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1047,7 +1462,7 @@ def nin_perm_5_load(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_perm_6(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1066,7 +1481,7 @@ def nin_perm_6(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_perm_3(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1085,7 +1500,7 @@ def nin_tree_perm_3(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_perm_4(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1104,7 +1519,7 @@ def nin_tree_perm_4(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_biperm_4(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1123,7 +1538,7 @@ def nin_tree_biperm_4(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_tree_biperm_5(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1142,7 +1557,7 @@ def nin_tree_biperm_5(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 """MAX ENTROPY _ AV ENTROPY _ FULL EXPERIMENT"""
@@ -1165,7 +1580,7 @@ def max_entropy_nin_model8(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model9(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1185,7 +1600,7 @@ def max_entropy_nin_model9(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->flattensh->' \
 	               'softmax->merge_branch_average' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model10(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1206,7 +1621,7 @@ def max_entropy_nin_model10(opts, input_shape, nb_classes, getstring_flag=False)
 	               '->softmax_activity_reg' \
 	               '->softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model11(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1226,7 +1641,7 @@ def max_entropy_nin_model11(opts, input_shape, nb_classes, getstring_flag=False)
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model12(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1246,7 +1661,7 @@ def max_entropy_nin_model12(opts, input_shape, nb_classes, getstring_flag=False)
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def max_entropy_nin_model13(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1266,7 +1681,7 @@ def max_entropy_nin_model13(opts, input_shape, nb_classes, getstring_flag=False)
 	               '->flattensh->' \
 	               'softmax->weighted_average_pred_1' \
 	               '->fin'.format(nb_classes)
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_crelu_caffe2(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1285,7 +1700,7 @@ def nin_crelu_caffe2(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->averagepool|r:7,s:1' \
 	                                                 '->flattensh->merge_branch_average' \
 	                                                 '->softmax->fin'
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def nin_crelu_caffe3(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1304,7 +1719,7 @@ def nin_crelu_caffe3(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->averagepool|r:7,s:1' \
 	                                                 '->flattensh->merge_branch_average' \
 	                                                 '->softmax->fin'
-	return get_model(opts, model_string=model_string)
+	return get_model_out_dict(opts, model_string=model_string)
 
 
 def besh_vggcrelu(opts, input_shape, nb_classes, getstring_flag=False):
@@ -1337,7 +1752,7 @@ def besh_vggcrelu(opts, input_shape, nb_classes, getstring_flag=False):
 
 	if getstring_flag:
 		return {'string': model_string}
-	model = get_model(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list)
+	model = get_model_out_dict(opts, input_shape, nb_classes, model_string=model_string, nb_filter_list=nb_filter_list)
 	return model
 
 
@@ -1349,7 +1764,126 @@ def besh_vgg_baseline(opts, input_shape, nb_classes, getstring_flag=False):
 	model.add(Dense(nb_classes, activation='softmax'))
 	return model
 
+#YING YANG
 
+def nin_baseline(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline_fixed(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convshfixed|f:1000,r:5,l2_val:1e-4->relu' \
+	               '->convshfixed|f:1000,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_yingyang1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_yingyang2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_yingyang3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convyy_rand|f:160,r:3,l2_val:1e-4->relu' \
+	               '->convyy_rand|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convyy_rand|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convyy_rand|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_yingyang_norand(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convyy|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convyy|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
 def get(identifier):
 	if isinstance(identifier, dict):
 		return deserialize(identifier)
@@ -1372,8 +1906,16 @@ def deserialize(config, custom_objects=None):
 
 def get_model_from_db(identifier, opts):
 	model_fun = get(globals()[identifier])
-	return model_fun(opts, opt_utils.get_input_shape(opts), opt_utils.get_nb_classes(opts))
+	dict = model_fun(opts, opt_utils.get_input_shape(opts), opt_utils.get_nb_classes(opts))
 
+	return dict['model']
+
+
+def get_model_dict_from_db(identifier, opts):
+	model_fun = get(globals()[identifier])
+	dict = model_fun(opts, opt_utils.get_input_shape(opts), opt_utils.get_nb_classes(opts))
+
+	return dict
 
 if __name__ == '__main__':
 	opts = default_opt_creator()

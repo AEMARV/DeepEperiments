@@ -1,9 +1,11 @@
 import traceback
 
 import keras
-from utils.trainingutils import optimizers
+from keras import optimizers
+from keras.engine import Model
+
 from modeldatabase.Binary_models import model_constructor_utils
-from modeldatabase.Binary_models.model_db import get_model_from_db
+from modeldatabase.Binary_models.model_db import get_model_from_db,get_model_dict_from_db
 from utils.gen_utils import *
 from utils.modelutils import model_modification_utils
 from utils.opt_utils import *
@@ -22,9 +24,10 @@ def check_model_list(model_list, datasets):
 
 if __name__ == '__main__':
 	# gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models = ['nin_yingyang_norand']
+	models = ['nin_yingyang3']
 	datasets = ['cifar10']
 	#
+	reset_step =100
 	experiment_name = get_experiment_name_prompt()
 	check_model_list(models, datasets)
 	print((keras.__version__))
@@ -47,12 +50,12 @@ if __name__ == '__main__':
 				                           decay=opts['optimizer_opts']['decay'], nesterov=opts['optimizer_opts']['nestrov'])
 				# optimizer = optimizers.Adadelta()
 				""" MODEL PREPARE """
-				model = get_model_from_db(model_str, opts)
-				model.summary()
+
+				# model.summary()
 				# model_modification_utils.load_weights_by_block_index_list(model, [1, 2, 3, 4, 5, 6, 7, 8, 9], os.path.join(
 				# 	global_constant_var.get_experimentcase_abs_path(experiment_name, dataset_str, 'nin_tree_berp_1'), 'checkpoint'),
 				#                                                           model_constructor_utils.CONVSH_NAME)
-				model.compile(loss=opt_utils.get_loss(opts), optimizer=optimizer, metrics=opt_utils.get_metrics(opts))
+
 				method_names = find_key_value_to_str_recursive(opts, '', {'param_expand'})
 				opts['experiment_name'] = method_names
 				# LOAD DATA
@@ -61,14 +64,23 @@ if __name__ == '__main__':
 				data_gen = data_augmentation_phase(opts)
 				# COLLECT CALLBACKS
 				callback_list = collect_callbacks(opts)
-
-				# TRAIN
-				samples_per_epoch = data_train.shape[0] if opts['training_opts']['samples_per_epoch'] == -1 else opts['training_opts'][
-					'samples_per_epoch']
-				model.fit_generator(
-					data_gen.flow(data_train, label_train, batch_size=opts['training_opts']['batch_size'], shuffle=True, seed=opts['seed']),
-					samples_per_epoch=samples_per_epoch, nb_epoch=opts['training_opts']['epoch_nb'], callbacks=callback_list,
-					validation_data=(data_test, label_test))
+				model_dict = get_model_dict_from_db(model_str, opts)
+				input= model_dict['in']
+				output = model_dict['out']
+				for i in np.arange(opt_utils.get_epoch(opts)/reset_step):
+					model = Model(model_dict['in'],model_dict['out'])
+					# for layer in model.layers:
+					# 	k = np.random.binomial(1,.5)
+					# 	layer.trainable = bool(k)
+					model.summary()
+					model.compile(loss=opt_utils.get_loss(opts), optimizer=optimizer, metrics=opt_utils.get_metrics(opts))
+					# TRAIN
+					samples_per_epoch = data_train.shape[0] if opts['training_opts']['samples_per_epoch'] == -1 else opts['training_opts'][
+						'samples_per_epoch']
+					model.fit_generator(
+						data_gen.flow(data_train, label_train, batch_size=opts['training_opts']['batch_size'], shuffle=True, seed=opts['seed']),
+						samples_per_epoch=samples_per_epoch, nb_epoch=reset_step, callbacks=callback_list,
+						validation_data=(data_test, label_test))
 			except:
 				print(model_str, dataset_str)
 				traceback.print_exc()

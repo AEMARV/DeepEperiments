@@ -370,6 +370,38 @@ class BiPermuteChannels(Layer):
 		return dict(list(base_config.items()) + list(config.items()))
 
 
+class MulNoise(Layer):
+	# Gets two tensors as input return 2^C output Tensors with selected channels from 2 tensors
+	def __init__(self, p=.5, shared_axes=[1, 2, 3], **kwargs):
+		self.supports_masking = False
+		self.p = p
+		self.shared_axes = shared_axes
+		self.randomGen_op = None
+		super(MulNoise, self).__init__(**kwargs)
+
+	def build(self, input_shape):
+		param_shape = list(input_shape)
+		for idx in self.shared_axes:
+			param_shape[idx] = 1
+		self.randomGen_op = K.random_binomial(shape=[1, param_shape[1], param_shape[2], param_shape[3]], p=self.p)
+
+	def call(self, x, mask=None):
+		noise = 2 * self.randomGen_op - 1
+		res= K.in_train_phase(x*noise,x)
+		return res
+
+	def compute_output_shape(self, input_shape):
+		return input_shape
+
+	def compute_mask(self, input, input_mask=None):
+		return input_mask
+
+	def get_config(self):
+		config = {'p': self.p}
+		base_config = super(MulNoise, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
+
+
 class PermuteChannels(Layer):
 	# Gets two tensors as input return 2^C output Tensors with selected channels from 2 tensors
 	def __init__(self, max_perm, random_permute=False, p=.8, **kwargs):
@@ -626,6 +658,73 @@ class FullyConnectedTensors(Layer):
 			result += [sum]
 
 		return result
+
+
+class FullyConnectedTensorsTanh(Layer):
+	def __init__(self, output_tensors_len=0, init='one', weights=None, shared_axes=[1, 2, 3], **kwargs):
+		self.output_tensor_len = output_tensors_len
+		self.supports_masking = True
+		self.init = initializers.get(init)
+		self.initial_weights = weights
+		if not isinstance(shared_axes, (list, tuple)):
+			self.shared_axes = [shared_axes]
+		else:
+			self.shared_axes = list(shared_axes)
+		super(FullyConnectedTensorsTanh, self).__init__(**kwargs)
+
+	def get_output_shape_for(self, input_shape):
+		res = []
+		for i in range(self.output_tensor_len):
+			res += [input_shape[0]]
+		return res
+
+	def compute_mask(self, input, input_mask=None):
+		res = self.output_tensor_len * [None]
+		return res
+
+	def build(self, input_shape):
+		if self.output_tensor_len == 0:
+			self.output_tensor_len = input_shape.__len__()
+		param_shape = [self.output_tensor_len, input_shape.__len__()] + list(input_shape[0][1:])
+		self.param_broadcast = [False] * len(param_shape)
+		# TODO Alpha is only compatible for square fully connected e.g [4x4]
+		weights = np.eye(param_shape[0], param_shape[1])
+		if self.shared_axes[0] is not None:
+			for i in self.shared_axes:
+				param_shape[i + 1] = 1
+				self.param_broadcast[i + 1] = True
+		# self.alphas = K.zeros(param_shape)
+		for i in range(param_shape.__len__() - 2):
+			weights = np.expand_dims(weights, -1)
+		weights = weights * np.ones(param_shape)
+		self.alphas = K.variable(weights, name='{}_alphas'.format(self.name))
+		self.trainable_weights = [self.alphas]
+
+		if self.initial_weights is not None:
+			self.set_weights(self.initial_weights)
+			del self.initial_weights
+
+	def call(self, x, mask=None):
+		# if K.backend() == 'theano':
+		# 	pos = (K.pattern_broadcast(self.alphas, self.param_broadcast) * pos)
+		# else:
+		# 	pos = self.alphas * pos
+		result = []
+
+		# y = K.expand_dims(x, 2)
+		# y = K.permute_dimensions(y, [1, 2, 0, 3, 4, 5])
+		# y = y*self.alphas
+		# res = K.sum(y,2)
+		# for i in range(self.output_tensor_len):
+		# 	result+=[res[:,i,:,:,:]]
+		for j in range(self.output_tensor_len):
+			sum = K.zeros_like(x[0])
+			for i in range(x.__len__()):
+				sum += x[i] * tanh(self.alphas[j, i, :, :, :])
+			result += [sum]
+
+		return result
+
 class FullyConnectedTensorsLegacy(Layer):
 	def __init__(self, output_tensors_len=0, init='one', weights=None, shared_axes=[1, 2, 3], **kwargs):
 		self.output_tensor_len = output_tensors_len
@@ -645,7 +744,7 @@ class FullyConnectedTensorsLegacy(Layer):
 		return res
 
 	def compute_mask(self, input, input_mask=None):
-		res = self.output_tensor_len*[None]
+		res = self.output_tensor_len * [None]
 		return res
 
 	def build(self, input_shape):
@@ -797,8 +896,6 @@ class Birelu_nary(Layer):
 		config = {'activation': self.activation.__name__}
 		base_config = super(Birelu_nary, self).get_config()
 		return dict(list(base_config.items()) + list(config.items()))
-
-
 
 
 class PBirelu(Layer):

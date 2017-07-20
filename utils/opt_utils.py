@@ -79,6 +79,8 @@ def set_val(fun_name_without_set, val, opts):  ## key should  be compatibale to 
 	opts = fun_handle(opts, val)
 	return opts
 
+def get_epoch(opts):
+	return opts['training_opts']['epoch_nb']
 def get_aug_opts(opts):
 	return opts['aug_opts']
 def get_lr_sched_family(opts):
