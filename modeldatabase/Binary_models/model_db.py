@@ -18,7 +18,7 @@ def Layer_on_list(layer, tensor_list):
 
 def simplenn_BE(opts, input_shape, nb_classes, getstring_flag=False):
 	# Same Structure as nin besh 1 2 3
-	model_string = 'convsh|f:32,r:5,l2_val:1e-4->ber' \
+	model_string = 'convsh|f:32,r:5,l2_val:5e-4->ber' \
 	               '->maxpool|r:3,s:2->dropout|p:.5' \
 	               '->convsh|f:64,r:5,l2_val:1e-4->relu' \
 	               '->averagepool|r:3,s:2->dropout|p:.5' \
@@ -29,6 +29,22 @@ def simplenn_BE(opts, input_shape, nb_classes, getstring_flag=False):
 	                                                 '->averagepool|r:3,s:1' \
 	                                                 '->flattensh->merge_branch_average' \
 	                                                 '->softmax->fin'
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def simplenn_van(opts, input_shape, nb_classes, getstring_flag=False):
+	# Same Structure as nin besh 1 2 3
+	model_string = 'convsh|f:32,r:5,l2_val:5e-4->ber' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:64,r:5,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:128,r:3,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
+	                                                 '->averagepool|r:3,s:1' \
+	                                                 '->flattensh->merge_branch_average' \
+	                                                 '->softmax->finvan'
 	return get_model_out_dict(opts, model_string=model_string)
 
 
@@ -489,12 +505,12 @@ def nin_tree_structure_8(opts, input_shape, nb_classes, getstring_flag=False):
 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
 	               '->convsh|f:160,r:1,l2_val:1e-4->relu' \
 	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
-					'->ifc|out:1'\
+	               '->ifc|out:1' \
 	               '->maxpool|r:3,s:2->dropout|p:.5' \
 	               '->convsh|f:192,r:5,l2_val:1e-4->ber' \
 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-					'->ifc|out:1'\
+	               '->ifc|out:1' \
 	               '->averagepool|r:3,s:2->dropout|p:.5' \
 	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
@@ -592,8 +608,6 @@ def nin_tree_structure_12(opts, input_shape, nb_classes, getstring_flag=False):
 	return get_model_out_dict(opts, model_string=model_string)
 
 
-
-
 ## EXPERIMENT COLUMNAR
 
 
@@ -681,6 +695,7 @@ def nin_columnar_4(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->fin'.format(nb_classes)
 
 	return get_model_out_dict(opts, model_string=model_string)
+
 
 def nin_ifc_1(opts, input_shape, nb_classes, getstring_flag=False):
 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->ber' \
@@ -771,6 +786,8 @@ def nin_ifc_4(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->fin'.format(nb_classes)
 
 	return get_model_out_dict(opts, model_string=model_string)
+
+
 def nin_columnar_ber_1(opts, input_shape, nb_classes, getstring_flag=False):
 	model_string = 'convcolsh|f:96,r:5,l2_val:1e-4,col:2->bercol' \
 	               '->convcolsh|f:80,r:3,l2_val:1e-4,col:1->bercol' \
@@ -1009,6 +1026,7 @@ def nin_convtanh_5(opts, input_shape, nb_classes, getstring_flag=False):
 
 	return get_model_out_dict(opts, model_string=model_string)
 
+
 def nin_dropneg2(opts, input_shape, nb_classes, getstring_flag=False):
 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->noise_mul|p:.8,chw:1->relu' \
 	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
@@ -1027,6 +1045,8 @@ def nin_dropneg2(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->fin'.format(nb_classes)
 
 	return get_model_out_dict(opts, model_string=model_string)
+
+
 def nin_tree_structure_2_perm(opts, input_shape, nb_classes, getstring_flag=False):
 	# interconv fc are not shared
 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->berp|max_perm:8,random_permute:0' \
@@ -1764,9 +1784,72 @@ def besh_vgg_baseline(opts, input_shape, nb_classes, getstring_flag=False):
 	model.add(Dense(nb_classes, activation='softmax'))
 	return model
 
-#YING YANG
 
-def nin_baseline(opts, input_shape, nb_classes, getstring_flag=False):
+# YING YANG
+
+# def nin_baseline(opts, input_shape, nb_classes, getstring_flag=False):
+# 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->relu' \
+# 	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+# 	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+# 	               '->maxpool|r:3,s:2->dropout|p:.5' \
+# 	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+# 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+# 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+# 	               '->averagepool|r:3,s:2->dropout|p:.5' \
+# 	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+# 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+# 	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+# 	               '->averagepool|r:7,s:1' \
+# 	               '->flattensh->' \
+# 	               'softmax' \
+# 	               '->fin'.format(nb_classes)
+#
+# 	return get_model_out_dict(opts, model_string=model_string)
+#
+#
+# def nin_baseline2(opts, input_shape, nb_classes, getstring_flag=False):
+# 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->bnsh->relu' \
+# 	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+# 	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+# 	               '->maxpool|r:3,s:2->dropout|p:.5' \
+# 	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+# 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+# 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+# 	               '->averagepool|r:3,s:2->dropout|p:.5' \
+# 	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+# 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+# 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+# 	               '->averagepool|r:7,s:1' \
+# 					'->convsh|f:{},r:1,l2_val:1e-4->relu'\
+# 	               '->flattensh->' \
+# 	               'softmax' \
+# 	               '->fin'.format(nb_classes)
+#
+# 	return get_model_out_dict(opts, model_string=model_string)
+
+
+
+	return get_model_out_dict(opts, model_string=model_string)
+def nin_baseline_average_rand(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'random_average->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->finvan'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+def nin_baselinefinvan(opts, input_shape, nb_classes, getstring_flag=False):
 	model_string = 'convsh|f:192,r:5,l2_val:1e-4->relu' \
 	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
 	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
@@ -1781,24 +1864,778 @@ def nin_baseline(opts, input_shape, nb_classes, getstring_flag=False):
 	               '->averagepool|r:7,s:1' \
 	               '->flattensh->' \
 	               'softmax' \
+	               '->finvan'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+# BATCHNORM
+def nin_baseline_bnsh(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
 	               '->fin'.format(nb_classes)
 
 	return get_model_out_dict(opts, model_string=model_string)
 
 
-def nin_baseline_fixed(opts, input_shape, nb_classes, getstring_flag=False):
-	model_string = 'convshfixed|f:1000,r:5,l2_val:1e-4->relu' \
-	               '->convshfixed|f:1000,r:3,l2_val:1e-4->relu' \
+def nin_baseline_bnsh_ger(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ger|f:192,r:3,l2_val:5e-4,bias:0' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bnsh->ger|f:160,r:1,l2_val:5e-4,bias:0' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ger|f:96,r:1,l2_val:5e-4,bias:0' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ger|f:192,r:3,l2_val:5e-4,bias:0' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->ger|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->ger|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bnsh->ger|f:192,r:3,l2_val:5e-4,bias:0' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->ger|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->ger|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline_bnsh_ger1c(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:96,r:5,l2_val:5e-4,bias:0->bnsh->ger1c|f:96,r:3,l2_val:5e-4,bias:0' \
+	               '->convsh|f:80,r:3,l2_val:5e-4,bias:0->bnsh->ger1c|f:80,r:1,l2_val:5e-4,bias:0' \
+	               '->convsh|f:48,r:1,l2_val:5e-4,bias:0->bnsh->ger1c|f:48,r:1,l2_val:5e-4,bias:0' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:96,r:5,l2_val:5e-4,bias:0->bnsh->ger1c|f:96,r:3,l2_val:5e-4,bias:0' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ger1c|f:96,r:1,l2_val:5e-4,bias:0' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ger1c|f:96,r:1,l2_val:5e-4,bias:0' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:96,r:3,l2_val:5e-4,bias:0->bnsh->ger1c|f:96,r:3,l2_val:5e-4,bias:0' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ger1c|f:96,r:1,l2_val:5e-4,bias:0' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ger1c|f:96,r:1,l2_val:5e-4,bias:0' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline_bnsh_ger2c(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:96,r:5,l2_val:5e-4,bias:0->bnsh->ger2c|f:96,r:3,l2_val:5e-4,bias:1' \
+	               '->convsh|f:80,r:3,l2_val:5e-4,bias:0->bnsh->ger2c|f:80,r:1,l2_val:5e-4,bias:1' \
+	               '->convsh|f:48,r:1,l2_val:5e-4,bias:0->bnsh->ger2c|f:48,r:1,l2_val:5e-4,bias:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:96,r:5,l2_val:5e-4,bias:0->bnsh->ger2c|f:96,r:3,l2_val:5e-4,bias:1' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ger2c|f:96,r:1,l2_val:5e-4,bias:1' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ger2c|f:96,r:1,l2_val:5e-4,bias:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:96,r:3,l2_val:5e-4,bias:0->bnsh->ger2c|f:96,r:3,l2_val:5e-4,bias:1' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ger2c|f:96,r:1,l2_val:5e-4,bias:1' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ger2c|f:96,r:1,l2_val:5e-4,bias:1' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline_bnsh_gertree(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'gertree|f:3,r:3,l2_val:5e-4,bias:1' \
+	               '->gertree|f:3,r:3,l2_val:5e-4,bias:1' \
+	               '->gertree|f:3,r:3,l2_val:5e-4,bias:1' \
+	               '->gertree|f:3,r:3,l2_val:5e-4,bias:1' \
+	               '->gertree|f:3,r:3,l2_val:5e-4,bias:1' \
+	               '->gertree|f:3,r:3,l2_val:5e-4,bias:1' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline_bnsh_gertree_binary_full(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'gertreebinary|f:16,r:5,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->gertreebinary|f:16,r:3,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->gertreebinary|f:16,r:1,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->gertreebinary|f:16,r:5,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->gertreebinary|f:16,r:1,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->gertreebinary|f:16,r:1,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->gertreebinary|f:16,r:3,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->gertreebinary|f:16,r:1,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->gertreebinary|f:16,r:1,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+def nin_baseline_bnsh_gertree_binary(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'gertreebinary|f:16,r:5,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->gertreebinary|f:16,r:5,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->gertreebinary|f:16,r:5,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->gertreebinary|f:16,r:5,l2_val:5e-4,bias:1,mactivation:sigmoid' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+def nin_baseline_xlogx(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->xlogx' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bnsh->xlogx' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->xlogx' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->xlogx' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->xlogx' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->xlogx' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bnsh->xlogx' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->xlogx' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->xlogx' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline_llu(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->llu' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bnsh->llu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->llu' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->llu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->llu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->llu' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bnsh->llu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->llu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->llu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+def nin_baseline2_ifc_bn(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifc_bn_ns(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->conv|f:80,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifc_bn_sns(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsns|f:160,r:3,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->convsns|f:96,r:1,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsns|f:192,r:1,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->convsns|f:192,r:1,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifc_bn_snsdy(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsnsdy|f:160,r:3,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->convsnsdy|f:96,r:1,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsnsdy|f:192,r:1,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->convsnsdy|f:192,r:1,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifc_bn_snsdyrec(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsnsdyrec|f:160,r:3,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->convsnsdyrec|f:96,r:1,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsnsdyrec|f:192,r:1,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->convsnsdyrec|f:192,r:1,l2_val:5e-4,bias:0,shratio:.5->bn->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifc_bn_sns2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsns|f:160,r:3,l2_val:5e-4,bias:0,shratio:.75->bn->ber' \
+	               '->convsns|f:96,r:1,l2_val:5e-4,bias:0,shratio:.75->bn->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsns|f:192,r:1,l2_val:5e-4,bias:0,shratio:.75->bn->ber' \
+	               '->convsns|f:192,r:1,l2_val:5e-4,bias:0,shratio:.75->bn->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifc_dconv_bn(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'dconv|f:192,r:5,l2_val:5e-4,bias:0,iter:1,mult:1->bnsh->relu' \
+	               '->convsh|f:160,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->ifconcat|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->dconv|f:192,r:5,l2_val:5e-4,bias:0,iter:4,mult:1->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->ifconcat|out:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->dconv|f:192,r:3,l2_val:5e-4,bias:0,iter:4,mult:1->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->averagepool|r:8,s:1' \
+					'->ifconcat'\
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifc_dconv_concat_bn(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'dconvconcat|f:192,r:5,l2_val:5e-4,bias:0,iter:3,mult:1->bn->relu' \
+	               '->convsh|f:160,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->ifconcat|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->dconvconcat|f:192,r:5,l2_val:5e-4,bias:0,iter:3,mult:1->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->ifconcat|out:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->dconvconcat|f:192,r:3,l2_val:5e-4,bias:0,iter:3,mult:1->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->ifconcat' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+def nin_baseline2_ifconcat_bn(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifconcat' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:24,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifconcat' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:24,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifconcat2_bn(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:12,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifconcat' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:24,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifconcat' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifconcat2_bec_bn(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->ifconcat' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:48,r:5,l2_val:5e-4,bias:0->bn->relu' \
+	               '->becbnr|f:48,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:48,r:1,l2_val:5e-4,bias:0' \
+	               '->ifconcat' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:48,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->becbnr|f:48,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:48,r:1,l2_val:5e-4,bias:0' \
+	               '->ifconcat' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifconcat2_bec_bn2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->ifconcat' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:96,r:5,l2_val:5e-4,bias:0->bn->relu' \
+	               '->becbnr|f:96,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:96,r:1,l2_val:5e-4,bias:0' \
+	               '->ifconcat' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:96,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->becbnr|f:96,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:96,r:1,l2_val:5e-4,bias:0' \
+	               '->ifconcat' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifconcat2_bec_bn3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->ifconcat' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->relu' \
+	               '->becbnr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->becbnr|f:192,r:3,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->averagepool|r:8,s:1' \
+	               '->ifconcat' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifconcat2_bec_bn4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->relu' \
+	               '->becbnr|f:192,r:3,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->becbnr|f:192,r:5,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->becbnr|f:192,r:3,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->ifconcat' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline2_ifconcat2_bec_bnsh4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->relu' \
+	               '->becbnshr|f:192,r:3,l2_val:5e-4,bias:0' \
+	               '->becbnshr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->becbnshr|f:192,r:5,l2_val:5e-4,bias:0' \
+	               '->becbnshr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnshr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->becbnshr|f:192,r:3,l2_val:5e-4,bias:0' \
+	               '->becbnshr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->becbnshr|f:192,r:1,l2_val:5e-4,bias:0' \
+	               '->ifconcat' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+def nin_baseline2_ifconcat_resnet(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:48,r:1,l2_val:5e-4,bias:0->bn->push|name:a' \
+	               '->convsh|f:96,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:80,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:48,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->mask|name:a' \
+	               '->ifconcat|out:1' \
+	               '->convsh|f:96,r:5,l2_val:5e-4,bias:0->bn' \
+	               '->maxpool|r:3,s:2,pad:same->push|name:b' \
+	               '->convsh|f:96,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->mask|name:b' \
+	               '->ifconcat|out:1' \
+	               '->convsh|f:96,r:5,l2_val:5e-4,bias:0->bn' \
+	               '->averagepool|r:3,s:2,pad:same->push|name:c' \
+	               '->convsh|f:96,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->mask|name:c' \
+	               '->ifconcat|out:1' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_bnsh(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_bnsh_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:1->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:1->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:1->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:1->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:1->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:1->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_bnsh_2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'bnsh->convsh|f:192,r:5,l2_val:5e-4,bias:1->ber' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:1->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:1->ber' \
+	               '->ifc|out:1->bnsh' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:1->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:1->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:1->ber' \
+	               '->ifc|out:1->bnsh' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:1->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:1->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_bnsh2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4,bias:0->bnsh->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4,bias:0->bnsh->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4,bias:0->bnsh->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4,bias:0->bnsh->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:1e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4->ber' \
+	               '->convsh|f:160,r:3,l2_val:5e-4->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:5e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:5e-4->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4->relu' \
+	               '->convsh|f:{},r:1,l2_val:5e-4->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_bn(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:160,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_ifc_bn2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4,bias:0->bn->ber' \
+	               '->convsh|f:160,r:3,l2_val:1e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:1e-4,bias:0->bn->ber' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:5,l2_val:1e-4,bias:0->bn->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4,bias:0->bn->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4,bias:0->bn->ber' \
+	               '->ifc|out:1' \
+	               '->averagepool|r:3,s:2->dropout|p:.5' \
+	               '->convsh|f:192,r:3,l2_val:1e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:1e-4,bias:0->bn->relu' \
+	               '->averagepool|r:7,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:1e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+
+def nin_branch1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:1e-4->relu' \
+	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
 	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
 	               '->maxpool|r:3,s:2->dropout|p:.5' \
 	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
 	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
 	               '->averagepool|r:3,s:2->dropout|p:.5' \
-	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
-	               '->averagepool|r:7,s:1' \
+	               '->convsh|f:192,r:3,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->convsh|f:192,r:1,l2_val:1e-4->ber' \
+	               '->averagepool|r:7,s:1->dropout|p:.5' \
+	               '->conv|f:4,r:1,l2_val:1e-4->sigmoid' \
+	               '->concat' \
+	               '->flattensh->densesh|n:{}' \
+	               '->softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+# DECONV
+def nin_baseline2_ifc_dconv_concat_bn_1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'dconvberconcat|f:192,r:3,l2_val:5e-4,bias:0,iter:3,mult:1->bn->relu' \
+	               '->convsh|f:160,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->ifconcat|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->dconvberconcat|f:192,r:3,l2_val:5e-4,bias:0,iter:3,mult:1->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->ifconcat|out:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->dconvberconcat|f:192,r:3,l2_val:5e-4,bias:0,iter:3,mult:1->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn->relu' \
+	               '->averagepool|r:8,s:1' \
+	               '->ifconcat' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
@@ -1806,19 +2643,43 @@ def nin_baseline_fixed(opts, input_shape, nb_classes, getstring_flag=False):
 	return get_model_out_dict(opts, model_string=model_string)
 
 
-def nin_yingyang1(opts, input_shape, nb_classes, getstring_flag=False):
-	model_string = 'convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
-	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
-	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
-	               '->maxpool|r:3,s:2->dropout|p:.5' \
-	               '->convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->averagepool|r:3,s:2->dropout|p:.5' \
-	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
-	               '->averagepool|r:7,s:1' \
+def nin_baseline_bn_conv_ber(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->convsh|f:80,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:48,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifconcat|out:1->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifconcat|out:1->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->convsh|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->ifconcat|out:1->convsh|f:192,r:1,l2_val:5e-4,bias:0->bn' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+# AMP
+def nin_baseline_bn_adarelu(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ber' \
+	               '->conv|f:80,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->adarelu' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ber' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->conv|f:192,r:1,l2_val:5e-4,bias:0->bn->adarelu' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->ber' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->ber' \
+	               '->conv|f:192,r:1,l2_val:5e-4,bias:0->bn->adarelu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
@@ -1826,19 +2687,20 @@ def nin_yingyang1(opts, input_shape, nb_classes, getstring_flag=False):
 	return get_model_out_dict(opts, model_string=model_string)
 
 
-def nin_yingyang2(opts, input_shape, nb_classes, getstring_flag=False):
-	model_string = 'convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
-	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
-	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
-	               '->maxpool|r:3,s:2->dropout|p:.5' \
-	               '->convsh|f:192,r:5,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->averagepool|r:3,s:2->dropout|p:.5' \
-	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
-	               '->averagepool|r:7,s:1' \
+def nin_baseline_bn_ampadarelu(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ampber' \
+	               '->conv|f:80,r:3,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->adarelu' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:5,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->conv|f:192,r:1,l2_val:5e-4,bias:0->bn->adarelu' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->convsh|f:192,r:3,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->conv|f:192,r:1,l2_val:5e-4,bias:0->bn->adarelu' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
@@ -1846,19 +2708,23 @@ def nin_yingyang2(opts, input_shape, nb_classes, getstring_flag=False):
 	return get_model_out_dict(opts, model_string=model_string)
 
 
-def nin_yingyang3(opts, input_shape, nb_classes, getstring_flag=False):
-	model_string = 'convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
-	               '->convyy_rand|f:160,r:3,l2_val:1e-4->relu' \
-	               '->convyy_rand|f:96,r:1,l2_val:1e-4->relu' \
-	               '->maxpool|r:3,s:2->dropout|p:.5' \
-	               '->convyy_rand|f:192,r:5,l2_val:1e-4->relu' \
-	               '->convyy_rand|f:192,r:1,l2_val:1e-4->relu' \
-	               '->convyy_rand|f:192,r:1,l2_val:1e-4->relu' \
-	               '->averagepool|r:3,s:2->dropout|p:.5' \
-	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
-	               '->averagepool|r:7,s:1' \
+def nin_baseline_bn_ampconv_ampber(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ampber' \
+	               '->ampconv|f:80,r:3,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->ampconv|f:96,r:1,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->imean'\
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->ampconv|f:192,r:5,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->ampconv|f:96,r:1,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->imean' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->ampconv|f:192,r:3,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->ampconv|f:96,r:1,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->ampber' \
+	               '->imean' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
@@ -1866,24 +2732,211 @@ def nin_yingyang3(opts, input_shape, nb_classes, getstring_flag=False):
 	return get_model_out_dict(opts, model_string=model_string)
 
 
-def nin_yingyang_norand(opts, input_shape, nb_classes, getstring_flag=False):
-	model_string = 'convyy|f:192,r:5,l2_val:1e-4->relu' \
-	               '->convsh|f:160,r:3,l2_val:1e-4->relu' \
-	               '->convsh|f:96,r:1,l2_val:1e-4->relu' \
-	               '->maxpool|r:3,s:2->dropout|p:.5' \
-	               '->convyy|f:192,r:5,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->averagepool|r:3,s:2->dropout|p:.5' \
-	               '->convsh|f:192,r:3,l2_val:1e-4->relu' \
-	               '->convsh|f:192,r:1,l2_val:1e-4->relu' \
-	               '->convsh|f:{},r:1,l2_val:1e-4->relu' \
-	               '->averagepool|r:7,s:1' \
+def nin_baseline_bn_amp_l1(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->amprelu|norm:$norm' \
+	               '->ampconv|f:160,r:3,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:96,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->ampconv|f:192,r:5,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->ampconv|f:192,r:3,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes).replace('$norm','1')
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline_bn_amp_l2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->amprelu|norm:$norm' \
+	               '->ampconv|f:160,r:3,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:96,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->ampconv|f:192,r:5,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->ampconv|f:192,r:3,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->ampconv|f:192,r:1,l2_val:5e-4,bias:0->bn->amprelu|norm:$norm' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes).replace('$norm', '2')
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_baseline_bn_ampbimean_l2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'convsh|f:192,r:5,l2_val:5e-4,bias:0->bnsh->ampbmeanrelu|norm:$norm' \
+	               '->$conv|f:160,r:3,l2_val:5e-4,bias:0,norm:$norm->bn->ampbmeanrelu|norm:$norm' \
+	               '->$conv|f:96,r:1,l2_val:5e-4,bias:0,norm:$norm->bn->ampbmeanrelu|norm:$norm' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->$conv|f:192,r:5,l2_val:5e-4,bias:0,norm:$norm->bn->ampbmeanrelu|norm:$norm' \
+	               '->$conv|f:192,r:1,l2_val:5e-4,bias:0,norm:$norm->bn->ampbmeanrelu|norm:$norm' \
+	               '->$conv|f:192,r:1,l2_val:5e-4,bias:0,norm:$norm->bn->ampbmeanrelu|norm:$norm' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->$conv|f:192,r:3,l2_val:5e-4,bias:0,norm:$norm->bn->ampbmeanrelu|norm:$norm' \
+	               '->$conv|f:192,r:1,l2_val:5e-4,bias:0,norm:$norm->bn->ampbmeanrelu|norm:$norm' \
+	               '->$conv|f:192,r:1,l2_val:5e-4,bias:0,norm:$norm->bn->ampbmeanrelu|norm:$norm' \
+	               '->averagepool|r:8,s:1' \
+	               '->convsh|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes).replace('$norm', '2').replace('$conv','convsh')
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+# split
+def nin_split(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'conv|f:192,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:80,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->ifconcat' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:192,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->ifconcat' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->conv|f:192,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+					'->ifconcat'\
+	               '->averagepool|r:8,s:1' \
+	               '->conv|f:{},r: 1,l2_val:5e-4' \
 	               '->flattensh->' \
 	               'softmax' \
 	               '->fin'.format(nb_classes)
 
 	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_split2(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'conv|f:192,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:80,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:96,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->conv|f:48,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifconcat' \
+	               '->averagepool|r:8,s:1' \
+	               '->conv|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_split3(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'conv|f:192,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:80,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+					'->ifc|out:2'\
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:96,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifc|out:4' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->conv|f:48,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifconcat' \
+	               '->averagepool|r:8,s:1' \
+	               '->conv|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_split4(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'conv|f:192,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:160,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:192,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:96,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifc|out:2' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->conv|f:96,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:2' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:48,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifconcat' \
+	               '->averagepool|r:8,s:1' \
+	               '->conv|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_split5(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'conv|f:192,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:8' \
+	               '->conv|f:20,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:12,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:24,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:8' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifc|out:2' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->conv|f:96,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:4' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifconcat' \
+	               '->averagepool|r:8,s:1' \
+	               '->conv|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
+def nin_split5(opts, input_shape, nb_classes, getstring_flag=False):
+	model_string = 'conv|f:192,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:8' \
+	               '->conv|f:20,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:12,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifc|out:1' \
+	               '->maxpool|r:3,s:2,pad:same' \
+	               '->conv|f:24,r:5,l2_val:5e-4,bias:0->bn->relusplit|child:8' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifc|out:2' \
+	               '->averagepool|r:3,s:2,pad:same' \
+	               '->conv|f:96,r:3,l2_val:5e-4,bias:0->bn->relusplit|child:4' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->conv|f:24,r:1,l2_val:5e-4,bias:0->bn->relusplit|child:1' \
+	               '->ifconcat' \
+	               '->averagepool|r:8,s:1' \
+	               '->conv|f:{},r: 1,l2_val:5e-4' \
+	               '->flattensh->' \
+	               'softmax' \
+	               '->fin'.format(nb_classes)
+
+	return get_model_out_dict(opts, model_string=model_string)
+
+
 def get(identifier):
 	if isinstance(identifier, dict):
 		return deserialize(identifier)
@@ -1916,6 +2969,7 @@ def get_model_dict_from_db(identifier, opts):
 	dict = model_fun(opts, opt_utils.get_input_shape(opts), opt_utils.get_nb_classes(opts))
 
 	return dict
+
 
 if __name__ == '__main__':
 	opts = default_opt_creator()

@@ -44,7 +44,8 @@ def inverter(x):
     return K.ones_like(x)-x
 def elu(x, alpha=1.0):
     return K.elu(x, alpha)
-
+def xlog(x):
+    return K.relu(x)*K.log(K.abs(x)+K.epsilon())
 
 def softplus(x):
     return K.softplus(x)

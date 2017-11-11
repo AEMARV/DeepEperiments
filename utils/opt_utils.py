@@ -93,9 +93,9 @@ def set_default_opts_based_on_model_dataset(opts):
 	opts['aug_opts']['samplewise_std_normalization'] = False  # divide each input by its std
 	opts['aug_opts']['zca_whitening'] = True  # apply ZCA whitening
 	opts['aug_opts']['rotation_range'] = 0  # randomly rotate images in the range (degrees, 0 to 180)
-	opts['aug_opts']['width_shift_range'] = 0  # randomly shift images horizontally (fraction of total width)
-	opts['aug_opts']['height_shift_range'] = 0  # randomly shift images vertically (fraction of total height)
-	opts['aug_opts']['horizontal_flip'] = False  # randomly flip images
+	opts['aug_opts']['width_shift_range'] = 0.1  # randomly shift images horizontally (fraction of total width)
+	opts['aug_opts']['height_shift_range'] = 0.1  # randomly shift images vertically (fraction of total height)
+	opts['aug_opts']['horizontal_flip'] = True  # randomly flip images
 	opts['aug_opts']['vertical_flip'] = False
 
 	# Gated Parameters and Activations
@@ -104,7 +104,7 @@ def set_default_opts_based_on_model_dataset(opts):
 	opts['model_opts']['param_dict']['param_expand']['rate'] = 1
 	# End of Layer Parameters-------------------------------------------------------------------------------------
 
-	opts['optimizer_opts']['lr'] = -2
+	opts['optimizer_opts']['lr'] = .1
 	opts['optimizer_opts']['momentum'] = .9
 	opts['optimizer_opts']['decay'] = 1e-6
 	opts['optimizer_opts']['nestrov'] = False
@@ -121,7 +121,7 @@ def set_default_opts_based_on_model_dataset(opts):
 		opts['training_opts']['dataset']['input_shape'] = (3, 224, 224)
 	opts['training_opts']['samples_per_epoch'] = -1
 	opts['training_opts']['batch_size'] = 128
-	opts['training_opts']['epoch_nb'] = 120
+	opts['training_opts']['epoch_nb'] = 300
 	opts['training_opts']['metrics'] = ['accuracy', 'mean_absolute_percentage_error', 'cosine_proximity', 'top_k_categorical_accuracy']
 	opts['training_opts']['lr_sched_family'] = 'nin'
 	return opts

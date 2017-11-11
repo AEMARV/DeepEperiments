@@ -1,20 +1,25 @@
 import warnings
 
-from keras.engine import Model
-from keras.layers import Input, Flatten, Dense, Conv2D, Activation, AveragePooling2D, Lambda, MaxPooling2D
-from keras.layers.merge import add, average, concatenate
+# from keras.engine import Model
+from keras.layers import Input, Flatten, Dense, Conv2D, Activation, AveragePooling2D, Lambda, MaxPooling2D, BatchNormalization, Merge, SeparableConv2D
+from keras.layers.merge import add, average, concatenate, multiply
 from keras.regularizers import l1_l2
-from utils.modelutils.regularizer.regularizers import l1_l2_tanh
-from utils.modelutils.layers.conv import Conv2DTanh, Conv2DYingYang,Conv2DRandomYang
 
 from utils.modelutils.layers.binary_layers.birelu import *
-
+from utils.modelutils.layers.conv import *
+from utils.modelutils.layers.conv_sep import *
+from utils.modelutils.regularizer.regularizers import l1_l2_tanh
+from keras.models import Model
+from utils.modelutils.layers.activations import *
+from utils.modelutils.activations import activations as cact
 layer_index = 0
 # use of | will make the parser for load weight not considering string past '|'
 CONVSH_NAME = 'BLOCK{}_CONV'
 CONV_NAME = 'BLOCK{}_CONV-{}'
 ACT_NAME_RULE = 'BLOCK{}_ACT_{}{}'
 POOL_NAME_RULE = 'BLOCK{}_POOL_{}'
+BATCH_NORMSH_RULE = 'BLOCK{}_BATCHNORM'
+BATCH_NORM_RULE = 'BLOCK{}_BATCHNORM_{}'
 
 
 # COMPONENT_NAMES
@@ -39,17 +44,24 @@ def model_constructor(opts, model_dict=None):
 	x = [[img_input]]
 	expand_rate = opts['model_opts']['param_dict']['param_expand']['rate']
 	block_index = 0
+	queue_dict = {}
+	yang_aux_phase = StateLayer()
 	for layer in model_dict:
 		component = layer['type']
 
 		param = layer['param']
 		with tf.name_scope(component):
-			if component == 'convsh':
+			if component == 'push':
+				name = param['name']
+				queue_dict[name] = x
+
+			elif component == 'convsh':
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
 				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
 				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
 				padding = param['padding'] if 'padding' in param else 'same'
 				activation = param['activation'] if 'activation' in param else None
 				initializion = param['int'] if 'init' in param else 'he_normal'
@@ -57,8 +69,107 @@ def model_constructor(opts, model_dict=None):
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
 				x = Layer_on_list(Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index)), x)
-
+				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
+				                         use_bias=use_bias), x)
+			elif component == 'dconv':
+				block_index += 1
+				mult = int(param['mult']) if 'mult' in param else 1
+				nb_filter = int(param['f'])
+				iterations = int(param['iter'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				conv_layer = DepthConv2D(kernel_size=kernel_size, padding=padding, depthwise_regularizer=w_reg, depthwise_initializer=initializion,
+				                         name='DCONV{}'.format(block_index), depth_multiplier=mult)
+				x = node_list_to_list(x)
+				y = x
+				res = []
+				for i in np.arange(iterations):
+					y = Layer_on_list(conv_layer, y)
+					res += y
+				x = res
+				x = Layer_on_list(Conv2D(filters=nb_filter * expand_rate, kernel_size=(1, 1), padding=padding, kernel_initializer=initializion,
+				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
+				                         use_bias=use_bias), x)
+			elif component == 'dconvconcat':
+				block_index += 1
+				mult = int(param['mult']) if 'mult' in param else 1
+				nb_filter = int(param['f'])
+				iterations = int(param['iter'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				conv_layer = DepthConv2D(kernel_size=kernel_size, padding=padding, depthwise_regularizer=w_reg, depthwise_initializer=initializion,
+				                         name='DCONV{}'.format(block_index), depth_multiplier=mult)
+				x = node_list_to_list(x)
+				y = x
+				res = x
+				for i in np.arange(iterations):
+					y = Layer_on_list(conv_layer, y)
+					res2 = []
+					for idx, tensor in enumerate(y):
+						res2 += [BatchNormalization(axis=1, epsilon=1e-5, name=(BATCH_NORM_RULE + 'DCONV_ITER{}').format(block_index, idx, i))(tensor)]
+					y = res2
+					res += y
+				x = res
+				x = [concatenate(x, axis=1)]
+				x = Layer_on_list(Conv2D(filters=nb_filter * expand_rate, kernel_size=(1, 1), padding=padding, kernel_initializer=initializion,
+				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
+				                         use_bias=use_bias), x)
+			elif component == 'dconvberconcat':
+				block_index += 1
+				mult = int(param['mult']) if 'mult' in param else 1
+				nb_filter = int(param['f'])
+				iterations = int(param['iter'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				conv_layer = DepthConv2D(kernel_size=kernel_size, padding=padding, depthwise_regularizer=w_reg, depthwise_initializer=initializion,
+				                         name='DCONV{}'.format(block_index), depth_multiplier=mult)
+				x = node_list_to_list(x)
+				y = x
+				res = x
+				for i in np.arange(iterations):
+					y = Layer_on_list(conv_layer, y)
+					res2 = []
+					for idx, tensor in enumerate(y):
+						bn_tensor=BatchNormalization(axis=1, epsilon=1e-5, name=(BATCH_NORM_RULE + 'DCONV_ITER{}').format(block_index, idx, i))(tensor)
+						bn_tensor_ber = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'BER_INNER{}'.format(i), idx))(bn_tensor)
+						res2+=bn_tensor_ber
+					y = res2
+					res += y
+				x = res
+				x = [concatenate(x, axis=1)]
+				x = Layer_on_list(Conv2D(filters=nb_filter * expand_rate, kernel_size=(1, 1), padding=padding, kernel_initializer=initializion,
+				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
+				                         use_bias=use_bias), x)
+			elif component == 'bnsh':
+				x = node_list_to_list(x)
+				x = Layer_on_list(BatchNormalization(axis=1, epsilon=1e-5, name=BATCH_NORMSH_RULE.format(block_index)), x)
+			elif component == 'bn':
+				x = node_list_to_list(x)
+				res = []
+				for idx, tensor in enumerate(x):
+					res += [BatchNormalization(axis=1, epsilon=1e-5, name=BATCH_NORM_RULE.format(block_index, idx))(tensor)]
+				x = res
 			elif component == 'conv':
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -66,6 +177,7 @@ def model_constructor(opts, model_dict=None):
 				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
 				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
 				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
 				activation = param['activation'] if 'activation' in param else None
 				initializion = param['int'] if 'init' in param else 'he_normal'
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
@@ -73,14 +185,424 @@ def model_constructor(opts, model_dict=None):
 				x = node_list_to_list(x)
 				res = []
 				if len(x) == 1:
-					raise ValueError('one branch for convolution use convsh instead for load weight compatibility')
-				for idx, tensor in enumerate(x):
 					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-					               kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx))(tensor)]
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(
+						x[0])]
+				else:
+					for idx, tensor in enumerate(x):
+						res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+						               kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(
+							tensor)]
 				x = res
+			elif component == 'convsns':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				shratio = param['shratio']
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				convshared = Conv2D(filters=int(nb_filter * expand_rate*shratio), kernel_size=kernel_size, padding=padding,
+				                    kernel_initializer=initializion,
+				       kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)
+				if len(x) == 1:
+					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+				else:
+					for idx, tensor in enumerate(x):
+						# res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+						#                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(
+						# 	tensor)]
+						ns_tensor = Conv2D(filters=int(nb_filter * expand_rate*(1-shratio)), kernel_size=kernel_size, padding=padding,
+						                   kernel_initializer=initializion,
+						       kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)
+						s_tensor=convshared(tensor)
+						s_ns = concatenate([s_tensor,ns_tensor],axis=1)
+						res+=[s_ns]
+				x = res
+				ifc_out = [FullyConnectedTensors(output_tensors_len=out_len, shared_axes=[2, 3])(x)]
+			elif component == 'convsnsdy':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				shratio = param['shratio']
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				convshared = Conv2D(filters=int(nb_filter * expand_rate ), kernel_size=kernel_size, padding=padding,
+				                    kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+				                    name=CONVSH_NAME.format(block_index), use_bias=use_bias)
+				if len(x) == 1:
+					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+				else:
+					for idx, tensor in enumerate(x):
+						# res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+						#                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx),
+						# use_bias=use_bias)(
+						# 	tensor)]
+						ns_tensor = Conv2D(filters=int(nb_filter * expand_rate) , kernel_size=kernel_size, padding=padding,
+						                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+						                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)
+						s_tensor = convshared(tensor)
+						s_ns = [TensorSelectSigmoid( shared_axes=[2, 3])([ns_tensor,s_tensor])]
+						res += [s_ns]
+				x = res
+			elif component == 'convsnsdyrec':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				shratio = param['shratio']
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				convshared = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+				                    kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)
+				if len(x) == 1:
+					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
 
+				else:
+					res = [ConvBank(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					                kernel_regularizer=w_reg, activation=activation, name='Bank{}'.format(block_index), use_bias=use_bias)(x)]
+				# for idx,tensor in enumerate(x):
+				# 	ns_conv = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+				# 	                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+				# 	                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)
+				# 	ns_tensor = ns_conv(tensor)
+				# s_tensor = convshared(tensor)
+
+				# if idx in group1:
+				# 	group_tensor = group1_conv(tensor)
+				# else:
+				# 	group_tensor = group2_conv(tensor)
+				# ns_g = TensorSelectSigmoid(shared_axes=[2, 3],
+				# name = 'ns_g_Select_histshow_ns_g{}{}'.format(block_index, idx))([ns_tensor, group_tensor])
+				# s_ns_g = TensorSelectSigmoid(shared_axes=[2, 3], name='s_nsg_Select_histshow_s_nsg{}{}'.format(block_index, idx))([ns_g,
+				#                                                                                                                s_tensor])
+				# if idx in group1:
+				# 	group_conv = group1_conv
+				# else:
+				# 	group_conv = group2_conv
+				# s_ns_g = ConvBankAgg(filter_size=nb_filter*expand_rate,conv_list_index_zero_not_shared=[ns_conv, group_conv,
+				#                                                                                         convshared])(tensor)
+				# res += [s_ns_g]
+				x = res
+			elif component == 'convsnsdyrec_non_optimized':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				shratio = param['shratio']
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				convshared = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+				                    kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)
+				if len(x) == 1:
+					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+
+				elif len(x)==2:
+					for idx, tensor in enumerate(x):
+						# res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+						#                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx),
+						# use_bias=use_bias)(
+						# 	tensor)]
+						ns_tensor = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+						                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+						                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)
+						s_tensor = convshared(tensor)
+						s_ns = [TensorSelectSigmoid(shared_axes=[2, 3],name='s_ns_Select_histshow{}{}'.format(block_index,idx))([ns_tensor,
+						                                                                                                         s_tensor])]
+						res += [s_ns]
+				elif len(x)==4:
+					group1=[0,1]
+					group1_conv = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+					                     kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+					                     name=CONVSH_NAME.format(block_index)+'Group1', use_bias=use_bias)
+					group2_conv = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+					                     kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+					                     name=CONVSH_NAME.format(block_index) + 'Group2', use_bias=use_bias)
+					for idx,tensor in enumerate(x):
+						ns_conv = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+						                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+						                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)
+						ns_tensor = ns_conv(tensor)
+						s_tensor = convshared(tensor)
+
+						if idx in group1:
+							group_tensor = group1_conv(tensor)
+						else:
+							group_tensor = group2_conv(tensor)
+						ns_g = TensorSelectSigmoid(shared_axes=[2, 3],
+						name = 'ns_g_Select_histshow_ns_g{}{}'.format(block_index, idx))([ns_tensor, group_tensor])
+						s_ns_g = TensorSelectSigmoid(shared_axes=[2, 3], name='s_nsg_Select_histshow_s_nsg{}{}'.format(block_index, idx))([ns_g,
+						                                                                                                               s_tensor])
+						# if idx in group1:
+						# 	group_conv = group1_conv
+						# else:
+						# 	group_conv = group2_conv
+						# s_ns_g = ConvBankAgg(filter_size=nb_filter*expand_rate,conv_list_index_zero_not_shared=[ns_conv, group_conv,
+						#                                                                                         convshared])(tensor)
+						res += [s_ns_g]
+				x = res
 			elif component == 'ber':
 				x = node_list_to_list(x)
+				res = []
+				for index, tensor in enumerate(x):
+					res += [Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'BER', index))(tensor)]
+				x = res
+			elif component == 'ger':
+				x = node_list_to_list(x)
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				temp=[]
+				res_sign=[]
+				res = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'GER', 0))(x[0])
+				res_sign += [Lambda(K.sign)(res[0])]
+				res_sign += [Lambda(-K.sign)(res[1])]
+				for idx,tensor in enumerate(res):
+					temp+=[Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					       kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)]
+				res = temp
+				Slice
+				res[0]=multiply([res[0],res_sign[0]])
+				res[1] = multiply([res[1], res_sign[1]])
+				x = [add(res)]
+			elif component == 'ger1c':
+				x = node_list_to_list(x)
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				temp = []
+				res_sign = []
+				res = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'GER', 0))(x[0])
+				res_sign += [Lambda(K.sign)(res[0])]
+				res_sign += [Lambda(lambda x:-K.sign(x))(res[1])]
+				for idx, tensor in enumerate(res):
+					temp += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(
+						tensor)]
+				res = temp
+				res_sign[0] = Slice(1)(res_sign[0])
+				res_sign[1] = Slice(1)(res_sign[1])
+				res[0] = multiply([res[0], res_sign[0]])
+				res[1] = multiply([res[1], res_sign[1]])
+				x = [add(res)]
+			elif component == 'ger2c':
+				x = node_list_to_list(x)
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				temp = []
+				res = []
+				sign_slice = Slice(1)(x[0])
+
+				control = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'GER', 0))(sign_slice)
+				control_1= []
+				control_1 += [Lambda(K.sign)(control[0])]
+				control_1 += [Lambda(lambda x: K.sign(x))(control[1])]
+				res += [multiply([x[0], control_1[0]])]
+				res += [multiply([x[0], control_1[1]])]
+				for idx, tensor in enumerate(res):
+					temp += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(
+						tensor)]
+				res = temp
+				res[0] = multiply([res[0], control_1[0]])
+				res[1] = multiply([res[1], control_1[1]])
+				x = [add(res)]
+			elif component == 'gertreebinary':
+				def binary_block(x, idx, block_index, iteration,filter_nb=0,mask_activation='relu'):
+					filter_nb_1 = x._shape_as_list()[1] if filter_nb==0 else filter_nb
+					x = Conv2D(filters=filter_nb_1, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					           kernel_regularizer=w_reg,
+					           activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(x)
+					if filter_nb_1 == 1 or iteration == 0:
+						return x
+					res = []
+					temp = []
+					sign_slice, x = Split(int(filter_nb_1//2))(x)
+					###
+					control_1 = MaskBirelu(mask_activation, name=ACT_NAME_RULE.format(block_index, 'MASK', idx))(sign_slice)
+					###
+					res += [multiply([x, control_1[0]])]
+					res += [multiply([x, control_1[1]])]
+					block_res = []
+					for idx2, tensor in enumerate(res):
+						block_index += 1
+						block_res += [binary_block(tensor, (4 * idx) + (idx2 + 1), block_index, iteration - 1,mask_activation=mask_activation)]
+					res[0] = multiply([block_res[0], control_1[0]])
+					res[1] = multiply([block_res[1], control_1[1]])
+					res[0] = concatenate([res[0], control_1[0]], axis=1)
+					res[1] = concatenate([res[1], control_1[1]], axis=1)
+					x = add(res)
+					return x
+
+				x = node_list_to_list(x)
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				iteration = int(param['iter']) if 'iter' in param else -1
+				mask_activation = param['mactivation'] if 'mactivation' in param else 'relu'
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = [binary_block(x[0], idx=0, block_index = block_index, iteration=iteration,filter_nb=nb_filter,mask_activation=mask_activation)]
+			elif component == 'gertree':
+				def block(x,idx,block_index,iteration=1):
+					filter = x._shape_as_list()[1]
+					x= Conv2D(filters=filter, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					       kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=True)(x)
+					if filter == 1 or iteration ==0:
+						return x
+					res = []
+					temp = []
+					sign_slice, x = Split(1)(x)
+					###
+					control_1 = MaskBirelu('relu', name=ACT_NAME_RULE.format(block_index, 'MASK', idx))(sign_slice)
+					###
+					res += [multiply([x, control_1[0]])]
+					res += [multiply([x, control_1[1]])]
+					block_res = []
+					for idx2,tensor in enumerate(res):
+						block_index+=1
+						block_res+=[block(tensor,(4*idx)+(idx2+1),block_index,iteration-1)]
+					res[0] = multiply([block_res[0], control_1[0]])
+					res[1] = multiply([block_res[1], control_1[1]])
+					res[0]=concatenate([res[0],control_1[0]],axis=1)
+					res[1] = concatenate([res[1],control_1[1]],axis=1)
+					x = add(res)
+					return x
+				x = node_list_to_list(x)
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = [block(x[0],0,block_index,3)]
+			elif component == 'becbnr':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				y = Layer_on_list(Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
+				                         use_bias=use_bias), x)
+				res = []
+
+				for idx, tensor in enumerate(y):
+					res += [BatchNormalization(axis=1, epsilon=1e-5, name=BATCH_NORM_RULE.format(block_index, idx))(tensor)]
+				y = res
+				res = []
+				for index, tensor in enumerate(y):
+					res += [Activation('relu', name=ACT_NAME_RULE.format(block_index, 'RELU', index))(tensor)]
+				x = res + x
+			elif component == 'becbnshr':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				y = Layer_on_list(Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
+				                         use_bias=use_bias), x)
+				res = []
+				y = Layer_on_list(BatchNormalization(axis=1, epsilon=1e-5, name=BATCH_NORMSH_RULE.format(block_index)), y)
+				for index, tensor in enumerate(y):
+					res += [Activation('relu', name=ACT_NAME_RULE.format(block_index, 'RELU', index))(tensor)]
+				x = res + x
+			elif component == 'bes':
+				x = node_list_to_list(x)
+				res = []
+				for index, tensor in enumerate(x):
+					res += [Birelu('sigmoid', name=ACT_NAME_RULE.format(block_index, 'BER', index))(tensor)]
+				x = res
+			elif component == 'bertanh':
+				x = node_list_to_list(x)
+				res = []
+				for index, tensor in enumerate(x):
+					res += [Activation('tanh', name=ACT_NAME_RULE.format(block_index, 'TANH', index))(tensor)]
+				x = res
 				res = []
 				for index, tensor in enumerate(x):
 					res += [Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'BER', index))(tensor)]
@@ -90,6 +612,12 @@ def model_constructor(opts, model_dict=None):
 				res = []
 				for index, tensor in enumerate(x):
 					res += [Activation('relu', name=ACT_NAME_RULE.format(block_index, 'RELU', index))(tensor)]
+				x = res
+			elif component == 'sigmoid':
+				x = node_list_to_list(x)
+				res = []
+				for index, tensor in enumerate(x):
+					res += [Activation('sigmoid', name=ACT_NAME_RULE.format(block_index, 'RELU', index))(tensor)]
 				x = res
 			elif component == 'crelu':
 				x = node_list_to_list(x)
@@ -102,15 +630,31 @@ def model_constructor(opts, model_dict=None):
 				strides = int(param['s'])
 				pool_size = (pool_size, pool_size)
 				strides = (strides, strides)
+				padding = param['pad'] if 'pad' in param.keys() else 'valid'
 				x = node_list_to_list(x)
-				x = Layer_on_list(AveragePooling2D(pool_size=pool_size, strides=strides, name=POOL_NAME_RULE.format(block_index, 'AVERAGE')), x)
+				x = Layer_on_list(
+					AveragePooling2D(pool_size=pool_size, strides=strides, padding=padding, name=POOL_NAME_RULE.format(block_index, 'AVERAGE')), x)
 			elif component == 'maxpool':
 				pool_size = int(param['r'])
 				strides = int(param['s'])
+				padding = param['pad'] if 'pad' in param.keys() else 'valid'
 				pool_size = (pool_size, pool_size)
 				strides = (strides, strides)
 				x = node_list_to_list(x)
-				x = Layer_on_list(MaxPooling2D(pool_size=pool_size, strides=strides, name=POOL_NAME_RULE.format(block_index, 'MAX')), x)
+				x = Layer_on_list(MaxPooling2D(pool_size=pool_size, strides=strides, padding=padding, name=POOL_NAME_RULE.format(block_index,
+				                                                                                                                 'MAX')),
+				                  x)
+			# elif component == 'minch':
+			# 	# pool_size = int(param['r'])
+			# 	# strides = int(param['s'])
+			# 	# pool_size = (pool_size, pool_size)
+			# 	# strides = (strides, strides)
+			# 	# x = node_list_to_list(x)
+			# 	# x = Layer_on_list(Merge(mode='max',concat_axis=1), x)
+			elif component == 'maxch':
+				x = node_list_to_list(x)
+				x = Layer_on_list(Merge(mode='max', concat_axis=1), x)
+
 			elif component == 'dropout':
 				drop_rate = param['p']
 				x = node_list_to_list(x)
@@ -141,17 +685,173 @@ def model_constructor(opts, model_dict=None):
 			elif component == 'max_entropy_branch_select':
 				x = node_list_to_list(x)
 				x = [MaxEntropy()(x)]
-
-			elif component == 'fin':
+			elif component == 'finvan':
 				x = node_list_to_list(x)
 				if not x.__len__() == 1:
 					raise ValueError('output node is a list of tensor, Probably forgot about merging branch')
 				x = x[0]
 				# return Model(input=img_input, output=x)
-				return {'model':Model(inputs=[img_input], outputs=[x]),'in':img_input,'out':x}
+				return {'model': None, 'in': img_input, 'out': x}
+			elif component == 'fin':
+				x = node_list_to_list(x)
+				# if not x.__len__() == 1:
+				# 	raise ValueError('output node is a list of tensor, Probably forgot about merging branch')
+				x = x[0]
+				# return Model(input=img_input, output=x)
+				return {'model': Model(inputs=[img_input], outputs=x), 'in': img_input, 'out': x}
 
 
 			############################################ TEMP LAYERS##############################
+			elif component == 'xlogx':
+				x = node_list_to_list(x)
+
+				res = []
+				for index, tensor in enumerate(x):
+					res += [XLogX( name=ACT_NAME_RULE.format(block_index, 'RELULogX', index))(tensor)]
+				x = res
+			elif component == 'llu':
+				x = node_list_to_list(x)
+
+				res = []
+				for index, tensor in enumerate(x):
+					res += [LLU(name=ACT_NAME_RULE.format(block_index, 'RELULogX', index))(tensor)]
+				x = res
+			elif component == 'relusplit':
+				x = node_list_to_list(x)
+				nb_child = int(param['child'])
+				res =[]
+				for idx,tensor in enumerate(x):
+					res += [ReluSplit(nb_child, name=ACT_NAME_RULE.format(block_index, 'SplitRELU', idx))(tensor)]
+				x = res
+			elif component == 'relusplitsample':
+				x = node_list_to_list(x)
+				nb_child = int(param['child'])
+				res = []
+				for idx, tensor in enumerate(x):
+					res += [ReluSplit(nb_child, name=ACT_NAME_RULE.format(block_index, 'SplitRELU', idx))(tensor)]
+				x = res
+			elif component == 'ampconv':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				if len(x) == 1:
+					res += [AmpConv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					          kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+				else:
+					for idx, tensor in enumerate(x):
+						res += [AmpConv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+						               kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(
+							tensor)]
+				x = res
+			elif component == 'splitconv':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				if len(x) == 1:
+					res += [AmpConv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					                  kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+				else:
+					for idx, tensor in enumerate(x):
+						res += [AmpConv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+						                  kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx),
+						                  use_bias=use_bias)(tensor)]
+				x = res
+			elif component == 'ampconv1':
+				norm = float(param['norm'])
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				if len(x) == 1:
+					res += [AmpConv2Dv1(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					                  kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias,
+					                    norm=norm
+					                    )(x[0])]
+				else:
+					for idx, tensor in enumerate(x):
+						res += [AmpConv2Dv1(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding,
+						                    kernel_initializer=initializion,
+						                  kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx),
+						                  use_bias=use_bias,norm=norm)(tensor)]
+				x = res
+			elif component == 'adarelu':
+				x = node_list_to_list(x)
+				x = [AdaRelu(name=ACT_NAME_RULE.format(block_index,'ADARELU',0))(x)]
+			elif component == 'amprelu':
+				x = node_list_to_list(x)
+				norm = float(param['norm'])
+				res=[]
+				for idx, tensor in enumerate(x):
+					res += [AmpRelu(norm,name=ACT_NAME_RULE.format(block_index, 'AMPRELU', idx))(tensor)]
+				x=res
+			elif component == 'amprelu':
+				x = node_list_to_list(x)
+				norm = float(param['norm'])
+				res = []
+				for idx, tensor in enumerate(x):
+					res += [AmpRelu(norm, name=ACT_NAME_RULE.format(block_index, 'AMPRELU', idx))(tensor)]
+				x = res
+			elif component == 'ampbmeanrelu':
+				x = node_list_to_list(x)
+				norm = float(param['norm'])
+				res = []
+				for idx, tensor in enumerate(x):
+					res += [AmpBiMeanRelu(norm, name=ACT_NAME_RULE.format(block_index, 'AMPRELU', idx))(tensor)]
+				x = res
+			elif component == 'ampreluc':
+				x = node_list_to_list(x)
+				norm = float(param['norm'])
+				res = []
+				for idx, tensor in enumerate(x):
+					res += [AmpRelu(norm, name=ACT_NAME_RULE.format(block_index, 'AMPRELU', idx))(tensor)]
+				x = res
+			elif component == 'ampreluch':
+				x = node_list_to_list(x)
+				res = []
+				for idx, tensor in enumerate(x):
+					res += [AmpReluch(name=ACT_NAME_RULE.format(block_index, 'AMPRELU', idx))(tensor)]
+				x = res
+			elif component == 'ampber':
+				x = node_list_to_list(x)
+				res =[]
+				for idx,tensor in enumerate(x):
+					res+= [AmpBER(name=ACT_NAME_RULE.format(block_index, 'AMPBER',idx))(tensor)]
+				x=res
+			elif component == 'ampber1':
+				x = node_list_to_list(x)
+				res = []
+				for idx, tensor in enumerate(x):
+					res += [AmpBER1(name=ACT_NAME_RULE.format(block_index, 'AMPBER1', idx))(tensor)]
+				x = res
 			elif component == 'convshfixed':
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -159,15 +859,18 @@ def model_constructor(opts, model_dict=None):
 				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
 				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
 				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
 				activation = param['activation'] if 'activation' in param else None
 				initializion = param['int'] if 'init' in param else 'he_normal'
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
 				x = Layer_on_list(Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),trainable=False), x)
+				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), trainable=False,
+				                         use_bias=use_bias), x)
 			elif component == 'convtansh':
 				block_index += 1
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
 				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
@@ -180,9 +883,11 @@ def model_constructor(opts, model_dict=None):
 				w_reg = l1_l2_tanh(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
-				x = Layer_on_list(Conv2DTanh(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
-				                             kernel_max_init=kernel_max_init,bias_max_init=bias_max_init), x)
+				x = Layer_on_list(
+					Conv2DTanh(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					           kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
+					           kernel_max_init=kernel_max_init,
+					           bias_max_init=bias_max_init, use_bias=use_bias), x)
 			elif component == 'convcolsh':
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -193,6 +898,7 @@ def model_constructor(opts, model_dict=None):
 				padding = param['padding'] if 'padding' in param else 'same'
 				activation = param['activation'] if 'activation' in param else None
 				initializion = param['int'] if 'init' in param else 'he_normal'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				res = []
@@ -200,12 +906,13 @@ def model_constructor(opts, model_dict=None):
 				for conv_idx in np.arange(col):
 					convcol_list += [
 						Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-						       kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format('{}_COL_{}'.format(block_index, conv_idx)))]
+						       kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format('{}_COL_{}'.format(block_index, conv_idx)),
+						       use_bias=use_bias)]
 				if not type(x[0]) is list:
 					col_compatible_x = []
 					for branch in x:
-						col_compatible_x+=[[branch]]
-					x= col_compatible_x
+						col_compatible_x += [[branch]]
+					x = col_compatible_x
 				for branch in x:
 					branch_res = []
 					for tensor in branch:
@@ -215,6 +922,45 @@ def model_constructor(opts, model_dict=None):
 				x = res
 			elif component == 'convyy':
 				block_index += 1
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				nb_filter = int(param['f'])
+				yang_sel_prob = int(param['yp'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				x = Layer_on_list(
+					Conv2DYingYang(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), ying_yang=True,
+					               use_bias=use_bias, yangsel=yang_sel_prob), x)
+			elif component == 'convyyaux':
+				block_index += 1
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				nb_filter = int(param['f'])
+				yang_sel_prob = float(param['yp'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				yang_w_reg = l1_l2(l1=w_reg_l1_val * 2, l2=w_reg_l2_val * 2)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				x = Layer_on_list(
+					Conv2DYingYangAux(filters=nb_filter * expand_rate, kernel_size=kernel_size, yang_aux_phase=yang_aux_phase, padding=padding, \
+					                  kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+					                  name=CONVSH_NAME.format(block_index), ying_yang=True, use_bias=use_bias, yang_sel=yang_sel_prob,
+					                  yang_w_reg=yang_w_reg), x)
+			elif component == 'convyang':
+				block_index += 1
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
 				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
@@ -225,8 +971,10 @@ def model_constructor(opts, model_dict=None):
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
-				x = Layer_on_list(Conv2DYingYang(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),ying_yang=True), x)
+				x = Layer_on_list(
+					Conv2dYang(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					           kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), ying_yang=True,
+					           use_bias=use_bias), x)
 			elif component == 'convyy_rand':
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -241,13 +989,14 @@ def model_constructor(opts, model_dict=None):
 				x = node_list_to_list(x)
 				x = Layer_on_list(
 					Conv2DRandomYang(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), ying_yang=True), x)
+					                 kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), ying_yang=True,
+					                 use_bias=use_bias), x)
 			elif component == 'noise_mul':
 				drop_rate = param['p']
-				axes = [[2,3],[1,2,3]]
+				axes = [[2, 3], [1, 2, 3]]
 				channel = int(param['chw'])
 				x = node_list_to_list(x)
-				x = Layer_on_list(MulNoise(p=drop_rate,shared_axes=axes[channel], name='BLOCK{}_DROPOUT'.format(block_index)), x)
+				x = Layer_on_list(MulNoise(p=drop_rate, shared_axes=axes[channel], name='BLOCK{}_DROPOUT'.format(block_index)), x)
 			elif component == 'relucol':
 				res = []
 
@@ -266,21 +1015,21 @@ def model_constructor(opts, model_dict=None):
 					pos_list = []
 					neg_list = []
 					for col_idx, tensor in enumerate(branch):
-						branch_res = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'BER', '{}_COL_{}'.format(index,col_idx)))(tensor)
-						pos_list+=[branch_res[0]]
-						neg_list+=[branch_res[1]]
-					res+=[pos_list,neg_list]
+						branch_res = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'BER', '{}_COL_{}'.format(index, col_idx)))(tensor)
+						pos_list += [branch_res[0]]
+						neg_list += [branch_res[1]]
+					res += [pos_list, neg_list]
 				x = res
-			elif component=='concat_col':
-				res=[]
+			elif component == 'concat_col':
+				res = []
 
 				for branch in x:
 					if not branch.__len__() == 1:
-						res+= [[concatenate(branch,axis=1)]]
+						res += [[concatenate(branch, axis=1)]]
 					else:
-						res+=[branch]
+						res += [branch]
 						warnings.warn('tensor list has one element, Merge Branch is not needed')
-				x= res
+				x = res
 			elif component == 'ifc':
 				out_len = int(param['out'])
 				x = node_list_to_list(x)
@@ -288,8 +1037,27 @@ def model_constructor(opts, model_dict=None):
 				ifc_out = node_list_to_list(ifc_out)
 				res = []
 				for tensor in ifc_out:
-					res+=[[tensor]]
-				x= res
+					res += [[tensor]]
+				x = res
+			elif component == 'iadd':
+				x = node_list_to_list(x)
+				x=[add(x)]
+			elif component == 'imean':
+				x = node_list_to_list(x)
+				x = [average(x)]
+			elif component == 'mask':
+				x = node_list_to_list(x)
+				# x = Layer_on_list(Activation('hard_sigmoid'),x)
+				x_orig = queue_dict[param['name']]
+				res = []
+				for tensor in x:
+					res += [add([tensor, x_orig[0]])]
+				x = res
+			elif component == 'ifconcat':
+				x = node_list_to_list(x)
+				if len(x) == 1:
+					continue
+				x = [concatenate(x, axis=1)]
 			elif component == 'ifctan':
 				out_len = int(param['out'])
 				x = node_list_to_list(x)
@@ -302,7 +1070,7 @@ def model_constructor(opts, model_dict=None):
 			elif component == 'concat':
 				x = node_list_to_list(x)
 				if not x.__len__() == 1:
-					x = [concatenate(x,axis=1)]
+					x = [concatenate(x, axis=1)]
 				else:
 					warnings.warn('tensor list has one element, Merge Branch is not needed')
 			elif component == 'maxav':
@@ -357,6 +1125,10 @@ def model_constructor(opts, model_dict=None):
 					res += [PermuteChannels(max_perm=max_perm, random_permute=random_permute_flag, p=prob,
 					                        name=ACT_NAME_RULE.format(block_index, 'BERP', idx))(ber_tensor_list)]
 				x = res
+			elif component == 'random_average':
+				# #the output tensors would be 2^(n+C) if we have n input tensors and C as kernel channels
+				x = node_list_to_list(x)
+				x = [RandomAveragePooling2D((32, 32), padding='same', strides=1)(x[0])]
 			elif component == 'biperm':
 				# #the output tensors would be 2^(n+C) if we have n input tensors and C as kernel channels
 				random_permute_flag = int(param['random_permute'])
@@ -435,11 +1207,15 @@ def parse_model_string(model_string):
 def get_model(opts, model_string):
 	model_dict = parse_model_string(model_string)
 	model_output_dict = model_constructor(opts=opts, model_dict=model_dict['dict'])
-	return model_output_dict['model']
-def get_model_out_dict(opts,model_string):
+	return model_output_dict
+
+
+def get_model_out_dict(opts, model_string):
 	model_dict = parse_model_string(model_string)
 	model_output_dict = model_constructor(opts=opts, model_dict=model_dict['dict'])
 	return model_output_dict
+
+
 if __name__ == '__main__':
 	model_string = 'rbe|f:32,r:5,p:.75' \
 	               '->rbe|f:64,r:5' \

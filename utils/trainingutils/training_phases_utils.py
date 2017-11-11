@@ -4,7 +4,7 @@ from keras.callbacks import CSVLogger, LearningRateScheduler, ModelCheckpoint,Re
 from keras.datasets import cifar10
 from keras.datasets import cifar100
 from keras.preprocessing import image
-from keras.preprocessing.image import ImageDataGenerator
+from utils.image import ImageDataGenerator
 from keras.utils import np_utils
 
 from callbacks.callback_metric_plot import PlotMetrics
@@ -50,10 +50,11 @@ def collect_callbacks(opts):
 	result_manager = PlotMetrics(opts)
 	experiments_abs_path = result_manager.history_holder.dir_abs_path
 	callback_list += [result_manager]
+
 	# callback_list += [ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=10, min_lr=0.0001)]
 	callback_list += [TensorboardVisualizer(log_dir=experiments_abs_path + '/logs', histogram_freq=1, write_graph=True, write_images=False)]
 	callback_list += [CSVLogger(filename=experiments_abs_path + '/training.log', separator=',')]
-	callback_list += [EarlyStopping('acc', min_delta=.001, patience=20, mode='max')]
+	# callback_list += [EarlyStopping('acc', min_delta=.001, patience=20, mode='max')]
 	callback_list += [ModelCheckpoint(result_manager.history_holder.dir_abs_path + '/checkpoint', period=2,save_best_only=True,save_weights_only=True)]
 	callback_list += [LearningRateScheduler(lr_sched_fun_db.lr_sched_function_load(opt_utils.get_dataset_name(opts), opt_utils.get_lr_sched_family(opts)))]
 	callback_list += [TerminateOnNaN()]

@@ -310,57 +310,6 @@ def _batch_shuffle(index_array, batch_size):
 	return np.append(index_array, last_batch)
 
 
-def _make_batches(size, batch_size):
-	"""Returns a list of batch indices (tuples of indices).
-
-	# Arguments
-		size: Integer, total size of the data to slice into batches.
-		batch_size: Integer, batch size.
-
-	# Returns
-		A list of tuples of array indices.
-	"""
-	num_batches = int(np.ceil(size / float(batch_size)))
-	return [(i * batch_size, min(size, (i + 1) * batch_size)) for i in range(0, num_batches)]
-
-
-def _slice_arrays(arrays, start=None, stop=None):
-	"""Slice an array or list of arrays.
-
-	This takes an array-like, or a list of
-	array-likes, and outputs:
-		- arrays[start:stop] if `arrays` is an array-like
-		- [x[start:stop] for x in arrays] if `arrays` is a list
-
-	Can also work on list/array of indices: `_slice_arrays(x, indices)`
-
-	# Arguments
-		arrays: Single array or list of arrays.
-		start: can be an integer index (start index)
-			or a list/array of indices
-		stop: integer (stop index); should be None if
-			`start` was a list.
-
-	# Returns
-		A slice of the array(s).
-	"""
-	if isinstance(arrays, list):
-		if hasattr(start, '__len__'):
-			# hdf5 datasets only support list objects as indices
-			if hasattr(start, 'shape'):
-				start = start.tolist()
-			return [x[start] for x in arrays]
-		else:
-			return [x[start:stop] for x in arrays]
-	else:
-		if hasattr(start, '__len__'):
-			if hasattr(start, 'shape'):
-				start = start.tolist()
-			return arrays[start]
-		else:
-			return arrays[start:stop]
-
-
 def _weighted_masked_objective(fn):
 	"""Adds support for masking and sample-weighting to an objective function.
 
@@ -413,6 +362,57 @@ def _weighted_masked_objective(fn):
 		return K.mean(score_array)
 
 	return weighted
+
+
+def _make_batches(size, batch_size):
+	"""Returns a list of batch indices (tuples of indices).
+
+	# Arguments
+		size: Integer, total size of the data to slice into batches.
+		batch_size: Integer, batch size.
+
+	# Returns
+		A list of tuples of array indices.
+	"""
+	num_batches = int(np.ceil(size / float(batch_size)))
+	return [(i * batch_size, min(size, (i + 1) * batch_size)) for i in range(0, num_batches)]
+
+
+def _slice_arrays(arrays, start=None, stop=None):
+	"""Slice an array or list of arrays.
+
+	This takes an array-like, or a list of
+	array-likes, and outputs:
+		- arrays[start:stop] if `arrays` is an array-like
+		- [x[start:stop] for x in arrays] if `arrays` is a list
+
+	Can also work on list/array of indices: `_slice_arrays(x, indices)`
+
+	# Arguments
+		arrays: Single array or list of arrays.
+		start: can be an integer index (start index)
+			or a list/array of indices
+		stop: integer (stop index); should be None if
+			`start` was a list.
+
+	# Returns
+		A slice of the array(s).
+	"""
+	if isinstance(arrays, list):
+		if hasattr(start, '__len__'):
+			# hdf5 datasets only support list objects as indices
+			if hasattr(start, 'shape'):
+				start = start.tolist()
+			return [x[start] for x in arrays]
+		else:
+			return [x[start:stop] for x in arrays]
+	else:
+		if hasattr(start, '__len__'):
+			if hasattr(start, 'shape'):
+				start = start.tolist()
+			return arrays[start]
+		else:
+			return arrays[start:stop]
 
 
 def _masked_objective(fn):
@@ -835,14 +835,17 @@ class Model(Container):
 			sample_weight = sample_weights[i]
 			mask = masks[i]
 			loss_weight = loss_weights_list[i]
-			output_loss = weighted_loss(y_true, y_pred, sample_weight, mask)
+			output_loss_ying = weighted_loss(y_true, y_pred, sample_weight, mask)
+			output_loss_yang = _weighted_masked_objective(kullback_leibler_divergence_uniform)
+			output_loss_yang = output_loss_yang(y_true, y_pred, sample_weight, mask)
+			self.yang_loss = output_loss_yang
 			if len(self.outputs) > 1:
-				self.metrics_tensors.append(output_loss)
+				self.metrics_tensors.append(output_loss_ying)
 				self.metrics_names.append(self.output_names[i] + '_loss')
 			if total_loss is None:
-				total_loss = loss_weight * output_loss
+				total_loss = loss_weight * output_loss_ying
 			else:
-				total_loss += loss_weight * output_loss
+				total_loss += loss_weight * output_loss_ying
 		if total_loss is None:
 			if not self.losses:
 				raise RuntimeError('The model cannot be compiled '
@@ -854,6 +857,8 @@ class Model(Container):
 		# and other layer-specific losses.
 		for loss_tensor in self.losses:
 			total_loss += loss_tensor
+		# for loss_tensor in self.losses:
+		# 	self.yang_loss += loss_tensor
 
 		# List of same size as output_names.
 		# contains tuples (metrics for output, names of metrics).
@@ -934,7 +939,8 @@ class Model(Container):
 			if self.uses_learning_phase and not isinstance(K.learning_phase(), int):
 				inputs += [K.learning_phase()]
 
-			training_updates = self.optimizer.get_updates(self._collected_trainable_weights, self.constraints, self.total_loss)
+			training_updates = self.optimizer.get_updates(self._collected_trainable_weights, self.constraints, {'ying':self.total_loss,
+			                                                                                                    'yang':self.yang_loss})
 			updates = self.updates + training_updates
 			# Gets loss and metrics. Updates weights at each call.
 			self.train_function = K.function(inputs, [self.total_loss] + self.metrics_tensors, updates=updates, name='train_function',
@@ -1861,6 +1867,7 @@ class Model(Container):
 				averages.append(np.average([out[i] for out in all_outs], weights=batch_sizes))
 			return averages
 
+
 	@interfaces.legacy_generator_methods_support
 	def predict_generator(self, generator, steps, max_q_size=10, workers=1, pickle_safe=False, verbose=0):
 		"""Generates predictions for the input samples from a data generator.
@@ -1957,3 +1964,9 @@ class Model(Container):
 			return [out for out in all_outs]
 		else:
 			return [np.concatenate(out) for out in all_outs]
+
+def kullback_leibler_divergence_uniform(y_true, y_pred):
+	y_true = K.clip(y_true, K.epsilon(), 1)
+	y_pred = K.clip(y_pred, K.epsilon(), 1)
+	uniform = K.softmax(K.random_uniform(K.shape(y_pred),.1,1))
+	return K.sum(uniform * K.log(uniform / y_pred), axis=-1)

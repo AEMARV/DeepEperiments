@@ -6,7 +6,8 @@ def lr_sched_function_load(dataset, network):
 
 
 def cifar10_nin(index):
-	lr = [2e-3] + [1e-2] + [2e-2] + 80 * [4e-2] + 10 * [4e-3] + 100 * [4e-4]
+	lr = 80*[1e-1] + 80*[2e-2] + 80*[4e-3] + 80 * [8e-4] + 10 * [4e-3] + 100 * [4e-4]
+	# lr = [2e-3] + [1e-2] + [2e-2] + 80 * [4e-2] + 10 * [4e-3] + 100 * [4e-4]
 	print(('LearningRate:', lr[index]))
 	return lr[index]
 

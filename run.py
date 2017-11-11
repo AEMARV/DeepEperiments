@@ -1,7 +1,7 @@
 import traceback
 
 import keras
-from utils.trainingutils import optimizers
+from keras import optimizers
 from modeldatabase.Binary_models import model_constructor_utils
 from modeldatabase.Binary_models.model_db import get_model_from_db
 from utils.gen_utils import *
@@ -22,7 +22,7 @@ def check_model_list(model_list, datasets):
 
 if __name__ == '__main__':
 	# gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	models = ['nin_yingyang_norand']
+	models = ['nin_baseline2_ifc_bn_snsdyrec']
 	datasets = ['cifar10']
 	#
 	experiment_name = get_experiment_name_prompt()
@@ -32,6 +32,7 @@ if __name__ == '__main__':
 		# set dataset_params
 		for model_str in models:
 			try:
+
 				print(100 * '*', 3 * '\n', model_str, '\n', dataset_str, 3 * '\n', 100 * '*')
 				opts = default_opt_creator()
 				opts['experiment_name'] = experiment_name
@@ -47,7 +48,10 @@ if __name__ == '__main__':
 				                           decay=opts['optimizer_opts']['decay'], nesterov=opts['optimizer_opts']['nestrov'])
 				# optimizer = optimizers.Adadelta()
 				""" MODEL PREPARE """
-				model = get_model_from_db(model_str, opts)
+				model_dict = get_model_from_db(model_str, opts)
+				model = model_dict['model']
+				out_tensor_list  = model_dict['out']
+				output_num  = len(out_tensor_list)
 				model.summary()
 				# model_modification_utils.load_weights_by_block_index_list(model, [1, 2, 3, 4, 5, 6, 7, 8, 9], os.path.join(
 				# 	global_constant_var.get_experimentcase_abs_path(experiment_name, dataset_str, 'nin_tree_berp_1'), 'checkpoint'),

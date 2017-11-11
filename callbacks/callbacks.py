@@ -56,6 +56,49 @@ class GeneralCallback(Callback):
         pass
     def on_epoch_end(self, epoch, logs=None):
         pass
+
+
+class CorruptCallback(Callback):
+    def set_model(self, model):
+        self.model = model
+        self.sess = K.get_session()
+        self.input_tensor = model.inputs
+        self.grads = model.optimizer.get_gradients(self.model.total_loss, self.input_tensor)
+        self.corrupt_image = self.input_tensor+self.grads[0]
+    def on_train_end(self, logs=None):
+        pass
+
+    def on_batch_begin(self, batch, logs=None):
+        pass
+
+    def on_batch_end(self, batch, logs=None):
+        pass
+
+    def on_epoch_end(self, epoch, logs=None):
+        val_data = self
+        tensors = (self.model.inputs + self.model.targets + self.model.sample_weights)
+
+        if self.model.uses_learning_phase:
+            tensors += [K.learning_phase()]
+
+        assert len(val_data) == len(tensors)
+        val_size = np.minimum(val_data[0].shape[0], self.val_size)
+        i = 0
+        while i < val_size:
+            step = min(self.batch_size, val_size - i)
+            batch_val = []
+            batch_val.append(val_data[0][i:i + step])
+            batch_val.append(val_data[1][i:i + step])
+            batch_val.append(val_data[2][i:i + step])
+            if self.model.uses_learning_phase:
+                batch_val.append(val_data[3])
+            feed_dict = dict(list(zip(tensors, batch_val)))
+            result = self.sess.run([self.image_hist_dist_merged], feed_dict=feed_dict)
+            summary_str = result[0]
+            self.writer.add_summary(summary_str, epoch)
+            i += self.batch_size
+
+
 class TensorBoard(Callback):
     """Tensorboard basic visualizations.
 

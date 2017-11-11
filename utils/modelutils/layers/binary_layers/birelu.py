@@ -1,10 +1,55 @@
 import numpy as np
 from keras import initializers
 from keras.layers import Dropout
-from keras.layers import Layer
-
+from keras.layers import Layer,InputSpec
+from keras.utils import conv_utils
 from utils.modelutils.activations.activations import *
 from utils.modelutils.regularizer.entropy_activity_reg import SoftmaxEntropyRegularizer
+from keras.legacy import interfaces
+
+class _Pooling2D(Layer):
+	"""Abstract class for different pooling 2D layers.
+	"""
+
+	def __init__(self, pool_size=(2, 2), strides=None, padding='valid', data_format=None, **kwargs):
+		super(_Pooling2D, self).__init__(**kwargs)
+		data_format = conv_utils.normalize_data_format(data_format)
+		if strides is None:
+			strides = pool_size
+		self.pool_size = conv_utils.normalize_tuple(pool_size, 2, 'pool_size')
+		self.strides = conv_utils.normalize_tuple(strides, 2, 'strides')
+		self.padding = conv_utils.normalize_padding(padding)
+		self.data_format = conv_utils.normalize_data_format(data_format)
+		self.input_spec = InputSpec(ndim=4)
+
+	def compute_output_shape(self, input_shape):
+		if self.data_format == 'channels_first':
+			rows = input_shape[2]
+			cols = input_shape[3]
+		elif self.data_format == 'channels_last':
+			rows = input_shape[1]
+			cols = input_shape[2]
+		rows = conv_utils.conv_output_length(rows, self.pool_size[0], self.padding, self.strides[0])
+		cols = conv_utils.conv_output_length(cols, self.pool_size[1], self.padding, self.strides[1])
+		if self.data_format == 'channels_first':
+			return (input_shape[0], input_shape[1], rows, cols)
+		elif self.data_format == 'channels_last':
+			return (input_shape[0], rows, cols, input_shape[3])
+
+	def _pooling_function(self, inputs, pool_size, strides, padding, data_format):
+		raise NotImplementedError
+
+	def call(self, inputs):
+		output = self._pooling_function(inputs=inputs, pool_size=self.pool_size, strides=self.strides, padding=self.padding,
+		                                data_format=self.data_format)
+		return output
+
+	def get_config(self):
+		config = {
+			'pool_size': self.pool_size, 'padding': self.padding, 'strides': self.strides, 'data_format': self.data_format
+		}
+		base_config = super(_Pooling2D, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
 
 
 class Birelu(Layer):
@@ -23,6 +68,9 @@ class Birelu(Layer):
 		if self.activation.__name__ == 'relu':
 			pas = self.activation(x)
 			inv_pas = self.activation(-x)
+		elif self.activation.__name__ == 'sigmoid':
+			pas = self.activation(x)
+			inv_pas = self.activation(-x)
 		else:
 			assert 'activation is not relu'
 		return [pas, inv_pas]
@@ -30,6 +78,58 @@ class Birelu(Layer):
 	def get_config(self):
 		config = {'activation': self.activation.__name__}
 		base_config = super(Birelu, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
+
+
+class MaskBirelu(Layer):
+	def __init__(self, activation='relu', relu_birelu_sel=1, layer_index=0, leak_rate=0, child_p=.5, add_data=False, **kwargs):
+		self.supports_masking = False
+		self.activation = get(activation)
+		super(MaskBirelu, self).__init__(**kwargs)
+
+	def compute_output_shape(self, input_shape):
+		return [input_shape, input_shape]
+
+	def compute_mask(self, input, input_mask=None):
+		return [None, None]
+
+	def call(self, x, mask=None):
+		pas = self.activation(x)
+		inv_pas = self.activation(-x)
+		return [pas, inv_pas]
+
+	def get_config(self):
+		config = {'activation': self.activation.__name__}
+		base_config = super(MaskBirelu, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
+
+
+class Grelu(Layer):
+	def __init__(self, activation, relu_birelu_sel=1, layer_index=0, leak_rate=0, child_p=.5, add_data=False, **kwargs):
+		self.supports_masking = False
+		self.activation = get(activation)
+		super(Grelu, self).__init__(**kwargs)
+
+	def compute_output_shape(self, input_shape):
+		return [input_shape, input_shape]
+
+	def compute_mask(self, input, input_mask=None):
+		return [None, None]
+
+	def call(self, x, mask=None):
+		if self.activation.__name__ == 'relu':
+			pas = self.activation(x)
+			inv_pas = self.activation(-x)
+		elif self.activation.__name__ == 'sigmoid':
+			pas = self.activation(x)
+			inv_pas = self.activation(-x)
+		else:
+			assert 'activation is not relu'
+		return [pas, inv_pas]
+
+	def get_config(self):
+		config = {'activation': self.activation.__name__}
+		base_config = super(Grelu, self).get_config()
 		return dict(list(base_config.items()) + list(config.items()))
 
 
@@ -100,6 +200,7 @@ class WeightedAverageWithEntropy(Layer):
 		return pred
 
 
+
 class WeightedAverageWithEntropy0Max(Layer):
 	# same as weighted average entropy but weights are based on -entropy instead of max(entropy)-entropy
 	def __init__(self, **kwargs):
@@ -123,6 +224,34 @@ class WeightedAverageWithEntropy0Max(Layer):
 		pred = K.sum(normalized_pred, axis=2)
 
 		return pred
+
+
+class RandomAveragePooling2D(_Pooling2D):
+
+	def compute_output_shape(self, input_shape):
+		if self.data_format == 'channels_first':
+			rows = input_shape[2]
+			cols = input_shape[3]
+		elif self.data_format == 'channels_last':
+			rows = input_shape[1]
+			cols = input_shape[2]
+		rows = conv_utils.conv_output_length(rows, self.pool_size[0], self.padding, self.strides[0])
+		cols = conv_utils.conv_output_length(cols, self.pool_size[1], self.padding, self.strides[1])
+		if self.data_format == 'channels_first':
+			return (input_shape[0], input_shape[1], rows, cols)
+		elif self.data_format == 'channels_last':
+			return (input_shape[0], rows, cols, input_shape[3])
+	@interfaces.legacy_pooling2d_support
+	def __init__(self, pool_size=(2, 2), strides=None, padding='valid', data_format=None, **kwargs):
+		super(RandomAveragePooling2D, self).__init__(pool_size, strides, padding, data_format, **kwargs)
+
+	def _pooling_function(self, inputs, pool_size, strides, padding, data_format):
+		output_candidates = []
+		output = K.pool2d(inputs, (1, 1), strides, padding, data_format, pool_mode='avg')
+		for i in np.arange(np.log2(pool_size[0])):
+			output += K.pool2d(inputs, (2**i,2**i), strides, padding, data_format, pool_mode='avg')
+		# output = K.(output_candidates,axis=1)
+		return output
 
 
 class SoftmaxEntropyActivityRegLayer(Layer):
@@ -266,6 +395,7 @@ class Birelu_old(Layer):
 			dropout_rate = 1 / (1 + K.exp(-a * (time_update + 3)))
 			dropout_rate = (K.cos((a * time_update) + 3) / 10) + .8
 		else:
+
 			dropout_rate = self.relu_birelu_sel
 		if self.activation.__name__ == 'relu':
 			pas = relu(x)
@@ -594,6 +724,121 @@ class InstanceDropout(Dropout):
 		return noise_shape
 
 
+class ConvBankAgg(Layer):
+	def __init__(self,filter_size, init_val=0,conv_list_index_zero_not_shared=[],weights=None, shared_axes=[ 2, 3],
+	             **kwargs):
+		self.output_tensor_len = 1
+		self.supports_masking = True
+		# self.init = initializers.get(init)
+		self.init_val = init_val
+		self.initial_weights = weights
+		if not isinstance(shared_axes, (list, tuple)):
+			self.shared_axes = [shared_axes]
+		else:
+			self.shared_axes = list(shared_axes)
+		self.conv_list=conv_list_index_zero_not_shared
+		self.filter_size = filter_size
+		super(ConvBankAgg, self).__init__(**kwargs)
+
+	def compute_output_shape(self, input_shape):
+		return self.conv_list[0].compute_output_shape(input_shape)
+	def compute_mask(self, input, input_mask=None):
+		res = self.output_tensor_len * [None]
+		return None
+
+	def build(self, input_shape):
+		if self.output_tensor_len == 0:
+			self.output_tensor_len = input_shape.__len__()
+		param_shape = [self.output_tensor_len, len(self.conv_list)-1,self.filter_size,1,1]
+		self.param_broadcast = [False] * len(param_shape)
+		# TODO Alpha is only compatible for square fully connected e.g [4x4]
+		weights = np.ones((param_shape[0], param_shape[1]))
+		if self.shared_axes[0] is not None:
+			for i in self.shared_axes:
+				param_shape[i + 1] = 1
+				self.param_broadcast[i + 1] = True
+		# self.alphas = K.zeros(param_shape)
+		for i in range(param_shape.__len__() - 2):
+			weights = np.expand_dims(weights, -1)
+		weights = weights * np.ones(param_shape)*self.init_val
+		self.alphas = K.variable(weights, name='{}_alphas'.format(self.name))
+		self.trainable_weights = [self.alphas]
+
+		if self.initial_weights is not None:
+			self.set_weights(self.initial_weights)
+			del self.initial_weights
+
+	def call(self, x, mask=None):
+		weights = self.conv_list[0].weights[0]
+		for idx,conv_layer in enumerate(self.conv_list[1:]):
+			weights = weights*K.sigmoid(self.alphas[0, idx, :, :, :]) + (conv_layer.weights[0] * (1 - K.sigmoid(self.alphas[0, idx, :, :, :])))
+		res = K.conv2d(x,weights,padding='same')
+
+		return res
+class TensorSelectSigmoid(Layer):
+	def __init__(self, output_tensors_len=1, init='zero', weights=None, shared_axes=[1, 2, 3], **kwargs):
+		self.output_tensor_len = output_tensors_len
+		self.supports_masking = True
+		self.init = initializers.get(init)
+		self.initial_weights = weights
+		if not isinstance(shared_axes, (list, tuple)):
+			self.shared_axes = [shared_axes]
+		else:
+			self.shared_axes = list(shared_axes)
+		super(TensorSelectSigmoid, self).__init__(**kwargs)
+
+	def get_output_shape_for(self, input_shape):
+		res = []
+		for i in range(self.output_tensor_len):
+			res += [input_shape[0]]
+		return res
+
+	def compute_mask(self, input, input_mask=None):
+		res = self.output_tensor_len * [None]
+		return res
+
+	def build(self, input_shape):
+		if self.output_tensor_len == 0:
+			self.output_tensor_len = input_shape.__len__()
+		param_shape = [self.output_tensor_len, 1] + list(input_shape[0][1:])
+		self.param_broadcast = [False] * len(param_shape)
+		# TODO Alpha is only compatible for square fully connected e.g [4x4]
+		weights = np.eye(param_shape[0], param_shape[1])
+		if self.shared_axes[0] is not None:
+			for i in self.shared_axes:
+				param_shape[i + 1] = 1
+				self.param_broadcast[i + 1] = True
+		# self.alphas = K.zeros(param_shape)
+		for i in range(param_shape.__len__() - 2):
+			weights = np.expand_dims(weights, -1)
+		weights = weights * np.ones(param_shape)
+		self.alphas = K.variable(weights, name='{}_alphas'.format(self.name))
+		self.trainable_weights = [self.alphas]
+
+		if self.initial_weights is not None:
+			self.set_weights(self.initial_weights)
+			del self.initial_weights
+
+	def call(self, x, mask=None):
+		# if K.backend() == 'theano':
+		# 	pos = (K.pattern_broadcast(self.alphas, self.param_broadcast) * pos)
+		# else:
+		# 	pos = self.alphas * pos
+		result = []
+
+		# y = K.expand_dims(x, 2)
+		# y = K.permute_dimensions(y, [1, 2, 0, 3, 4, 5])
+		# y = y*self.alphas
+		# res = K.sum(y,2)
+		# for i in range(self.output_tensor_len):
+		# 	result+=[res[:,i,:,:,:]]
+		for j in range(self.output_tensor_len):
+			sum = (x[0] * K.sigmoid(self.alphas[j, 0, :, :, :]))+(x[1]* (1-K.sigmoid(self.alphas[j, 0, :, :, :])))
+			result += [sum]
+
+		return result
+
+
 class FullyConnectedTensors(Layer):
 	def __init__(self, output_tensors_len=0, init='one', weights=None, shared_axes=[1, 2, 3], **kwargs):
 		self.output_tensor_len = output_tensors_len
@@ -807,6 +1052,25 @@ class Slice(Layer):
 
 	def call(self, x, mask=None):
 		return x[:, :self.nb_filter, :, :]
+
+
+class Split(Layer):
+	def __init__(self, nb_filter_to_slice, **kwargs):
+		self.nb_filter = nb_filter_to_slice
+		super(Split, self).__init__(**kwargs)
+
+	def get_output_shape_for(self, input_shape):
+		output_shape = (input_shape[0], self.nb_filter, input_shape[2], input_shape[3])
+		output_shape_1 = (input_shape[0], input_shape[1]-self.nb_filter, input_shape[2], input_shape[3])
+		return [output_shape,output_shape_1]
+	def compute_output_shape(self, input_shape):
+		output_shape = (input_shape[0], self.nb_filter, input_shape[2], input_shape[3])
+		output_shape_1 = (input_shape[0], input_shape[1] - self.nb_filter, input_shape[2], input_shape[3])
+		return [output_shape, output_shape_1]
+	def compute_mask(self, inputs, mask=None):
+		return [None,None]
+	def call(self, x, mask=None):
+		return [x[:, :self.nb_filter, :, :], x[:, self.nb_filter:, :, :]]
 
 
 class Birelu_nary(Layer):
