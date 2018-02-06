@@ -1,7 +1,8 @@
 import warnings
 
 # from keras.engine import Model
-from keras.layers import Input, Flatten, Dense, Conv2D, Activation, AveragePooling2D, Lambda, MaxPooling2D, BatchNormalization, Merge, SeparableConv2D
+from keras.layers import Input, Flatten, Dense, Conv2D, Activation, AveragePooling2D, Lambda, MaxPooling2D, BatchNormalization, Merge, \
+	SeparableConv2D, MaxoutDense
 from keras.layers.merge import add, average, concatenate, multiply
 from keras.regularizers import l1_l2
 
@@ -12,6 +13,7 @@ from utils.modelutils.regularizer.regularizers import l1_l2_tanh
 from keras.models import Model
 from utils.modelutils.layers.activations import *
 from utils.modelutils.activations import activations as cact
+
 layer_index = 0
 # use of | will make the parser for load weight not considering string past '|'
 CONVSH_NAME = 'BLOCK{}_CONV'
@@ -59,18 +61,35 @@ def model_constructor(opts, model_dict=None):
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
-				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
-				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
 				use_bias = bool(param['bias'] if 'bias' in param else 1)
 				padding = param['padding'] if 'padding' in param else 'same'
 				activation = param['activation'] if 'activation' in param else None
 				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
-				x = Layer_on_list(Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+				x = Layer_on_list(Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+				                         kernel_initializer=initializion,
 				                         kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
 				                         use_bias=use_bias), x)
+			elif component == 'convshfixedfilter':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				x = Layer_on_list(
+					Conv2D(filters=int(nb_filter), kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					       kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias), x)
 			elif component == 'dconv':
 				block_index += 1
 				mult = int(param['mult']) if 'mult' in param else 1
@@ -120,7 +139,8 @@ def model_constructor(opts, model_dict=None):
 					y = Layer_on_list(conv_layer, y)
 					res2 = []
 					for idx, tensor in enumerate(y):
-						res2 += [BatchNormalization(axis=1, epsilon=1e-5, name=(BATCH_NORM_RULE + 'DCONV_ITER{}').format(block_index, idx, i))(tensor)]
+						res2 += [
+							BatchNormalization(axis=1, epsilon=1e-5, name=(BATCH_NORM_RULE + 'DCONV_ITER{}').format(block_index, idx, i))(tensor)]
 					y = res2
 					res += y
 				x = res
@@ -151,9 +171,10 @@ def model_constructor(opts, model_dict=None):
 					y = Layer_on_list(conv_layer, y)
 					res2 = []
 					for idx, tensor in enumerate(y):
-						bn_tensor=BatchNormalization(axis=1, epsilon=1e-5, name=(BATCH_NORM_RULE + 'DCONV_ITER{}').format(block_index, idx, i))(tensor)
+						bn_tensor = BatchNormalization(axis=1, epsilon=1e-5, name=(BATCH_NORM_RULE + 'DCONV_ITER{}').format(block_index, idx, i))(
+							tensor)
 						bn_tensor_ber = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'BER_INNER{}'.format(i), idx))(bn_tensor)
-						res2+=bn_tensor_ber
+						res2 += bn_tensor_ber
 					y = res2
 					res += y
 				x = res
@@ -186,8 +207,7 @@ def model_constructor(opts, model_dict=None):
 				res = []
 				if len(x) == 1:
 					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(
-						x[0])]
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
 				else:
 					for idx, tensor in enumerate(x):
 						res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
@@ -209,26 +229,66 @@ def model_constructor(opts, model_dict=None):
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
 				res = []
-				convshared = Conv2D(filters=int(nb_filter * expand_rate*shratio), kernel_size=kernel_size, padding=padding,
-				                    kernel_initializer=initializion,
-				       kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)
+				convshared = Conv2D(filters=int(nb_filter * expand_rate * shratio), kernel_size=kernel_size, padding=padding,
+				                    kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+				                    name=CONVSH_NAME.format(block_index), use_bias=use_bias)
 				if len(x) == 1:
 					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
 					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
 				else:
 					for idx, tensor in enumerate(x):
-						# res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-						#                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(
-						# 	tensor)]
-						ns_tensor = Conv2D(filters=int(nb_filter * expand_rate*(1-shratio)), kernel_size=kernel_size, padding=padding,
-						                   kernel_initializer=initializion,
-						       kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)
-						s_tensor=convshared(tensor)
-						s_ns = concatenate([s_tensor,ns_tensor],axis=1)
-						res+=[s_ns]
+						ns_tensor = Conv2D(filters=int(nb_filter * expand_rate * (1 - shratio)), kernel_size=kernel_size, padding=padding,
+						                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+						                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)
+						s_tensor = convshared(tensor)
+						s_ns = concatenate([s_tensor, ns_tensor], axis=1)
+						res += [s_ns]
+
 				x = res
-				ifc_out = [FullyConnectedTensors(output_tensors_len=out_len, shared_axes=[2, 3])(x)]
-			elif component == 'convsnsdy':
+			elif component == 'convsnsrec':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				con_type_total = int(np.log2(len(x)) + 1)
+				population_size = len(x)
+				conv_bank = con_type_total * [[]]
+				if len(x) == 1:
+					res += [Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+				else:
+					f_size = 2 ** (-con_type_total + 1)
+					for log2_shared_population in np.arange(con_type_total):
+						num_kernels = population_size // (2 ** log2_shared_population)
+						set_size = (population_size // num_kernels)
+						for kernel_index in np.arange(num_kernels):
+							instance_begin = set_size * kernel_index
+							conv_bank[log2_shared_population] = conv_bank[log2_shared_population] + [
+								Conv2D(filters=int(nb_filter * expand_rate * (f_size)), kernel_size=kernel_size, padding=padding,
+								       kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+								       name=CONVSH_NAME.format(block_index) + 'CONV_REC_MEBMBERSIZE_{}_INSTANCE_{}_TO_{}'.format(
+									       2 ** log2_shared_population, instance_begin, instance_begin + set_size), use_bias=use_bias)]
+						if not log2_shared_population == 0:
+							f_size = f_size * 2
+						res = []
+					for idx, tensor in enumerate(x):
+						tensor_to_merge = []
+						for log2_shared_population in np.arange(con_type_total):
+							kernel_group_index = idx // (2 ** log2_shared_population)
+							tensor_to_merge += [conv_bank[log2_shared_population][kernel_group_index](tensor)]
+						res += [concatenate(tensor_to_merge, axis=1)]
+
+				x = res
+			elif component == 'convsnsrecshratio':
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
@@ -243,26 +303,132 @@ def model_constructor(opts, model_dict=None):
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
 				res = []
-				convshared = Conv2D(filters=int(nb_filter * expand_rate ), kernel_size=kernel_size, padding=padding,
-				                    kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
-				                    name=CONVSH_NAME.format(block_index), use_bias=use_bias)
+				con_type_total = int(np.log2(len(x)) + 1)
+				population_size = len(x)
+				conv_bank = con_type_total * [[]]
 				if len(x) == 1:
 					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
 					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
 				else:
+					for log2_shared_population in np.arange(con_type_total):
+						num_kernels = population_size // (2 ** log2_shared_population)
+						if log2_shared_population == 0:
+							f_size = ((1 - shratio) ** (con_type_total - log2_shared_population - 1)) / num_kernels
+						else:
+							f_size = ((1 - shratio) ** (con_type_total - log2_shared_population - 1)) * shratio / num_kernels
+						set_size = (population_size // num_kernels)
+						for kernel_index in np.arange(num_kernels):
+							instance_begin = set_size * kernel_index
+							conv_bank[log2_shared_population] = conv_bank[log2_shared_population] + [
+								Conv2D(filters=int((nb_filter * expand_rate * (f_size)) + 1), kernel_size=kernel_size, padding=padding,
+								       kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+								       name=CONVSH_NAME.format(block_index) + 'CONV_REC_MEBMBERSIZE_{}_INSTANCE_{}_TO_{}'.format(
+									       2 ** log2_shared_population, instance_begin, instance_begin + set_size), use_bias=use_bias)]
+						if not log2_shared_population == 0:
+							f_size = f_size * 2
+						res = []
 					for idx, tensor in enumerate(x):
-						# res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-						#                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx),
-						# use_bias=use_bias)(
-						# 	tensor)]
-						ns_tensor = Conv2D(filters=int(nb_filter * expand_rate) , kernel_size=kernel_size, padding=padding,
-						                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
-						                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)
-						s_tensor = convshared(tensor)
-						s_ns = [TensorSelectSigmoid( shared_axes=[2, 3])([ns_tensor,s_tensor])]
-						res += [s_ns]
+						tensor_to_merge = []
+						for log2_shared_population in np.arange(con_type_total):
+							kernel_group_index = idx // (2 ** log2_shared_population)
+							tensor_to_merge += [conv_bank[log2_shared_population][kernel_group_index](tensor)]
+						res += [concatenate(tensor_to_merge, axis=1)]
+
 				x = res
-			elif component == 'convsnsdyrec':
+			elif component == 'convsnsrecshratiorev':
+				# allocation ratio is reversed. meaning 1-p category gets the first portion and will distrubute the filters to number of kernels
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				shratio = param['shratio']
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				con_type_total = int(np.log2(len(x)) + 1)
+				population_size = len(x)
+				conv_bank = con_type_total * [[]]
+				if len(x) == 1:
+					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+				else:
+					for log2_shared_population in np.arange(con_type_total):
+						num_kernels = population_size // (2 ** log2_shared_population)
+						if log2_shared_population == con_type_total - 1:
+							f_size = ((1 - shratio) ** (log2_shared_population)) / num_kernels
+						else:
+							f_size = ((1 - shratio) ** (log2_shared_population)) * shratio / num_kernels
+						set_size = (population_size // num_kernels)
+						for kernel_index in np.arange(num_kernels):
+							instance_begin = set_size * kernel_index
+							conv_bank[log2_shared_population] = conv_bank[log2_shared_population] + [
+								Conv2D(filters=int(nb_filter * expand_rate * (f_size)), kernel_size=kernel_size, padding=padding,
+								       kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+								       name=CONVSH_NAME.format(block_index) + 'CONV_REC_MEBMBERSIZE_{}_INSTANCE_{}_TO_{}'.format(
+									       2 ** log2_shared_population, instance_begin, instance_begin + set_size), use_bias=use_bias)]
+						if not log2_shared_population == 0:
+							f_size = f_size * 2
+						res = []
+					for idx, tensor in enumerate(x):
+						tensor_to_merge = []
+						for log2_shared_population in np.arange(con_type_total):
+							kernel_group_index = idx // (2 ** log2_shared_population)
+							tensor_to_merge += [conv_bank[log2_shared_population][kernel_group_index](tensor)]
+						res += [concatenate(tensor_to_merge, axis=1)]
+
+				x = res
+			elif component == 'convsnsrecratiofixed':
+				# if we have 8 branches each category of kernels(in this case 4) reserve 1/(total categories) so each kernel is 1/4*number of
+				# kernels in the category
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				con_type_total = int(np.log2(len(x)) + 1)
+				population_size = len(x)
+				conv_bank = con_type_total * [[]]
+				if len(x) == 1:
+					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+				else:
+					for log2_shared_population in np.arange(con_type_total):
+						num_kernels = population_size // (2 ** log2_shared_population)
+						f_size = 1 / (num_kernels * con_type_total)
+						set_size = (population_size // num_kernels)
+						for kernel_index in np.arange(num_kernels):
+							instance_begin = set_size * kernel_index
+							conv_bank[log2_shared_population] = conv_bank[log2_shared_population] + [
+								Conv2D(filters=int(nb_filter * expand_rate * (f_size)), kernel_size=kernel_size, padding=padding,
+								       kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+								       name=CONVSH_NAME.format(block_index) + 'CONV_REC_MEBMBERSIZE_{}_INSTANCE_{}_TO_{}'.format(
+									       2 ** log2_shared_population, instance_begin, instance_begin + set_size), use_bias=use_bias)]
+						if not log2_shared_population == 0:
+							f_size = f_size * 2
+						res = []
+					for idx, tensor in enumerate(x):
+						tensor_to_merge = []
+						for log2_shared_population in np.arange(con_type_total):
+							kernel_group_index = idx // (2 ** log2_shared_population)
+							tensor_to_merge += [conv_bank[log2_shared_population][kernel_group_index](tensor)]
+						res += [concatenate(tensor_to_merge, axis=1)]
+
+				x = res
+			elif component == 'convsnsdy':
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
@@ -282,32 +448,63 @@ def model_constructor(opts, model_dict=None):
 				if len(x) == 1:
 					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
 					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+				else:
+					for idx, tensor in enumerate(x):
+						# res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+						#                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx),
+						# use_bias=use_bias)(
+						# 	tensor)]
+						ns_tensor = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+						                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+						                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)
+						s_tensor = convshared(tensor)
+						s_ns = [TensorSelectSigmoid(shared_axes=[2, 3])([ns_tensor, s_tensor])]
+						res += [s_ns]
+				x = res
+			elif component == 'convsnsdyrec':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				if len(x) == 1:
+					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
 
 				else:
 					res = [ConvBank(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-					                kernel_regularizer=w_reg, activation=activation, name='Bank{}'.format(block_index), use_bias=use_bias)(x)]
-				# for idx,tensor in enumerate(x):
-				# 	ns_conv = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
-				# 	                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
-				# 	                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)
-				# 	ns_tensor = ns_conv(tensor)
-				# s_tensor = convshared(tensor)
+					                kernel_regularizer=w_reg, activation=activation, name='ConvBank{}'.format(block_index), use_bias=use_bias)(x)]
+				x = res
+			elif component == 'convsnsdyrecv2':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				padding = param['padding'] if 'padding' in param else 'same'
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				res = []
+				if len(x) == 1:
+					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
 
-				# if idx in group1:
-				# 	group_tensor = group1_conv(tensor)
-				# else:
-				# 	group_tensor = group2_conv(tensor)
-				# ns_g = TensorSelectSigmoid(shared_axes=[2, 3],
-				# name = 'ns_g_Select_histshow_ns_g{}{}'.format(block_index, idx))([ns_tensor, group_tensor])
-				# s_ns_g = TensorSelectSigmoid(shared_axes=[2, 3], name='s_nsg_Select_histshow_s_nsg{}{}'.format(block_index, idx))([ns_g,
-				#                                                                                                                s_tensor])
-				# if idx in group1:
-				# 	group_conv = group1_conv
-				# else:
-				# 	group_conv = group2_conv
-				# s_ns_g = ConvBankAgg(filter_size=nb_filter*expand_rate,conv_list_index_zero_not_shared=[ns_conv, group_conv,
-				#                                                                                         convshared])(tensor)
-				# res += [s_ns_g]
+				else:
+					res = [ConvBankv2(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+					                  kernel_initializer=initializion,
+					                  kernel_regularizer=w_reg, activation=activation, name='ConvBank{}'.format(block_index), use_bias=use_bias)(x)]
 				x = res
 			elif component == 'convsnsdyrec_non_optimized':
 				block_index += 1
@@ -330,7 +527,7 @@ def model_constructor(opts, model_dict=None):
 					res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
 					               kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
 
-				elif len(x)==2:
+				elif len(x) == 2:
 					for idx, tensor in enumerate(x):
 						# res += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
 						#                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx),
@@ -340,21 +537,21 @@ def model_constructor(opts, model_dict=None):
 						                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
 						                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)
 						s_tensor = convshared(tensor)
-						s_ns = [TensorSelectSigmoid(shared_axes=[2, 3],name='s_ns_Select_histshow{}{}'.format(block_index,idx))([ns_tensor,
-						                                                                                                         s_tensor])]
+						s_ns = [
+							TensorSelectSigmoid(shared_axes=[2, 3], name='s_ns_Select_histshow{}{}'.format(block_index, idx))([ns_tensor, s_tensor])]
 						res += [s_ns]
-				elif len(x)==4:
-					group1=[0,1]
+				elif len(x) == 4:
+					group1 = [0, 1]
 					group1_conv = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
 					                     kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
-					                     name=CONVSH_NAME.format(block_index)+'Group1', use_bias=use_bias)
+					                     name=CONVSH_NAME.format(block_index) + 'Group1', use_bias=use_bias)
 					group2_conv = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
 					                     kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
 					                     name=CONVSH_NAME.format(block_index) + 'Group2', use_bias=use_bias)
-					for idx,tensor in enumerate(x):
+					for idx, tensor in enumerate(x):
 						ns_conv = Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
-						                   kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
-						                   name=CONV_NAME.format(block_index, idx), use_bias=use_bias)
+						                 kernel_initializer=initializion, kernel_regularizer=w_reg, activation=activation,
+						                 name=CONV_NAME.format(block_index, idx), use_bias=use_bias)
 						ns_tensor = ns_conv(tensor)
 						s_tensor = convshared(tensor)
 
@@ -362,10 +559,10 @@ def model_constructor(opts, model_dict=None):
 							group_tensor = group1_conv(tensor)
 						else:
 							group_tensor = group2_conv(tensor)
-						ns_g = TensorSelectSigmoid(shared_axes=[2, 3],
-						name = 'ns_g_Select_histshow_ns_g{}{}'.format(block_index, idx))([ns_tensor, group_tensor])
-						s_ns_g = TensorSelectSigmoid(shared_axes=[2, 3], name='s_nsg_Select_histshow_s_nsg{}{}'.format(block_index, idx))([ns_g,
-						                                                                                                               s_tensor])
+						ns_g = TensorSelectSigmoid(shared_axes=[2, 3], name='ns_g_Select_histshow_ns_g{}{}'.format(block_index, idx))(
+							[ns_tensor, group_tensor])
+						s_ns_g = TensorSelectSigmoid(shared_axes=[2, 3], name='s_nsg_Select_histshow_s_nsg{}{}'.format(block_index, idx))(
+							[ns_g, s_tensor])
 						# if idx in group1:
 						# 	group_conv = group1_conv
 						# else:
@@ -393,17 +590,18 @@ def model_constructor(opts, model_dict=None):
 				initializion = param['int'] if 'init' in param else 'he_normal'
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
-				temp=[]
-				res_sign=[]
+				temp = []
+				res_sign = []
 				res = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'GER', 0))(x[0])
 				res_sign += [Lambda(K.sign)(res[0])]
 				res_sign += [Lambda(-K.sign)(res[1])]
-				for idx,tensor in enumerate(res):
-					temp+=[Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-					       kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(tensor)]
+				for idx, tensor in enumerate(res):
+					temp += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+					                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(
+						tensor)]
 				res = temp
 				Slice
-				res[0]=multiply([res[0],res_sign[0]])
+				res[0] = multiply([res[0], res_sign[0]])
 				res[1] = multiply([res[1], res_sign[1]])
 				x = [add(res)]
 			elif component == 'ger1c':
@@ -423,7 +621,7 @@ def model_constructor(opts, model_dict=None):
 				res_sign = []
 				res = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'GER', 0))(x[0])
 				res_sign += [Lambda(K.sign)(res[0])]
-				res_sign += [Lambda(lambda x:-K.sign(x))(res[1])]
+				res_sign += [Lambda(lambda x: -K.sign(x))(res[1])]
 				for idx, tensor in enumerate(res):
 					temp += [Conv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
 					                kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(
@@ -452,7 +650,7 @@ def model_constructor(opts, model_dict=None):
 				sign_slice = Slice(1)(x[0])
 
 				control = Birelu('relu', name=ACT_NAME_RULE.format(block_index, 'GER', 0))(sign_slice)
-				control_1= []
+				control_1 = []
 				control_1 += [Lambda(K.sign)(control[0])]
 				control_1 += [Lambda(lambda x: K.sign(x))(control[1])]
 				res += [multiply([x[0], control_1[0]])]
@@ -466,16 +664,15 @@ def model_constructor(opts, model_dict=None):
 				res[1] = multiply([res[1], control_1[1]])
 				x = [add(res)]
 			elif component == 'gertreebinary':
-				def binary_block(x, idx, block_index, iteration,filter_nb=0,mask_activation='relu'):
-					filter_nb_1 = x._shape_as_list()[1] if filter_nb==0 else filter_nb
+				def binary_block(x, idx, block_index, iteration, filter_nb=0, mask_activation='relu'):
+					filter_nb_1 = x._shape_as_list()[1] if filter_nb == 0 else filter_nb
 					x = Conv2D(filters=filter_nb_1, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-					           kernel_regularizer=w_reg,
-					           activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(x)
+					           kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(x)
 					if filter_nb_1 == 1 or iteration == 0:
 						return x
 					res = []
 					temp = []
-					sign_slice, x = Split(int(filter_nb_1//2))(x)
+					sign_slice, x = Split(int(filter_nb_1 // 2))(x)
 					###
 					control_1 = MaskBirelu(mask_activation, name=ACT_NAME_RULE.format(block_index, 'MASK', idx))(sign_slice)
 					###
@@ -484,7 +681,7 @@ def model_constructor(opts, model_dict=None):
 					block_res = []
 					for idx2, tensor in enumerate(res):
 						block_index += 1
-						block_res += [binary_block(tensor, (4 * idx) + (idx2 + 1), block_index, iteration - 1,mask_activation=mask_activation)]
+						block_res += [binary_block(tensor, (4 * idx) + (idx2 + 1), block_index, iteration - 1, mask_activation=mask_activation)]
 					res[0] = multiply([block_res[0], control_1[0]])
 					res[1] = multiply([block_res[1], control_1[1]])
 					res[0] = concatenate([res[0], control_1[0]], axis=1)
@@ -506,13 +703,13 @@ def model_constructor(opts, model_dict=None):
 				initializion = param['int'] if 'init' in param else 'he_normal'
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
-				x = [binary_block(x[0], idx=0, block_index = block_index, iteration=iteration,filter_nb=nb_filter,mask_activation=mask_activation)]
+				x = [binary_block(x[0], idx=0, block_index=block_index, iteration=iteration, filter_nb=nb_filter, mask_activation=mask_activation)]
 			elif component == 'gertree':
-				def block(x,idx,block_index,iteration=1):
+				def block(x, idx, block_index, iteration=1):
 					filter = x._shape_as_list()[1]
-					x= Conv2D(filters=filter, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-					       kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=True)(x)
-					if filter == 1 or iteration ==0:
+					x = Conv2D(filters=filter, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion, kernel_regularizer=w_reg,
+					           activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=True)(x)
+					if filter == 1 or iteration == 0:
 						return x
 					res = []
 					temp = []
@@ -523,15 +720,16 @@ def model_constructor(opts, model_dict=None):
 					res += [multiply([x, control_1[0]])]
 					res += [multiply([x, control_1[1]])]
 					block_res = []
-					for idx2,tensor in enumerate(res):
-						block_index+=1
-						block_res+=[block(tensor,(4*idx)+(idx2+1),block_index,iteration-1)]
+					for idx2, tensor in enumerate(res):
+						block_index += 1
+						block_res += [block(tensor, (4 * idx) + (idx2 + 1), block_index, iteration - 1)]
 					res[0] = multiply([block_res[0], control_1[0]])
 					res[1] = multiply([block_res[1], control_1[1]])
-					res[0]=concatenate([res[0],control_1[0]],axis=1)
-					res[1] = concatenate([res[1],control_1[1]],axis=1)
+					res[0] = concatenate([res[0], control_1[0]], axis=1)
+					res[1] = concatenate([res[1], control_1[1]], axis=1)
 					x = add(res)
 					return x
+
 				x = node_list_to_list(x)
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -544,7 +742,7 @@ def model_constructor(opts, model_dict=None):
 				initializion = param['int'] if 'init' in param else 'he_normal'
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
-				x = [block(x[0],0,block_index,3)]
+				x = [block(x[0], 0, block_index, 3)]
 			elif component == 'becbnr':
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -659,17 +857,37 @@ def model_constructor(opts, model_dict=None):
 				drop_rate = param['p']
 				x = node_list_to_list(x)
 				x = Layer_on_list(Dropout(rate=drop_rate, name='BLOCK{}_DROPOUT'.format(block_index)), x)
+
 			elif component == 'densesh':
 				n = int(param['n'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				x = node_list_to_list(x)
-				x = Layer_on_list(Dense(n, kernel_initializer='he_uniform', name='BLOCK{}_DENSE'.format(block_index)), x)
+				x = Layer_on_list(Dense(int(n*expand_rate), kernel_initializer='he_uniform', name='BLOCK{}_DENSE'.format(block_index),
+				                        kernel_regularizer=w_reg), x)
+				block_index += 1
+			elif component == 'denseshfixedfilter':
+				n = int(param['n'])
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				x = node_list_to_list(x)
+				x = Layer_on_list(
+					Dense(int(n), kernel_initializer='he_uniform', name='BLOCK{}_DENSE'.format(block_index), kernel_regularizer=w_reg),
+					x)
 				block_index += 1
 			elif component == 'flattensh':
 				x = node_list_to_list(x)
 				x = Layer_on_list(Flatten(), x)
 			elif component == 'softmax':
 				x = node_list_to_list(x)
+				activations
 				x = Layer_on_list(Activation('softmax', name='SOFTMAX'), x)
+			elif component == 'psoftmax':
+				x = node_list_to_list(x)
+				activations
+				x = Layer_on_list(PSoftMax(name='Parallel_SOFTMAX'), x)
 			elif component == 'merge_branch_add':
 				x = node_list_to_list(x)
 				if not x.__len__() == 1:
@@ -707,7 +925,7 @@ def model_constructor(opts, model_dict=None):
 
 				res = []
 				for index, tensor in enumerate(x):
-					res += [XLogX( name=ACT_NAME_RULE.format(block_index, 'RELULogX', index))(tensor)]
+					res += [XLogX(name=ACT_NAME_RULE.format(block_index, 'RELULogX', index))(tensor)]
 				x = res
 			elif component == 'llu':
 				x = node_list_to_list(x)
@@ -719,8 +937,8 @@ def model_constructor(opts, model_dict=None):
 			elif component == 'relusplit':
 				x = node_list_to_list(x)
 				nb_child = int(param['child'])
-				res =[]
-				for idx,tensor in enumerate(x):
+				res = []
+				for idx, tensor in enumerate(x):
 					res += [ReluSplit(nb_child, name=ACT_NAME_RULE.format(block_index, 'SplitRELU', idx))(tensor)]
 				x = res
 			elif component == 'relusplitsample':
@@ -746,12 +964,12 @@ def model_constructor(opts, model_dict=None):
 				res = []
 				if len(x) == 1:
 					res += [AmpConv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-					          kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
+					                  kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias)(x[0])]
 				else:
 					for idx, tensor in enumerate(x):
 						res += [AmpConv2D(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-						               kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias)(
-							tensor)]
+						                  kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx),
+						                  use_bias=use_bias)(tensor)]
 				x = res
 			elif component == 'splitconv':
 				block_index += 1
@@ -793,26 +1011,25 @@ def model_constructor(opts, model_dict=None):
 				res = []
 				if len(x) == 1:
 					res += [AmpConv2Dv1(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
-					                  kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias,
-					                    norm=norm
-					                    )(x[0])]
+					                    kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index), use_bias=use_bias,
+					                    norm=norm)(x[0])]
 				else:
 					for idx, tensor in enumerate(x):
-						res += [AmpConv2Dv1(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding,
-						                    kernel_initializer=initializion,
-						                  kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx),
-						                  use_bias=use_bias,norm=norm)(tensor)]
+						res += [
+							AmpConv2Dv1(filters=nb_filter * expand_rate, kernel_size=kernel_size, padding=padding, kernel_initializer=initializion,
+							            kernel_regularizer=w_reg, activation=activation, name=CONV_NAME.format(block_index, idx), use_bias=use_bias,
+							            norm=norm)(tensor)]
 				x = res
 			elif component == 'adarelu':
 				x = node_list_to_list(x)
-				x = [AdaRelu(name=ACT_NAME_RULE.format(block_index,'ADARELU',0))(x)]
+				x = [AdaRelu(name=ACT_NAME_RULE.format(block_index, 'ADARELU', 0))(x)]
 			elif component == 'amprelu':
 				x = node_list_to_list(x)
 				norm = float(param['norm'])
-				res=[]
+				res = []
 				for idx, tensor in enumerate(x):
-					res += [AmpRelu(norm,name=ACT_NAME_RULE.format(block_index, 'AMPRELU', idx))(tensor)]
-				x=res
+					res += [AmpRelu(norm, name=ACT_NAME_RULE.format(block_index, 'AMPRELU', idx))(tensor)]
+				x = res
 			elif component == 'amprelu':
 				x = node_list_to_list(x)
 				norm = float(param['norm'])
@@ -842,10 +1059,10 @@ def model_constructor(opts, model_dict=None):
 				x = res
 			elif component == 'ampber':
 				x = node_list_to_list(x)
-				res =[]
-				for idx,tensor in enumerate(x):
-					res+= [AmpBER(name=ACT_NAME_RULE.format(block_index, 'AMPBER',idx))(tensor)]
-				x=res
+				res = []
+				for idx, tensor in enumerate(x):
+					res += [AmpBER(name=ACT_NAME_RULE.format(block_index, 'AMPBER', idx))(tensor)]
+				x = res
 			elif component == 'ampber1':
 				x = node_list_to_list(x)
 				res = []
@@ -1033,7 +1250,16 @@ def model_constructor(opts, model_dict=None):
 			elif component == 'ifc':
 				out_len = int(param['out'])
 				x = node_list_to_list(x)
-				ifc_out = [FullyConnectedTensors(output_tensors_len=out_len, shared_axes=[2, 3])(x)]
+				ifc_out = [FullyConnectedTensors(output_tensors_len=out_len, shared_axes=[2, 3], name='IFC_histshow{}'.format(block_index))(x)]
+				ifc_out = node_list_to_list(ifc_out)
+				res = []
+				for tensor in ifc_out:
+					res += [[tensor]]
+				x = res
+			elif component == 'ifcv2':
+				out_len = int(param['out'])
+				x = node_list_to_list(x)
+				ifc_out = [FullyConnectedTensorsv2(output_tensors_len=out_len, shared_axes=[2, 3], name='IFC_histshow{}'.format(block_index))(x)]
 				ifc_out = node_list_to_list(ifc_out)
 				res = []
 				for tensor in ifc_out:
@@ -1041,7 +1267,7 @@ def model_constructor(opts, model_dict=None):
 				x = res
 			elif component == 'iadd':
 				x = node_list_to_list(x)
-				x=[add(x)]
+				x = [add(x)]
 			elif component == 'imean':
 				x = node_list_to_list(x)
 				x = [average(x)]

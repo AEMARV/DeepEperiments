@@ -1,4 +1,5 @@
 from keras.layers import Layer
+from keras.activations import softmax
 import keras.backend as K
 import numpy as np
 class AmpBER(Layer):
@@ -181,6 +182,22 @@ class LLU(Layer):
 
 	def call(self, x, mask=None):
 		return (self.param*x)+K.log(1+K.exp(-self.param*x))
+
+
+class PSoftMax(Layer):
+	"""Soft max along channel Axis"""
+
+	def __init__(self, **kwargs):
+		super(PSoftMax, self).__init__(**kwargs)
+		self.supports_masking = True
+
+	def call(self, inputs):
+		return softmax(inputs,axis=1)
+
+	def get_config(self):
+		config = {'activation': 'softmax'}
+		base_config = super(PSoftMax, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
 class AdaRelu(Layer):
 	def __init__(self, **kwargs):
 		super(AdaRelu, self).__init__(**kwargs)

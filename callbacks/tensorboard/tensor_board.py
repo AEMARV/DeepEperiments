@@ -24,8 +24,8 @@ class TensorboardVisualizer(Callback):
 		self.write_graph = write_graph
 		self.write_images = True
 		self.collections = ['high_comp', 'low_comp']
-		self.batch_size =32
-		self.val_size  = 512
+		self.batch_size =8
+		self.val_size  = 64
 	def set_model(self, model):
 		self.model = model
 		self.sess = K.get_session()
@@ -35,30 +35,30 @@ class TensorboardVisualizer(Callback):
 		filter_num_to_show_max = 256
 		if self.histogram_freq and self.merged is None:
 			for layer in self.model.layers:
-				if not layer.name.find('histshow') == -1:
-					for weight in layer.weights:
-						grads = model.optimizer.get_gradients(model.total_loss, weight)
-						hist_summary_list+=[tf.summary.histogram('Gradient_{}_{}'.format(layer.name,weight.name), grads)]
-						hist_summary_list+=[tf.summary.histogram(name='{}_Weight_Dist_{}'.format(layer.name, weight.name), values=weight)]
-				if not layer.name.find('image_batch') == -1:
-					o = layer.output
-					o = tf.transpose(o, [0, 2, 3, 1])
-					# hist_summary_list+=[tf.summary.image('{}_image'.format(layer.name), o, max_outputs=1)]
-					image_show_list +=[tf.summary.image('{}_image'.format(layer.name), o, max_outputs=1)]
-				elif not layer.name.find('CONV') == -1:
-					tensor_list = tensor_board_utills.get_outbound_tensors_as_list(layer)
-					weights_raw = layer.weights[0]
+				for weight in layer.weights:
+					# grads = model.optimizer.get_gradients(model.total_loss, weight)
+					# hist_summary_list+=[tf.summary.histogram('Gradient_{}_{}'.format(layer.name,weight.name), grads)]
+					# hist_summary_list+=[tf.summary.histogram(name='{}_Weight_Dist_{}'.format(layer.name, weight.name), values=weight)]
+					scalar_summary_list += [tf.summary.scalar(name='l2Norm_{}_{}'.format(layer.name, weight.name), tensor=K.mean(weight**2))]
+				# if not layer.name.find('image_batch') == -1:
+				# 	o = layer.output
+				# 	o = tf.transpose(o, [0, 2, 3, 1])
+				# 	# hist_summary_list+=[tf.summary.image('{}_image'.format(layer.name), o, max_outputs=1)]
+				# 	image_show_list +=[tf.summary.image('{}_image'.format(layer.name), o, max_outputs=1)]
+				# elif not layer.name.find('CONV') == -1:
+					# tensor_list = tensor_board_utills.get_outbound_tensors_as_list(layer)
+					# weights_raw = layer.weights[0]
 					# cosine_similarity = tensor_board_utills.weight_cosine_similarity(weights_raw)
 					# cosine_similarity_hist = cosine_similarity[0]
 					# cosine_similarity_max_hist = cosine_similarity[1]
 					# hist_summary_list+=[tf.summary.histogram(name='{}_Dispersion'.format(layer.name), values=cosine_similarity_hist)]
 					# hist_summary_list+=[tf.summary.histogram(name='{}_Dispersion_Max'.format(layer.name), values=cosine_similarity_max_hist)]
-					for idx, tensor in enumerate(tensor_list):
-						img = tensorboard_layer_viz.multichannel_tensor_image_visualizer(tensor, filter_num_to_show_max)
-						image_show_list += [tf.summary.image(name='{}_{}_OUT'.format(layer.name, idx), tensor=img, max_outputs=1)]
-				elif not layer.name.find('ACT') == -1:
-					image_show_list+=tensorboard_layer_viz.activation_map_image_visualizer(layer, filter_num_to_show_max)
-				elif not layer.name.find('SOFTMAX_Weighted'):
+					# for idx, tensor in enumerate(tensor_list):
+					# 	img = tensorboard_layer_viz.multichannel_tensor_image_visualizer(tensor, filter_num_to_show_max)
+					# 	image_show_list += [tf.summary.image(name='{}_{}_OUT'.format(layer.name, idx), tensor=img, max_outputs=1)]
+				# if not layer.name.find('ACT') == -1:
+				# 	image_show_list+=tensorboard_layer_viz.activation_map_image_visualizer(layer, filter_num_to_show_max)
+				# elif not layer.name.find('SOFTMAX_Weighted'):
 					# for idx, input_tensor in enumerate(layer.input):
 					# 	soft_max_input = K.softmax(input_tensor)
 					# 	entropy = -K.sum(K.log(soft_max_input + K.epsilon()) * soft_max_input, axis=1)
@@ -69,29 +69,29 @@ class TensorboardVisualizer(Callback):
 					# entropy = -K.sum(K.log(pdf + K.epsilon()) * pdf, axis=1)
 					# average_entropy = K.mean(entropy, axis=0)
 					# scalar_summary_list += [tf.summary.scalar(name='{}_AVG_ENTROPY'.format(layer.name), tensor=average_entropy)]
-					hist_summary_list += [tf.summary.histogram(name='{}_ENTROPYHIST'.format(layer.name), values=entropy)]
-				elif not layer.name.find('SOFTMAX') == -1:
-					tensor_list = tensor_board_utills.get_outbound_tensors_as_list(layer)
-					img_tensor = []
-					for idx, tensor in enumerate(tensor_list):
-						img_tensor +=[tensor]
-						pdf = tensor
-						entropy = -K.sum(K.log(pdf + K.epsilon()) * pdf, axis=1)
-						average_entropy = K.mean(entropy, axis=0)
-						scalar_summary_list+=[tf.summary.scalar(name='{}_{}_AVG_ENTROPY'.format(layer.name, idx), tensor=average_entropy)]
-						hist_summary_list += [tf.summary.histogram(name='{}_{}_ENTROPYHIST'.format(layer.name, idx), values=entropy)]
-					img_tensor = K.stack(img_tensor,axis=2)
-					img_tensor = K.expand_dims(img_tensor)
-					image_show_list+=[tf.summary.image(name = 'SOFTMAX_BRANCH_PREDICTIONS',tensor=img_tensor,max_outputs=9)]
-				elif layer.outbound_nodes.__len__() == 0:  # TODO not sure the last layer name is out
-					pdf = layer.output
-					entropy = -K.sum(K.log(pdf + K.epsilon()) * pdf, axis=1)
-					average_entropy = K.mean(entropy, axis=0)
-					scalar_summary_list += [tf.summary.scalar(name='{}_AVG_ENTROPY'.format(layer.name), tensor=average_entropy)]
-					hist_summary_list += [tf.summary.histogram(name='{}_ENTROPYHIST'.format(layer.name), values=entropy)]
-			self.image_hist_dist_merged = tf.summary.merge(hist_summary_list)
+					# hist_summary_list += [tf.summary.histogram(name='{}_ENTROPYHIST'.format(layer.name), values=entropy)]
+				# elif not layer.name.find('SOFTMAX') == -1:
+				# 	tensor_list = tensor_board_utills.get_outbound_tensors_as_list(layer)
+				# 	img_tensor = []
+				# 	for idx, tensor in enumerate(tensor_list):
+				# 		img_tensor +=[tensor]
+				# 		pdf = tensor
+				# 		entropy = -K.sum(K.log(pdf + K.epsilon()) * pdf, axis=1)
+				# 		average_entropy = K.mean(entropy, axis=0)
+				# 		scalar_summary_list+=[tf.summary.scalar(name='{}_{}_AVG_ENTROPY'.format(layer.name, idx), tensor=average_entropy)]
+				# 		hist_summary_list += [tf.summary.histogram(name='{}_{}_ENTROPYHIST'.format(layer.name, idx), values=entropy)]
+				# 	img_tensor = K.stack(img_tensor,axis=2)
+				# 	img_tensor = K.expand_dims(img_tensor)
+				# 	image_show_list+=[tf.summary.image(name = 'SOFTMAX_BRANCH_PREDICTIONS',tensor=img_tensor,max_outputs=9)]
+				# elif layer.outbound_nodes.__len__() == 0:  # TODO not sure the last layer name is out
+				# 	pdf = layer.output
+				# 	entropy = -K.sum(K.log(pdf + K.epsilon()) * pdf, axis=1)
+				# 	average_entropy = K.mean(entropy, axis=0)
+				# 	scalar_summary_list += [tf.summary.scalar(name='{}_AVG_ENTROPY'.format(layer.name), tensor=average_entropy)]
+				# 	hist_summary_list += [tf.summary.histogram(name='{}_ENTROPYHIST'.format(layer.name), values=entropy)]
+			# self.image_hist_dist_merged = tf.summary.merge(hist_summary_list)
 			self.scalar_summary_merged = tf.summary.merge(scalar_summary_list)
-			self.image_show_merged = tf.summary.merge(image_show_list)
+			# self.image_show_merged = tf.summary.merge(image_show_list)
 			if hasattr(tf, 'merge_all_summaries'):
 				self.merged = tf.merge_all_summaries()
 			else:
@@ -105,47 +105,47 @@ class TensorboardVisualizer(Callback):
 	def on_epoch_end(self, epoch, logs=None):
 		logs = logs or {}
 
-		if self.validation_data and self.histogram_freq:
-			if epoch % self.histogram_freq == 0:
+		# if self.validation_data and self.histogram_freq:
+		# 	if epoch % self.histogram_freq == 0:
+		#
+		val_data = self.validation_data
+		tensors = (self.model.inputs + self.model.targets + self.model.sample_weights)
 
-				val_data = self.validation_data
-				tensors = (self.model.inputs + self.model.targets + self.model.sample_weights)
+		if self.model.uses_learning_phase:
+			tensors += [K.learning_phase()]
 
-				if self.model.uses_learning_phase:
-					tensors += [K.learning_phase()]
-
-				assert len(val_data) == len(tensors)
-				val_size = np.minimum(val_data[0].shape[0],self.val_size)
-				i = 0
-				while i < val_size:
-					step = min(self.batch_size, val_size - i)
-					batch_val = []
-					batch_val.append(val_data[0][i:i + step])
-					batch_val.append(val_data[1][i:i + step])
-					batch_val.append(val_data[2][i:i + step])
-					if self.model.uses_learning_phase:
-						batch_val.append(val_data[3])
-					feed_dict = dict(list(zip(tensors, batch_val)))
-					result = self.sess.run([self.image_hist_dist_merged], feed_dict=feed_dict)
-					summary_str = result[0]
-					self.writer.add_summary(summary_str, epoch)
-					i += self.batch_size
+		# 		assert len(val_data) == len(tensors)
+		# 		val_size = np.minimum(val_data[0].shape[0],self.val_size)
+		# 		i = 0
+		# 		while i < val_size:
+		# 			step = min(self.batch_size, val_size - i)
+		# 			batch_val = []
+		# 			batch_val.append(val_data[0][i:i + step])
+		# 			batch_val.append(val_data[1][i:i + step])
+		# 			batch_val.append(val_data[2][i:i + step])
+		# 			if self.model.uses_learning_phase:
+		# 				batch_val.append(val_data[3])
+		# 			feed_dict = dict(list(zip(tensors, batch_val)))
+		# 			result = self.sess.run([self.image_hist_dist_merged], feed_dict=feed_dict)
+		# 			summary_str = result[0]
+		# 			self.writer.add_summary(summary_str, epoch)
+		# 			i += self.batch_size
 				## Image Show
-				batch_val = []
-				batch_val.append(val_data[0][0:10])
-				batch_val.append(val_data[1][0:10])
-				batch_val.append(val_data[2][0:10])
-				if self.model.uses_learning_phase:
-					batch_val.append(val_data[3])
-				feed_dict = dict(list(zip(tensors, batch_val)))
-				result = self.sess.run([self.image_show_merged], feed_dict=feed_dict)
-				summary_str = result[0]
-				self.writer.add_summary(summary_str, epoch)
+				# batch_val = []
+				# batch_val.append(val_data[0][0:3])
+				# batch_val.append(val_data[1][0:3])
+				# batch_val.append(val_data[2][0:3])
+				# if self.model.uses_learning_phase:
+				# 	batch_val.append(val_data[3])
+				# feed_dict = dict(list(zip(tensors, batch_val)))
+				# result = self.sess.run([self.image_show_merged], feed_dict=feed_dict)
+				# summary_str = result[0]
+				# self.writer.add_summary(summary_str, epoch)
 		"""For scalar values"""
 		batch_val=[]
-		batch_val.append(val_data[0][0:500])
-		batch_val.append(val_data[1][0:500])
-		batch_val.append(val_data[2][0:500])
+		batch_val.append(val_data[0][0:100])
+		batch_val.append(val_data[1][0:100])
+		batch_val.append(val_data[2][0:100])
 		if self.model.uses_learning_phase:
 			batch_val.append(val_data[3])
 		result_1 = self.sess.run([self.scalar_summary_merged],feed_dict = dict(list(zip(tensors, batch_val))))

@@ -864,6 +864,129 @@ class FullyConnectedTensors(Layer):
 	def build(self, input_shape):
 		if self.output_tensor_len == 0:
 			self.output_tensor_len = input_shape.__len__()
+		param_shape = [self.output_tensor_len] + list(input_shape[0][1:])
+		self.param_broadcast = [False] * len(param_shape)
+		# TODO Alpha is only compatible for square fully connected e.g [4x4]
+		weights = np.ones((param_shape[0]))
+		if self.shared_axes[0] is not None:
+			for i in self.shared_axes:
+				param_shape[i ] = 1
+				self.param_broadcast[i ] = True
+		for i in range(param_shape.__len__() - 2):
+			weights = np.expand_dims(weights, -1)
+		weights = weights * np.ones(param_shape)
+		self.alphas = len(input_shape)*[None]
+		for i in np.arange(len(input_shape)):
+			if i==0:
+				self.alphas[i] = K.variable(np.ones_like(weights), name='{}_alphas_branch_num{}'.format(self.name,i))
+			else:
+				self.alphas[i] = K.variable(np.zeros_like(weights), name='{}_alphas_branch_num{}'.format(self.name, i))
+		self.trainable_weights = self.alphas
+
+		if self.initial_weights is not None:
+			self.set_weights(self.initial_weights)
+			del self.initial_weights
+
+	def call(self, x, mask=None):
+		result = []
+
+		for j in range(self.output_tensor_len):
+			sum = K.zeros_like(x[0])
+			for i in range(x.__len__()):
+				sum += x[i] * self.alphas[i][j, :, :, :]
+			result += [sum]
+
+		return result
+
+
+class FullyConnectedTensorsv2(Layer):
+	def __init__(self, output_tensors_len=0, init='one', weights=None, shared_axes=[1, 2, 3], **kwargs):
+		self.output_tensor_len = output_tensors_len
+		self.supports_masking = True
+		self.init = initializers.get(init)
+		self.initial_weights = weights
+		if not isinstance(shared_axes, (list, tuple)):
+			self.shared_axes = [shared_axes]
+		else:
+			self.shared_axes = list(shared_axes)
+		super(FullyConnectedTensorsv2, self).__init__(**kwargs)
+
+	def get_output_shape_for(self, input_shape):
+		res = []
+		for i in range(self.output_tensor_len):
+			res += [input_shape[0]]
+		return res
+
+	def compute_mask(self, input, input_mask=None):
+		res = self.output_tensor_len * [None]
+		return res
+
+	def build(self, input_shape):
+		if self.output_tensor_len == 0:
+			self.output_tensor_len = input_shape.__len__()
+		param_shape = [self.output_tensor_len] + list(input_shape[0][1:])
+		self.param_broadcast = [False] * len(param_shape)
+		# TODO Alpha is only compatible for square fully connected e.g [4x4]
+		weights = np.ones((param_shape[0]))
+		if self.shared_axes[0] is not None:
+			for i in self.shared_axes:
+				param_shape[i] = 1
+				self.param_broadcast[i] = True
+		for i in range(param_shape.__len__() - 2):
+			weights = np.expand_dims(weights, -1)
+		weights = weights * np.ones(param_shape)
+		self.alphas = len(input_shape) * [None]
+		for i in np.arange(len(input_shape)):
+			self.alphas[i] = K.variable(np.ones_like(weights), name='{}_alphas_branch_num{}'.format(self.name, i))
+		self.trainable_weights = self.alphas
+
+		if self.initial_weights is not None:
+			self.set_weights(self.initial_weights)
+			del self.initial_weights
+
+	def call(self, x, mask=None):
+		sum_weights = []
+		for j in range(self.output_tensor_len):
+			sum = K.zeros_like(self.alphas[0][0,:,:,:])
+			for i in range(x.__len__()):
+				sum += K.abs(K.mean(self.alphas[i][j, :, :, :],axis=[1,2],keepdims=True))
+
+			sum_weights += [sum]
+		result=[]
+		for j in range(self.output_tensor_len):
+			sum = K.zeros_like(x[0])
+			for i in range(x.__len__()):
+				sum += x[i] * (self.alphas[i][j, :, :, :]/sum_weights[j])
+
+			result += [sum]
+
+		return result
+
+class FullyConnectedTensors_old(Layer):
+	def __init__(self, output_tensors_len=0, init='one', weights=None, shared_axes=[1, 2, 3], **kwargs):
+		self.output_tensor_len = output_tensors_len
+		self.supports_masking = True
+		self.init = initializers.get(init)
+		self.initial_weights = weights
+		if not isinstance(shared_axes, (list, tuple)):
+			self.shared_axes = [shared_axes]
+		else:
+			self.shared_axes = list(shared_axes)
+		super(FullyConnectedTensors, self).__init__(**kwargs)
+
+	def get_output_shape_for(self, input_shape):
+		res = []
+		for i in range(self.output_tensor_len):
+			res += [input_shape[0]]
+		return res
+
+	def compute_mask(self, input, input_mask=None):
+		res = self.output_tensor_len * [None]
+		return res
+
+	def build(self, input_shape):
+		if self.output_tensor_len == 0:
+			self.output_tensor_len = input_shape.__len__()
 		param_shape = [self.output_tensor_len, input_shape.__len__()] + list(input_shape[0][1:])
 		self.param_broadcast = [False] * len(param_shape)
 		# TODO Alpha is only compatible for square fully connected e.g [4x4]
@@ -876,7 +999,7 @@ class FullyConnectedTensors(Layer):
 		for i in range(param_shape.__len__() - 2):
 			weights = np.expand_dims(weights, -1)
 		weights = weights * np.ones(param_shape)
-		self.alphas = K.variable(weights, name='{}_alphas'.format(self.name))
+		self.alphas = K.variable(weights, name='{}_alphas_histshow'.format(self.name))
 		self.trainable_weights = [self.alphas]
 
 		if self.initial_weights is not None:

@@ -43,6 +43,9 @@ def set_expand_rate(opts, expand_rate):
 	return opts
 
 
+def get_expand_rate(opts):
+	return opts['model_opts']['param_dict']['param_expand']['rate']
+
 def set_dataset(opts, dataset):
 	opts['training_opts']['dataset']['method'] = dataset
 	if opts['training_opts']['dataset']['method'] == 'cifar100':
@@ -101,13 +104,13 @@ def set_default_opts_based_on_model_dataset(opts):
 	# Gated Parameters and Activations
 	####### ACTIVITY REGULARIZER
 	opts['model_opts']['param_dict']['param_expand'] = {}
-	opts['model_opts']['param_dict']['param_expand']['rate'] = 1
+	opts['model_opts']['param_dict']['param_expand']['rate'] = .5
 	# End of Layer Parameters-------------------------------------------------------------------------------------
 
 	opts['optimizer_opts']['lr'] = .1
 	opts['optimizer_opts']['momentum'] = .9
 	opts['optimizer_opts']['decay'] = 1e-6
-	opts['optimizer_opts']['nestrov'] = False
+	opts['optimizer_opts']['nestrov'] = True
 	opts['optimizer_opts']['loss']['method'] = 'categorical_crossentropy'
 
 	if opts['training_opts']['dataset']['method'] == 'cifar100':
@@ -121,9 +124,9 @@ def set_default_opts_based_on_model_dataset(opts):
 		opts['training_opts']['dataset']['input_shape'] = (3, 224, 224)
 	opts['training_opts']['samples_per_epoch'] = -1
 	opts['training_opts']['batch_size'] = 128
-	opts['training_opts']['epoch_nb'] = 300
+	opts['training_opts']['epoch_nb'] = 265
 	opts['training_opts']['metrics'] = ['accuracy', 'mean_absolute_percentage_error', 'cosine_proximity', 'top_k_categorical_accuracy']
-	opts['training_opts']['lr_sched_family'] = 'nin'
+	opts['training_opts']['lr_sched_family'] = 'vgg'
 	return opts
 
 

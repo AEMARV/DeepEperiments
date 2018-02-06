@@ -12,6 +12,15 @@ def cifar10_nin(index):
 	return lr[index]
 
 
+def cifar10_vgg(index):
+
+	lr_val = .1*(.5**(index//25))
+	return lr_val
+
+
+def cifar100_vgg(index):
+	lr_val = .1 * (.5 ** (index // 25))
+	return lr_val
 def default_LR_scheduler_funciton(index):
 	lr = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-4]
 	k = (index / 50)

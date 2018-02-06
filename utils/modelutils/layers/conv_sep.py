@@ -132,6 +132,148 @@ class _Conv(Layer):
 		return dict(list(base_config.items()) + list(config.items()))
 
 
+class ConvBankv2(Layer):
+	def __init__(self, filters, kernel_size, strides=1, padding='valid', data_format=None, dilation_rate=1, activation=None, use_bias=True,
+	             kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None,
+	             activity_regularizer=None, kernel_constraint=None, bias_constraint=None, conv_select_activation=None, select_weight_init_value=0,
+	             **kwargs):
+		super(ConvBankv2, self).__init__(**kwargs)
+		rank = 2
+		self.rank = 2
+		self.filters = filters
+		self.kernel_size = conv_utils.normalize_tuple(kernel_size, rank, 'kernel_size')
+		self.strides = conv_utils.normalize_tuple(strides, rank, 'strides')
+		self.padding = conv_utils.normalize_padding(padding)
+		self.data_format = conv_utils.normalize_data_format(data_format)
+		self.dilation_rate = conv_utils.normalize_tuple(dilation_rate, rank, 'dilation_rate')
+		self.activation = activations.get(activation)
+		self.use_bias = use_bias
+		self.kernel_initializer = initializers.get(kernel_initializer)
+		self.bias_initializer = initializers.get(bias_initializer)
+		self.kernel_regularizer = regularizers.get(kernel_regularizer)
+		self.bias_regularizer = regularizers.get(bias_regularizer)
+		self.activity_regularizer = regularizers.get(activity_regularizer)
+		self.kernel_constraint = constraints.get(kernel_constraint)
+		self.bias_constraint = constraints.get(bias_constraint)
+		self.select_activation = None if conv_select_activation == None else activations.get(conv_select_activation)
+		self.select_weight_init = initializers.Constant(select_weight_init_value)
+
+	# self.input_spec = InputSpec(ndim=self.rank + 2)
+
+	def build(self, input_shape):
+		if self.data_format == 'channels_first':
+			channel_axis = 1
+		else:
+			channel_axis = -1
+		if input_shape[0][channel_axis] is None:
+			raise ValueError('The channel dimension of the inputs '
+			                 'should be defined. Found `None`.')
+		input_dim = input_shape[0][channel_axis]
+		kernel_shape = self.kernel_size + (input_dim, self.filters)
+		depth = int(np.log2(len(input_shape)) + 1)
+		self.depth = depth
+		population_size = len(input_shape)
+		self.kernel_list = depth * [[]]
+		for log2_shared_population in np.arange(depth):
+			num_kernels = population_size // (2 ** log2_shared_population)
+			for kernel_index in np.arange(num_kernels):
+				self.kernel_list[log2_shared_population] = self.kernel_list[log2_shared_population] + [
+					self.add_weight(shape=kernel_shape, initializer=self.kernel_initializer,
+					                name='kernelgroup{}_index{}'.format(log2_shared_population, kernel_index), regularizer=self.kernel_regularizer,
+					                constraint=self.kernel_constraint)]
+		if not self.select_activation == None:
+			self.select_weight_list = population_size * [(depth - 1) * [[]]]
+			weight_shape = (1, 1, 1, self.filters)
+			for branch_index in np.arange(population_size):
+				for log2_shared_population in np.arange(depth - 1):
+					self.select_weight_list[branch_index][log2_shared_population] = self.add_weight(shape=weight_shape,
+					                                                                                initializer=self.select_weight_init,
+					                                                                                name='KS_Kernel_selector_of branch{}_for '
+					                                                                                     'merging Kernel{'
+					                                                                                     '} to previous kernels_1 indicates '
+					                                                                                     'new kernel is selected'.format(
+						                                                                                branch_index,
+						                                                                                2 ** log2_shared_population),
+					                                                                                regularizer=None,
+					                                                                                constraint=self.kernel_constraint)
+
+		self.bias = None
+		# Set input spec.
+		# self.input_spec = InputSpec(ndim=self.rank + 2, axes={channel_axis: input_dim})
+		self.built = True
+
+	def call(self, inputs):
+		outputs = len(inputs) * [None]
+		if self.select_activation == None:
+			for idx, tensor in enumerate(inputs):
+				for log2_shared_population in np.arange(self.depth):
+					kernel_group_index = idx // (2 ** log2_shared_population)
+					if log2_shared_population == 0:
+						kernel_agg = self.kernel_list[log2_shared_population][kernel_group_index]
+					else:
+						kernel_agg += self.kernel_list[log2_shared_population][kernel_group_index]
+				outputs[idx] = K.conv2d(tensor, kernel_agg/self.depth, strides=self.strides, padding=self.padding, data_format=self.data_format,
+				                        dilation_rate=self.dilation_rate)
+		else:
+			for idx, tensor in enumerate(inputs):
+				for log2_shared_population in np.arange(self.depth - 1):
+					kernel_group_index = idx // (2 ** log2_shared_population)
+					if log2_shared_population == 0:
+						w = self.select_activation(self.select_weight_list[idx][log2_shared_population])
+						kernel0 = self.kernel_list[log2_shared_population][kernel_group_index]
+						kernel_append = self.kernel_list[log2_shared_population + 1][kernel_group_index]
+						kernel_agg = ((1 - w) * kernel0) + (w * kernel_append)
+					else:
+						w = self.select_activation(self.select_weight_list[idx][log2_shared_population])
+						kernel_append = self.kernel_list[log2_shared_population + 1][kernel_group_index]
+						kernel_agg = ((1 - w) * kernel_agg) + (w * kernel_append)
+				outputs[idx] = K.conv2d(tensor, kernel_agg, strides=self.strides, padding=self.padding, data_format=self.data_format,
+				                        dilation_rate=self.dilation_rate)
+		return outputs
+
+	def compute_output_shape(self, input_shape):
+		if self.data_format == 'channels_last':
+			space = input_shape[1:-1]
+			new_space = []
+			for i in range(len(space)):
+				new_dim = conv_utils.conv_output_length(space[i], self.kernel_size[i], padding=self.padding, stride=self.strides[i],
+				                                        dilation=self.dilation_rate[i])
+				new_space.append(new_dim)
+			return (input_shape[0],) + tuple(new_space) + (self.filters,)
+		if self.data_format == 'channels_first':
+			space = input_shape[0][2:]
+			new_space = []
+			for i in range(len(space)):
+				new_dim = conv_utils.conv_output_length(space[i], self.kernel_size[i], padding=self.padding, stride=self.strides[i],
+				                                        dilation=self.dilation_rate[i])
+				new_space.append(new_dim)
+			return len(input_shape) * [(input_shape[0][0], self.filters) + tuple(new_space)]
+
+	def compute_mask(self, inputs, mask=None):
+		return len(inputs) * [None]
+
+	def get_config(self):
+		config = {
+			'rank'                : self.rank,
+			'filters'             : self.filters,
+			'kernel_size'         : self.kernel_size,
+			'strides'             : self.strides,
+			'padding'             : self.padding,
+			'data_format'         : self.data_format,
+			'dilation_rate'       : self.dilation_rate,
+			'activation'          : activations.serialize(self.activation),
+			'use_bias'            : self.use_bias,
+			'kernel_initializer'  : initializers.serialize(self.kernel_initializer),
+			'bias_initializer'    : initializers.serialize(self.bias_initializer),
+			'kernel_regularizer'  : regularizers.serialize(self.kernel_regularizer),
+			'bias_regularizer'    : regularizers.serialize(self.bias_regularizer),
+			'activity_regularizer': regularizers.serialize(self.activity_regularizer),
+			'kernel_constraint'   : constraints.serialize(self.kernel_constraint),
+			'bias_constraint'     : constraints.serialize(self.bias_constraint)
+		}
+		base_config = super(ConvBankv2, self).get_config()
+		return dict(list(base_config.items()) + list(config.items()))
+
 class ConvBank(Layer):
 	def __init__(self,  filters, kernel_size, strides=1, padding='valid', data_format=None, dilation_rate=1, activation=None, use_bias=True,
 	             kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None,
