@@ -1,6 +1,6 @@
 import os.path as path
 import os
-PYTHON_PROJECT_NAME ='DeepExperiments'
+PYTHON_PROJECT_NAME ='DeepEperiments'
 FOLDER_NAME_RESULTS="Results"
 FOLDER_NAME_FIGURES="Figures"
 FOLDER_NAME_PLOTS="Plots"
