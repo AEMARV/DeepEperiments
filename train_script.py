@@ -6,3 +6,4 @@ if __name__ == '__main__':
     print os.environ
     print theano.config.device
     myTrainer.run_trainer(cpu_debug=True)
+    print 'done'
