@@ -12,6 +12,7 @@ from utils.modelutils.layers.conv_sep import *
 from utils.modelutils.regularizer.regularizers import l1_l2_tanh
 from keras.models import Model
 from utils.modelutils.layers.activations import *
+from utils.modelutils.layers.kldivg.layers import *
 from utils.modelutils.activations import activations as cact
 
 layer_index = 0
@@ -56,7 +57,10 @@ def model_constructor(opts, model_dict=None):
             if component == 'push':
                 name = param['name']
                 queue_dict[name] = x
-
+            #Kl Layers
+            elif component == 'lsoft':
+                x = Layer_on_list(LogSoftmax(), x)
+            ## End KL Layers
             elif component == 'convsh':
                 block_index += 1
                 nb_filter = int(param['f'])
