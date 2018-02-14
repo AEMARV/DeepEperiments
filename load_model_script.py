@@ -25,7 +25,7 @@ if __name__ == '__main__':
 	dataset_str = 'cifar10'
 	#
 	weight_model_experiment_name = get_experiment_name_prompt('please select the experiment for the model you want to load weight from[to load '
-	                                                          'weight from]')
+															  'weight from]')
 	experiment_name = 'load_weight'
 	print((keras.__version__))
 	model_str = vanila_models[0]
@@ -44,17 +44,17 @@ if __name__ == '__main__':
 		# opts = set_expand_rate(opts, param_expand_sel)
 		# optimizer = optimizers.Nadam()
 		optimizer = optimizers.SGD(lr=opts['optimizer_opts']['lr'], momentum=opts['optimizer_opts']['momentum'],
-		                           decay=opts['optimizer_opts']['decay'], nesterov=opts['optimizer_opts']['nestrov'])
+								   decay=opts['optimizer_opts']['decay'], nesterov=opts['optimizer_opts']['nestrov'])
 		# optimizer = optimizers.Adadelta()
 		""" MODEL PREPARE """
 		model = get_model_from_db(model_str, opts)
 		weight_model = get_model_from_db(weight_model_name, opts)
 		model_modification_utils.load_weights_by_block_index_list(model, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], os.path.join(
 			global_constant_var.get_experimentcase_abs_path(weight_model_experiment_name, dataset_str, weight_model_name), 'checkpoint'),
-		                                                          model_constructor_utils.CONVSH_NAME)
+																  model_constructor_utils.CONVSH_NAME)
 		model_modification_utils.load_weights_by_block_index_list(weight_model, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], os.path.join(
 			global_constant_var.get_experimentcase_abs_path(weight_model_experiment_name, dataset_str, weight_model_name), 'checkpoint'),
-		                                                          model_constructor_utils.CONVSH_NAME)
+																  model_constructor_utils.CONVSH_NAME)
 		model.compile(loss=opt_utils.get_loss(opts), optimizer=optimizer, metrics=opt_utils.get_metrics(opts))
 		weight_model.compile(loss=opt_utils.get_loss(opts), optimizer=optimizer, metrics=opt_utils.get_metrics(opts))
 		method_names = find_key_value_to_str_recursive(opts, '', {'param_expand'})
