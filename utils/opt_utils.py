@@ -90,11 +90,11 @@ def get_lr_sched_family(opts):
 	return opts['training_opts']['lr_sched_family']
 def set_default_opts_based_on_model_dataset(opts):
 	opts['aug_opts']['enable'] = True  # enables augmentation
-	opts['aug_opts']['featurewise_center'] = True  # set input mean to 0 over the dataset
+	opts['aug_opts']['featurewise_center'] = False  # set input mean to 0 over the dataset
 	opts['aug_opts']['samplewise_center'] = False  # set each sample mean to 0
-	opts['aug_opts']['featurewise_std_normalization'] = True  # divide inputs by std of the dataset
+	opts['aug_opts']['featurewise_std_normalization'] = False  # divide inputs by std of the dataset
 	opts['aug_opts']['samplewise_std_normalization'] = False  # divide each input by its std
-	opts['aug_opts']['zca_whitening'] = True  # apply ZCA whitening
+	opts['aug_opts']['zca_whitening'] = False# apply ZCA whitening
 	opts['aug_opts']['rotation_range'] = 0  # randomly rotate images in the range (degrees, 0 to 180)
 	opts['aug_opts']['width_shift_range'] = 0.1  # randomly shift images horizontally (fraction of total width)
 	opts['aug_opts']['height_shift_range'] = 0.1  # randomly shift images vertically (fraction of total height)
