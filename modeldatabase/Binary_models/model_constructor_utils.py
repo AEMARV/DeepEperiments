@@ -78,6 +78,25 @@ def model_constructor(opts, model_dict=None):
 										 kernel_regularizer=w_reg, activation=activation,
 										 name=CONVSH_NAME.format(block_index),
 										 use_bias=use_bias), x)
+			elif component == 'klconvb':
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				padding = param['padding'] if 'padding' in param else 'same'
+				activation = param['activation'] if 'activation' in param else None
+				initializion = param['int'] if 'init' in param else 'he_normal'
+				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
+				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
+				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				x = Layer_on_list(KlConv2Db(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+										 kernel_initializer=initializion,
+										 kernel_regularizer=w_reg, activation=activation,
+										 name=CONVSH_NAME.format(block_index),
+										 use_bias=use_bias), x)
+
 
 			## End KL Layers
 			elif component == 'convsh':

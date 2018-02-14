@@ -7,6 +7,10 @@ from keras import regularizers
 from keras import constraints
 from keras.utils import conv_utils
 from keras.engine import InputSpec
+from keras.layers.pooling import AveragePooling2D
+from keras.legacy import interfaces
+
+
 class LogSoftmax(Layer):
 	def __init__(self, **kwargs):
 		self.supports_masking = False
@@ -167,6 +171,8 @@ class KlConv2D(k.layers.Conv2D):
 	def get_config(self):
 		base_config = super(KlConv2D, self).get_config()
 		return base_config
+
+
 class KlConv2Db(k.layers.Conv2D):
 	def __init__(self, rank,
 	             filters,
@@ -319,3 +325,66 @@ class KlConv2Db(k.layers.Conv2D):
 	def get_config(self):
 		base_config = super(KlConv2Db, self).get_config()
 		return base_config
+
+
+class KlAveragePooling2D(AveragePooling2D):
+	"""Average pooling operation for spatial data.
+
+	# Arguments
+		pool_size: integer or tuple of 2 integers,
+			factors by which to downscale (vertical, horizontal).
+			(2, 2) will halve the input in both spatial dimension.
+			If only one integer is specified, the same window length
+			will be used for both dimensions.
+		strides: Integer, tuple of 2 integers, or None.
+			Strides values.
+			If None, it will default to `pool_size`.
+		padding: One of `"valid"` or `"same"` (case-insensitive).
+		data_format: A string,
+			one of `channels_last` (default) or `channels_first`.
+			The ordering of the dimensions in the inputs.
+			`channels_last` corresponds to inputs with shape
+			`(batch, height, width, channels)` while `channels_first`
+			corresponds to inputs with shape
+			`(batch, channels, height, width)`.
+			It defaults to the `image_data_format` value found in your
+			Keras config file at `~/.keras/keras.json`.
+			If you never set it, then it will be "channels_last".
+
+	# Input shape
+		- If `data_format='channels_last'`:
+			4D tensor with shape:
+			`(batch_size, rows, cols, channels)`
+		- If `data_format='channels_first'`:
+			4D tensor with shape:
+			`(batch_size, channels, rows, cols)`
+
+	# Output shape
+		- If `data_format='channels_last'`:
+			4D tensor with shape:
+			`(batch_size, pooled_rows, pooled_cols, channels)`
+		- If `data_format='channels_first'`:
+			4D tensor with shape:
+			`(batch_size, channels, pooled_rows, pooled_cols)`
+	"""
+
+	@interfaces.legacy_pooling2d_support
+	def __init__(self, pool_size=(2, 2), strides=None, padding='valid',
+	             data_format=None, **kwargs):
+		super(KlAveragePooling2D, self).__init__(pool_size, strides, padding,
+		                                       data_format, **kwargs)
+
+	def _pooling_function(self, inputs, pool_size, strides,
+	                      padding, data_format):
+		inputs = k.backend.exp(inputs)
+		output = k.backend.pool2d(inputs, pool_size, strides,
+		                          padding, data_format, pool_mode='avg')
+		output = k.backend.log(output)
+		return output
+def KlLoss(labels,preds):
+	cr = -labels*preds
+	ent_preds = -preds*k.backend.log(preds)
+	ent_labels = 0
+	cr = k.backend.tf.reduce_sum(cr,axis=[1,2,3],keep_dims=True)
+	ent_preds = k.backend.tf.reduce_sum(ent_preds,axis=[1, 2, 3], keep_dims=True)
+	return cr + ent_preds
