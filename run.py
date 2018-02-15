@@ -22,16 +22,15 @@ def check_model_list(model_list, datasets):
 			model.summary()
 
 
-
 if __name__ == '__main__':
 	# gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
-	for total_params in [.5,3.7,1,2]:
-	# total_params=1;
-		models = ['vgg_baseline']
+	for total_params in [0]:
+		# total_params=1;
+		models = ['helloKl']
 		datasets = ['cifar100','cifar10']
 		experiment_name = get_experiment_name_prompt()
 		check_model_list(models, datasets)
-		print((keras.__version__))
+		print(keras.__version__)
 		for dataset_str in datasets:
 			# set dataset_params
 			for model_str in models:
@@ -84,8 +83,14 @@ if __name__ == '__main__':
 					samples_per_epoch = data_train.shape[0] if opts['training_opts']['samples_per_epoch'] == -1 else opts['training_opts'][
 						'samples_per_epoch']
 					model.fit_generator(
-						data_gen.flow(data_train, label_train, batch_size=opts['training_opts']['batch_size'], shuffle=True, seed=opts['seed']),
-						samples_per_epoch=samples_per_epoch, nb_epoch=opts['training_opts']['epoch_nb'], callbacks=callback_list,
+						data_gen.flow(data_train,
+						              label_train,
+						              batch_size=opts['training_opts']['batch_size'],
+						              shuffle=True,
+						              seed=opts['seed']),
+						samples_per_epoch=samples_per_epoch,
+						nb_epoch=opts['training_opts']['epoch_nb'],
+						callbacks=callback_list,
 						validation_data=(data_test, label_test))
 				except:
 					print(model_str, dataset_str)

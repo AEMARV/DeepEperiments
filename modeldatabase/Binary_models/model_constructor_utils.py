@@ -73,11 +73,14 @@ def model_constructor(opts, model_dict=None):
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
-				x = Layer_on_list(KlConv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
-										 kernel_initializer=initializion,
-										 kernel_regularizer=w_reg, activation=activation,
-										 name=CONVSH_NAME.format(block_index),
-										 use_bias=use_bias), x)
+				x = Layer_on_list(KlConv2D(filters=int(nb_filter * expand_rate),
+				                           kernel_size=kernel_size,
+				                           padding=padding,
+										   kernel_initializer=initializion,
+										   kernel_regularizer=w_reg,
+										   activation=activation,
+										   name=CONVSH_NAME.format(block_index),
+										   use_bias=use_bias), x)
 			elif component == 'klconvb':
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -91,13 +94,25 @@ def model_constructor(opts, model_dict=None):
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
-				x = Layer_on_list(KlConv2Db(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
-										 kernel_initializer=initializion,
-										 kernel_regularizer=w_reg, activation=activation,
-										 name=CONVSH_NAME.format(block_index),
-										 use_bias=use_bias), x)
-
-
+				x = Layer_on_list(KlConv2Db(filters=int(nb_filter * expand_rate),
+				                            kernel_size=kernel_size,
+				                            padding=padding,
+										    kernel_initializer=initializion,
+										    kernel_regularizer=w_reg, activation=activation,
+										    name=CONVSH_NAME.format(block_index),
+										    use_bias=use_bias), x)
+			elif component == 'klavgpool':
+				pool_size = int(param['r'])
+				strides = int(param['s'])
+				pool_size = (pool_size, pool_size)
+				strides = (strides, strides)
+				padding = param['pad'] if 'pad' in param.keys() else 'valid'
+				x = node_list_to_list(x)
+				x = Layer_on_list(
+					KlAveragePooling2D(pool_size=pool_size,
+					                   strides=strides,
+					                   padding=padding,
+					                   name=POOL_NAME_RULE.format(block_index, 'AVERAGE')), x)
 			## End KL Layers
 			elif component == 'convsh':
 				block_index += 1
@@ -112,10 +127,15 @@ def model_constructor(opts, model_dict=None):
 				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
-				x = Layer_on_list(Conv2D(filters=int(nb_filter * expand_rate), kernel_size=kernel_size, padding=padding,
+				x = Layer_on_list(Conv2D(filters=int(nb_filter * expand_rate),
+				                         kernel_size=kernel_size,
+				                         padding=padding,
 										 kernel_initializer=initializion,
-										 kernel_regularizer=w_reg, activation=activation, name=CONVSH_NAME.format(block_index),
-										 use_bias=use_bias), x)
+										 kernel_regularizer=w_reg,
+										 activation=activation,
+										 name=CONVSH_NAME.format(block_index),
+										 use_bias=use_bias),
+				                  x)
 			elif component == 'convshfixedfilter':
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -894,12 +914,10 @@ def model_constructor(opts, model_dict=None):
 			elif component == 'maxch':
 				x = node_list_to_list(x)
 				x = Layer_on_list(Merge(mode='max', concat_axis=1), x)
-
 			elif component == 'dropout':
 				drop_rate = param['p']
 				x = node_list_to_list(x)
 				x = Layer_on_list(Dropout(rate=drop_rate, name='BLOCK{}_DROPOUT'.format(block_index)), x)
-
 			elif component == 'densesh':
 				n = int(param['n'])
 				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
@@ -959,8 +977,6 @@ def model_constructor(opts, model_dict=None):
 				x = x[0]
 				# return Model(input=img_input, output=x)
 				return {'model': Model(inputs=[img_input], outputs=x), 'in': img_input, 'out': x}
-
-
 			############################################ TEMP LAYERS##############################
 			elif component == 'xlogx':
 				x = node_list_to_list(x)

@@ -19,16 +19,16 @@ def Layer_on_list(layer, tensor_list):
 def helloKl(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     model_string = 'klconvb|f:32,r:5,l2_val:5e-4->lsoft' \
-                   '->maxpool|r:3,s:2->dropout|p:.5' \
+                   '->klavgpool|r:3,s:2->dropout|p:.5' \
                    '->klconv|f:64,r:5,l2_val:1e-4->lsoft' \
-                   '->averagepool|r:3,s:2->dropout|p:.5' \
+                   '->klavgpool|r:3,s:2->dropout|p:.5' \
                    '->klconv|f:128,r:3,l2_val:1e-4->lsoft' \
-                   '->averagepool|r:3,s:2->dropout|p:.5' \
+                   '->klavgpool|r:3,s:2->dropout|p:.5' \
                    '->klconv|f:192,r:1,l2_val:1e-4->lsoft' \
                    '->klconv|f:' + str(nb_classes) + ',r:1->lsoft' \
-                                                     '->averagepool|r:3,s:1' \
-                                                     '->flatten' \
-                                                     '->softmax->fin'
+                                                     '->klavgpool|r:3,s:1' \
+                                                     '->flattensh' \
+                                                     '->lsoft->fin'
     return get_model_out_dict(opts, model_string=model_string)
 
 def simplenn_BE(opts, input_shape, nb_classes, getstring_flag=False):

@@ -1,3 +1,6 @@
+import modeldatabase
+from utils.modelutils.layers.kldivg.layers import *
+
 def set_loss(opts, loss_string):
 	opts['optimizer_opts']['loss']['method'] = loss_string
 	return opts
@@ -104,14 +107,14 @@ def set_default_opts_based_on_model_dataset(opts):
 	# Gated Parameters and Activations
 	####### ACTIVITY REGULARIZER
 	opts['model_opts']['param_dict']['param_expand'] = {}
-	opts['model_opts']['param_dict']['param_expand']['rate'] = .5
+	opts['model_opts']['param_dict']['param_expand']['rate'] = 1
 	# End of Layer Parameters-------------------------------------------------------------------------------------
 
-	opts['optimizer_opts']['lr'] = .1
-	opts['optimizer_opts']['momentum'] = .9
-	opts['optimizer_opts']['decay'] = 1e-6
+	opts['optimizer_opts']['lr'] = 1#.1
+	opts['optimizer_opts']['momentum'] = 0#.9
+	opts['optimizer_opts']['decay'] = 0#1e-6
 	opts['optimizer_opts']['nestrov'] = True
-	opts['optimizer_opts']['loss']['method'] = 'categorical_crossentropy'
+	opts['optimizer_opts']['loss']['method'] = KlLoss
 
 	if opts['training_opts']['dataset']['method'] == 'cifar100':
 		opts['training_opts']['dataset']['nb_classes'] = 100
