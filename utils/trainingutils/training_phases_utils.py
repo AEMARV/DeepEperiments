@@ -23,8 +23,8 @@ def preprocess_data_phase(opts, data_train, data_test):
 	file_name_extension = file_name_extension_format.format(dataset_name, aug_opts['zca_whitening'], aug_opts['featurewise_std_normalization'], aug_opts['featurewise_center'])
 	train_name = 'xtrain_' + file_name_extension
 	test_name = 'xtest_' + file_name_extension
-	train_file_path = '/home/student/Documents/Git/DeepExperiments/PreprocessData/' + train_name
-	test_file_path = '/home/student/Documents/Git/DeepExperiments/PreprocessData/' + test_name
+	train_file_path = '/home/student/Documents/Codes/Python/DeepEperiments/PreprocessData/' + train_name
+	test_file_path = '/home/student/Documents/Codes/Python/DeepEperiments/PreprocessData/' + test_name
 	if aug_opts['enable']:
 		if not os.path.exists(os.path.abspath(train_file_path)):
 			print('Using real-time data augmentation.')
