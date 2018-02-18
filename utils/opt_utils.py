@@ -1,6 +1,7 @@
 import modeldatabase
 from utils.modelutils.layers.kldivg.layers import *
 
+
 def set_loss(opts, loss_string):
 	opts['optimizer_opts']['loss']['method'] = loss_string
 	return opts
@@ -10,10 +11,15 @@ def set_weight_decay(opts, decay):
 	opts['optimizer_opts']['decay'] = decay
 	return opts
 
+
 def get_nb_classes(opts):
 	return opts['training_opts']['dataset']['nb_classes']
+
+
 def get_input_shape(opts):
 	return opts['training_opts']['dataset']['input_shape']
+
+
 def set_lr(opts, lr):
 	opts['optimizer_opts']['lr'] = lr
 	return opts
@@ -48,6 +54,7 @@ def set_expand_rate(opts, expand_rate):
 
 def get_expand_rate(opts):
 	return opts['model_opts']['param_dict']['param_expand']['rate']
+
 
 def set_dataset(opts, dataset):
 	opts['training_opts']['dataset']['method'] = dataset
@@ -87,10 +94,16 @@ def set_val(fun_name_without_set, val, opts):  ## key should  be compatibale to 
 
 def get_epoch(opts):
 	return opts['training_opts']['epoch_nb']
+
+
 def get_aug_opts(opts):
 	return opts['aug_opts']
+
+
 def get_lr_sched_family(opts):
 	return opts['training_opts']['lr_sched_family']
+
+
 def set_default_opts_based_on_model_dataset(opts):
 	opts['aug_opts']['enable'] = True  # enables augmentation
 	opts['aug_opts']['featurewise_center'] = False  # set input mean to 0 over the dataset
@@ -113,8 +126,8 @@ def set_default_opts_based_on_model_dataset(opts):
 	opts['optimizer_opts']['lr'] = 1#.1
 	opts['optimizer_opts']['momentum'] = 0#.9
 	opts['optimizer_opts']['decay'] = 0#1e-6
-	opts['optimizer_opts']['nestrov'] = True
-	opts['optimizer_opts']['loss']['method'] = KlLoss
+	opts['optimizer_opts']['nestrov'] = False
+	opts['optimizer_opts']['loss']['method'] = KlLoss# 'categorical_crossentropy'
 
 	if opts['training_opts']['dataset']['method'] == 'cifar100':
 		opts['training_opts']['dataset']['nb_classes'] = 100

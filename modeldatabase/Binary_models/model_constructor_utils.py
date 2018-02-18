@@ -18,6 +18,8 @@ from utils.modelutils.activations import activations as cact
 layer_index = 0
 # use of | will make the parser for load weight not considering string past '|'
 CONVSH_NAME = 'BLOCK{}_CONV'
+KL_CONV_NAME = 'KLCONV{}'
+KL_CONVB_NAME = 'KLCONVB{}'
 CONV_NAME = 'BLOCK{}_CONV-{}'
 ACT_NAME_RULE = 'BLOCK{}_ACT_{}{}'
 POOL_NAME_RULE = 'BLOCK{}_POOL_{}'
@@ -77,10 +79,10 @@ def model_constructor(opts, model_dict=None):
 				                           kernel_size=kernel_size,
 				                           padding=padding,
 										   kernel_initializer=initializion,
-										   kernel_regularizer=w_reg,
-										   activation=activation,
-										   name=CONVSH_NAME.format(block_index),
-										   use_bias=use_bias), x)
+										   kernel_regularizer=None,
+										   activation=None,
+										   name=KL_CONV_NAME.format(block_index),
+										   use_bias=False), x)
 			elif component == 'klconvb':
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -98,9 +100,9 @@ def model_constructor(opts, model_dict=None):
 				                            kernel_size=kernel_size,
 				                            padding=padding,
 										    kernel_initializer=initializion,
-										    kernel_regularizer=w_reg, activation=activation,
-										    name=CONVSH_NAME.format(block_index),
-										    use_bias=use_bias), x)
+										    kernel_regularizer=None, activation=None,
+										    name=KL_CONVB_NAME.format(block_index),
+										    use_bias=False), x)
 			elif component == 'klavgpool':
 				pool_size = int(param['r'])
 				strides = int(param['s'])
@@ -873,6 +875,7 @@ def model_constructor(opts, model_dict=None):
 				for index, tensor in enumerate(x):
 					res += [Activation('relu', name=ACT_NAME_RULE.format(block_index, 'RELU', index))(tensor)]
 				x = res
+				block_index +=1
 			elif component == 'sigmoid':
 				x = node_list_to_list(x)
 				res = []

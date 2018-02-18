@@ -1,6 +1,7 @@
 import keras.backend as K
 import tensorflow as tf
 from keras.callbacks import Callback
+from utils.modelutils.layers.kldivg.layers import *
 import numpy as np
 from callbacks.tensorboard import tensor_board_utills, tensorboard_layer_viz
 
@@ -15,6 +16,8 @@ class TensorboardVisualizer(Callback):
 		if K.backend() != 'tensorflow':
 			raise RuntimeError('TensorBoard callback only works '
 			                   'with the TensorFlow backend.')
+		global tf
+		import tensorflow as tf
 		self.log_dir = log_dir
 		self.histogram_freq = histogram_freq
 		self.merged = None
@@ -23,6 +26,7 @@ class TensorboardVisualizer(Callback):
 		self.image_show_merged = None
 		self.write_graph = write_graph
 		self.write_images = True
+		self.write_grads = True
 		self.collections = ['high_comp', 'low_comp']
 		self.batch_size =8
 		self.val_size  = 64
@@ -35,11 +39,31 @@ class TensorboardVisualizer(Callback):
 		filter_num_to_show_max = 256
 		if self.histogram_freq and self.merged is None:
 			for layer in self.model.layers:
-				for weight in layer.weights:
+				for weight in layer.trainable_weights:
+					if isinstance(layer, KlConv2D):
+						scalar_summary_list +=[tf.summary.scalar(name='Entropy_{}'.format(layer.name),
+						                                         tensor=layer.entropy())]
+					elif isinstance(layer, KlConv2Db):
+						scalar_summary_list += [tf.summary.scalar(name='Entropy_{}'.format(layer.name),
+						                                          tensor=layer.entropy())]
+					mapped_weight_name = weight.name.replace(':', '_')
+					tf.summary.histogram(mapped_weight_name, weight)
+					if self.write_grads:
+						grads = model.optimizer.get_gradients(model.total_loss,
+						                                      weight)
+
+						def is_indexed_slices(grad):
+							return type(grad).__name__ == 'IndexedSlices'
+
+						grads = [
+							grad.values if is_indexed_slices(grad) else grad
+							for grad in grads]
+						tf.summary.histogram('{}_grad'.format(mapped_weight_name), grads)
+
 					# grads = model.optimizer.get_gradients(model.total_loss, weight)
 					# hist_summary_list+=[tf.summary.histogram('Gradient_{}_{}'.format(layer.name,weight.name), grads)]
 					# hist_summary_list+=[tf.summary.histogram(name='{}_Weight_Dist_{}'.format(layer.name, weight.name), values=weight)]
-					scalar_summary_list += [tf.summary.scalar(name='l2Norm_{}_{}'.format(layer.name, weight.name), tensor=K.mean(weight**2))]
+					#scalar_summary_list += [tf.summary.scalar(name='l2Norm_{}_{}'.format(layer.name, weight.name), tensor=K.mean(weight**2))]
 				# if not layer.name.find('image_batch') == -1:
 				# 	o = layer.output
 				# 	o = tf.transpose(o, [0, 2, 3, 1])
@@ -90,7 +114,7 @@ class TensorboardVisualizer(Callback):
 				# 	scalar_summary_list += [tf.summary.scalar(name='{}_AVG_ENTROPY'.format(layer.name), tensor=average_entropy)]
 				# 	hist_summary_list += [tf.summary.histogram(name='{}_ENTROPYHIST'.format(layer.name), values=entropy)]
 			# self.image_hist_dist_merged = tf.summary.merge(hist_summary_list)
-			self.scalar_summary_merged = tf.summary.merge(scalar_summary_list)
+
 			# self.image_show_merged = tf.summary.merge(image_show_list)
 			if hasattr(tf, 'merge_all_summaries'):
 				self.merged = tf.merge_all_summaries()
@@ -148,7 +172,7 @@ class TensorboardVisualizer(Callback):
 		batch_val.append(val_data[2][0:100])
 		if self.model.uses_learning_phase:
 			batch_val.append(val_data[3])
-		result_1 = self.sess.run([self.scalar_summary_merged],feed_dict = dict(list(zip(tensors, batch_val))))
+		result_1 = self.sess.run([self.merged],feed_dict = dict(list(zip(tensors, batch_val))))
 		summary_str=result_1[0]
 		self.writer.add_summary(summary_str,epoch)
 		# if self.histogram_freq and self.validation_data:
@@ -189,5 +213,5 @@ class TensorboardVisualizer(Callback):
 		self.writer.flush()
 
 	def on_train_end(self, _):
-		# K.clear_session()
+		K.clear_session()
 		self.writer.close()

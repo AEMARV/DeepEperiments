@@ -52,12 +52,17 @@ def collect_callbacks(opts):
 	callback_list += [result_manager]
 
 	# callback_list += [ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=10, min_lr=0.0001)]
-	callback_list += [TensorboardVisualizer(log_dir=experiments_abs_path + '/logs', histogram_freq=1, write_graph=True, write_images=False)]
-	callback_list += [CSVLogger(filename=experiments_abs_path + '/training.log', separator=',')]
+	callback_list += [TensorboardVisualizer(log_dir=experiments_abs_path + '/logs',
+	                                        histogram_freq=1,
+	                                        write_graph=True,
+	                                        write_images=False)]
+	callback_list += [CSVLogger(filename=experiments_abs_path + '/training.log',
+	                            separator=',')]
 	# callback_list += [EarlyStopping('acc', min_delta=.001, patience=20, mode='max')]
+
 	callback_list += [ModelCheckpoint(result_manager.history_holder.dir_abs_path + '/checkpoint', period=2,save_best_only=True,save_weights_only=True)]
-	callback_list += [LearningRateScheduler(lr_sched_fun_db.lr_sched_function_load(opt_utils.get_dataset_name(opts), opt_utils.get_lr_sched_family(opts)))]
-	callback_list += [TerminateOnNaN()]
+	#callback_list += [LearningRateScheduler(lr_sched_fun_db.lr_sched_function_load(opt_utils.get_dataset_name(opts), opt_utils.get_lr_sched_family(opts)))]
+	#callback_list += [TerminateOnNaN()]
 	return callback_list
 
 
@@ -88,8 +93,8 @@ def load_data(dataset, opts):
 	nb_classes = opts['training_opts']['dataset']['nb_classes'];
 	label_train = np_utils.to_categorical(label_train, nb_classes)
 	label_test = np_utils.to_categorical(label_test, nb_classes)
-	data_train = data_train.astype('float32') / 255
-	data_test = data_test.astype('float32') / 255
+	data_train = data_train.astype('float32') / 257
+	data_test = data_test.astype('float32') / 257
 	return (data_train, label_train), (data_test, label_test)
 
 

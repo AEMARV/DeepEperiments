@@ -2,7 +2,7 @@ import six
 from keras.applications.vgg16 import VGG16
 from keras.layers import Dense, Flatten
 from keras.utils import serialize_keras_object, deserialize_keras_object
-
+from utils.modelutils.layers.kldivg.layers import *
 from modeldatabase.Binary_models.model_constructor_utils import get_model_out_dict, node_list_to_list
 from utils import opt_utils
 from utils.opt_utils import default_opt_creator
@@ -19,21 +19,22 @@ def Layer_on_list(layer, tensor_list):
 def helloKl(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     model_string = 'klconvb|f:32,r:5,l2_val:5e-4->lsoft' \
-                   '->klavgpool|r:3,s:2->dropout|p:.5' \
+                   '->klavgpool|r:3,s:2' \
                    '->klconv|f:64,r:5,l2_val:1e-4->lsoft' \
-                   '->klavgpool|r:3,s:2->dropout|p:.5' \
+                   '->klavgpool|r:3,s:2' \
                    '->klconv|f:128,r:3,l2_val:1e-4->lsoft' \
-                   '->klavgpool|r:3,s:2->dropout|p:.5' \
+                   '->klavgpool|r:3,s:2' \
                    '->klconv|f:192,r:1,l2_val:1e-4->lsoft' \
                    '->klconv|f:' + str(nb_classes) + ',r:1->lsoft' \
                                                      '->klavgpool|r:3,s:1' \
                                                      '->flattensh' \
                                                      '->lsoft->fin'
+    opts['optimizer_opts']['loss']['method'] = KlLoss
     return get_model_out_dict(opts, model_string=model_string)
 
 def simplenn_BE(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
-    model_string = 'convsh|f:32,r:5,l2_val:5e-4->ber' \
+    model_string = 'convsh|f:32,r:5,l2_val:5e-4->relu' \
                    '->maxpool|r:3,s:2->dropout|p:.5' \
                    '->convsh|f:64,r:5,l2_val:1e-4->relu' \
                    '->averagepool|r:3,s:2->dropout|p:.5' \
@@ -42,7 +43,7 @@ def simplenn_BE(opts, input_shape, nb_classes, getstring_flag=False):
                    '->convsh|f:192,r:1,l2_val:1e-4->relu' \
                    '->convsh|f:' + str(nb_classes) + ',r:1->relu' \
                                                      '->averagepool|r:3,s:1' \
-                                                     '->flattensh->merge_branch_average' \
+                                                     '->flattensh' \
                                                      '->softmax->fin'
     return get_model_out_dict(opts, model_string=model_string)
 
