@@ -72,6 +72,47 @@ class KlConv2D(k.layers.Conv2D):
 		self.bias_constraint = None
 		self.input_spec = InputSpec(ndim=self.rank + 2)
 
+	def build(self, input_shape):
+		if self.data_format == 'channels_first':
+			channel_axis = 1
+		else:
+			channel_axis = -1
+		if input_shape[channel_axis] is None:
+			raise ValueError('The channel dimension of the inputs '
+			                 'should be defined. Found `None`.')
+		input_dim = input_shape[channel_axis]
+		kernel_shape = self.kernel_size + (input_dim, self.filters)
+
+		self.kernel = self.add_weight(shape=kernel_shape,
+		                              initializer=Softmax_Init(),
+		                              name='kernel',
+		                              regularizer=self.kernel_regularizer,
+		                              constraint=self.kernel_constraint)
+		self.const_kernel = self.add_weight(shape=kernel_shape,
+		                                    initializer=k.initializers.Ones(),
+		                                    name='const_kernel',
+		                                    constraint=self.kernel_constraint,
+		                                    trainable=False,
+		                                    dtype='float32')
+		if self.use_bias:
+			self.bias = self.add_weight(shape=(self.filters,),
+			                            initializer=self.bias_initializer,
+			                            name='bias',
+			                            regularizer=self.bias_regularizer,
+			                            constraint=self.bias_constraint)
+		else:
+			self.bias = None
+		# Set input spec.
+		self.input_spec = k.engine.InputSpec(ndim=self.rank + 2,
+		                                     axes={channel_axis: input_dim})
+
+
+		self.built = True
+
+	def get_config(self):
+		base_config = super(KlConv2D, self).get_config()
+		return base_config
+
 	def compute_output_shape(self, input_shape):
 		if self.data_format == 'channels_last':
 			space = input_shape[1:-1]
@@ -97,49 +138,6 @@ class KlConv2D(k.layers.Conv2D):
 					dilation=self.dilation_rate[i])
 				new_space.append(new_dim)
 			return (input_shape[0], self.filters) + tuple(new_space)
-	def entropy(self):
-		ent = self.ent_kernel()
-		ent = k.backend.sum(ent, 0)
-		ent = k.backend.sum(ent, 0)
-		ent = k.backend.sum(ent, 0)
-		ent = k.backend.sum(ent, 0)
-		return ent
-	def build(self, input_shape):
-		if self.data_format == 'channels_first':
-			channel_axis = 1
-		else:
-			channel_axis = -1
-		if input_shape[channel_axis] is None:
-			raise ValueError('The channel dimension of the inputs '
-			                 'should be defined. Found `None`.')
-		input_dim = input_shape[channel_axis]
-		kernel_shape = self.kernel_size + (input_dim, self.filters)
-
-		self.kernel = self.add_weight(shape=kernel_shape,
-		                              initializer=Softmax_Init(),
-		                              name='kernel',
-		                              regularizer=self.kernel_regularizer,
-		                              constraint=self.kernel_constraint)
-		self.const_kernel = self.add_weight(shape=kernel_shape,
-		                                    initializer='ones',
-		                                    name='const_kernel',
-		                                    constraint=self.kernel_constraint,
-		                                    trainable=False,
-		                                    dtype='float32')
-		if self.use_bias:
-			self.bias = self.add_weight(shape=(self.filters,),
-			                            initializer=self.bias_initializer,
-			                            name='bias',
-			                            regularizer=self.bias_regularizer,
-			                            constraint=self.bias_constraint)
-		else:
-			self.bias = None
-		# Set input spec.
-		self.input_spec = k.engine.InputSpec(ndim=self.rank + 2,
-		                                     axes={channel_axis: input_dim})
-
-
-		self.built = True
 
 	def compute_mask(self, input, input_mask=None):
 		return None
@@ -149,6 +147,14 @@ class KlConv2D(k.layers.Conv2D):
 		                                                axis=KER_CHAN_DIM,
 		                                                keepdims=True)
 		return nkernel
+
+	def entropy(self):
+		ent = self.ent_kernel()
+		ent = k.backend.sum(ent, 0)
+		ent = k.backend.sum(ent, 0)
+		ent = k.backend.sum(ent, 0)
+		ent = k.backend.sum(ent, 0)
+		return ent
 
 	def ent_kernel(self):
 		nkernel = self.normalize_weights()
@@ -184,10 +190,6 @@ class KlConv2D(k.layers.Conv2D):
 		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
 		y = calc_dist(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker)
 		return y
-
-	def get_config(self):
-		base_config = super(KlConv2D, self).get_config()
-		return base_config
 
 
 class KlConv2Db(k.layers.Conv2D):
@@ -271,7 +273,7 @@ class KlConv2Db(k.layers.Conv2D):
 		                              regularizer=self.kernel_regularizer,
 		                              constraint=self.kernel_constraint)
 		self.const_kernel = self.add_weight(shape=kernel_shape,
-		                                    initializer='ones',
+		                                    initializer=k.initializers.Ones(),
 		                                    name='const_kernel',
 		                                    trainable=False,
 		                                    dtype='float32',
@@ -301,7 +303,6 @@ class KlConv2Db(k.layers.Conv2D):
 		e = k.backend.sum(e, 0)
 
 		return e
-
 
 	def ent_kernel(self):
 		e1 = k.backend.sigmoid(self.kernel)*k.backend.softplus(-self.kernel)
@@ -374,20 +375,22 @@ class KlAveragePooling2D(AveragePooling2D):
 		inputs = k.backend.exp(inputs)
 		output = k.backend.pool2d(inputs, pool_size, strides,
 		                          padding, data_format, pool_mode='avg')
+		output = k.backend.clip(output, k.backend.epsilon(), 1-k.backend.epsilon())
+		#output = output/k.backend.sum(output,axis=KER_CHAN_DIM,keepdims=True)
 		output = k.backend.log(output)
 		return output
 
 
 def calc_dist(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker):
 	distance = 0
-	#distance += cross_xlog_kerprob
+	distance += cross_xlog_kerprob
 	distance += cross_xprob_kerlog
 	distance += ent_x
-	#distance += ent_ker
+	distance += ent_ker
 	return distance
 
 
-def KlLoss(y_true,y_pred):
+def kl_loss(y_true,y_pred):
 	cr = y_true*y_pred
 	ent_preds = -k.backend.exp(y_pred)*y_pred
 	ent_labels = 0

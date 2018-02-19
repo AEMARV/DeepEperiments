@@ -29,7 +29,7 @@ def helloKl(opts, input_shape, nb_classes, getstring_flag=False):
                                                      '->klavgpool|r:3,s:1' \
                                                      '->flattensh' \
                                                      '->lsoft->fin'
-    opts['optimizer_opts']['loss']['method'] = KlLoss
+    opts['optimizer_opts']['loss']['method'] = kl_loss
     return get_model_out_dict(opts, model_string=model_string)
 
 def simplenn_BE(opts, input_shape, nb_classes, getstring_flag=False):

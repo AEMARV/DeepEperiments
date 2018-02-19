@@ -105,7 +105,7 @@ def get_lr_sched_family(opts):
 
 
 def set_default_opts_based_on_model_dataset(opts):
-	opts['aug_opts']['enable'] = False  # enables augmentation
+	opts['aug_opts']['enable'] = True  # enables augmentation
 	opts['aug_opts']['featurewise_center'] = False  # set input mean to 0 over the dataset
 	opts['aug_opts']['samplewise_center'] = False  # set each sample mean to 0
 	opts['aug_opts']['featurewise_std_normalization'] = False  # divide inputs by std of the dataset
@@ -127,7 +127,7 @@ def set_default_opts_based_on_model_dataset(opts):
 	opts['optimizer_opts']['momentum'] = .9
 	opts['optimizer_opts']['decay'] = 0#1e-6
 	opts['optimizer_opts']['nestrov'] = False
-	opts['optimizer_opts']['loss']['method'] = KlLoss# 'categorical_crossentropy'
+	opts['optimizer_opts']['loss']['method'] = kl_loss# 'categorical_crossentropy'
 
 	if opts['training_opts']['dataset']['method'] == 'cifar100':
 		opts['training_opts']['dataset']['nb_classes'] = 100
