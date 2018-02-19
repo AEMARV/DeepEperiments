@@ -21,5 +21,6 @@ class Softmax_Init(Initializer):
                                minval=K.epsilon(),
                                maxval=1-K.epsilon(),
                                dtype=dtype)
+        out = -K.log(out)
         out = K.log(out/K.sum(out, axis=2, keepdims=True))
         return out

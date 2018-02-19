@@ -5,13 +5,14 @@ from keras import activations
 from keras import initializers
 from keras import regularizers
 from keras import constraints
+from utils.modelutils.layers.kldivg.initializers import *
 from keras.utils import conv_utils
 from keras.engine import InputSpec
 from keras.layers.pooling import AveragePooling2D
 from keras.backend import epsilon
 from keras.legacy import interfaces
 
-
+KER_CHAN_DIM =2
 class LogSoftmax(Layer):
 	def __init__(self, **kwargs):
 		self.supports_masking = False
@@ -24,7 +25,7 @@ class LogSoftmax(Layer):
 		return None
 
 	def call(self, x, mask=None):
-		y = x - k.backend.logsumexp(x,1,True)
+		y = x - k.backend.logsumexp(x, 1, True)
 		return y
 
 	def get_config(self):
@@ -97,7 +98,6 @@ class KlConv2D(k.layers.Conv2D):
 				new_space.append(new_dim)
 			return (input_shape[0], self.filters) + tuple(new_space)
 	def entropy(self):
-		self.normalize_weights()
 		ent = self.ent_kernel()
 		ent = k.backend.sum(ent, 0)
 		ent = k.backend.sum(ent, 0)
@@ -116,7 +116,7 @@ class KlConv2D(k.layers.Conv2D):
 		kernel_shape = self.kernel_size + (input_dim, self.filters)
 
 		self.kernel = self.add_weight(shape=kernel_shape,
-		                              initializer=self.kernel_initializer,
+		                              initializer=Softmax_Init(),
 		                              name='kernel',
 		                              regularizer=self.kernel_regularizer,
 		                              constraint=self.kernel_constraint)
@@ -138,38 +138,43 @@ class KlConv2D(k.layers.Conv2D):
 		self.input_spec = k.engine.InputSpec(ndim=self.rank + 2,
 		                                     axes={channel_axis: input_dim})
 
-		self.normalize_weights()
+
 		self.built = True
 
 	def compute_mask(self, input, input_mask=None):
 		return None
 
 	def normalize_weights(self):
-		self.kernel = self.kernel - k.backend.logsumexp(self.kernel,
-		                                                axis=2,
+		nkernel = self.kernel - k.backend.logsumexp(self.kernel,
+		                                                axis=KER_CHAN_DIM,
 		                                                keepdims=True)
+		return nkernel
 
 	def ent_kernel(self):
-		e = -self.kernel * k.backend.exp(self.kernel)
-		tf.is_nan(e)
+		nkernel = self.normalize_weights()
+		e = -nkernel * k.backend.exp(nkernel)
 		e = k.backend.sum(e, 0, keepdims=True)
 		e = k.backend.sum(e, 1, keepdims=True)
 		e = k.backend.sum(e, 2, keepdims=True)
 		return e
 
 	def call(self, x, mask=None):
-		self.normalize_weights()
+		nkernel = self.normalize_weights()
 		xprob = k.backend.exp(x)
-		cross = k.backend.conv2d(xprob,
-		                         self.kernel,
+		cross_xprob_kerlog = k.backend.conv2d(xprob,
+		                         nkernel,
 		                         strides=self.strides,
 		                         padding=self.padding,
 		                         data_format=self.data_format,
 		                         dilation_rate=self.dilation_rate)
+		cross_xlog_kerprob = k.backend.conv2d(x,
+		                                      k.backend.exp(nkernel),
+		                                      strides=self.strides,
+		                                      padding=self.padding,
+		                                      data_format=self.data_format,
+		                                      dilation_rate=self.dilation_rate)
 
 		ent_ker = self.ent_kernel()
-
-
 		ent_x = k.backend.conv2d(-xprob*x,
 		                         self.const_kernel,
 		                         strides=self.strides,
@@ -177,7 +182,7 @@ class KlConv2D(k.layers.Conv2D):
 		                         data_format=self.data_format,
 		                         dilation_rate=self.dilation_rate)
 		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
-		y = cross + ent_x
+		y = calc_dist(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker)
 		return y
 
 	def get_config(self):
@@ -261,7 +266,7 @@ class KlConv2Db(k.layers.Conv2D):
 		kernel_shape = self.kernel_size + (input_dim, self.filters)
 
 		self.kernel = self.add_weight(shape=kernel_shape,
-		                              initializer=self.kernel_initializer,
+		                              initializer=Sigmoid_Init(),
 		                              name='kernel',
 		                              regularizer=self.kernel_regularizer,
 		                              constraint=self.kernel_constraint)
@@ -288,10 +293,6 @@ class KlConv2Db(k.layers.Conv2D):
 	def compute_mask(self, input, input_mask=None):
 		return None
 
-	def normalize_weights(self):
-		self.kernel = self.kernel - k.backend.logsumexp(self.kernel,
-		                                                axis=2,
-		                                                keepdims=False)
 	def entropy(self):
 		e = self.ent_kernel()
 		e = k.backend.sum(e,0)
@@ -300,9 +301,11 @@ class KlConv2Db(k.layers.Conv2D):
 		e = k.backend.sum(e, 0)
 
 		return e
+
+
 	def ent_kernel(self):
-		e1 = k.backend.sigmoid(self.kernel)*k.backend.softplus(self.kernel)
-		e0 = k.backend.sigmoid(-self.kernel)*k.backend.softplus(-self.kernel)
+		e1 = k.backend.sigmoid(self.kernel)*k.backend.softplus(-self.kernel)
+		e0 = k.backend.sigmoid(-self.kernel)*k.backend.softplus(self.kernel)
 		e = k.backend.sum(e0 + e1, 0, keepdims=True)
 		e = k.backend.sum(e, 1, keepdims=True)
 		e = k.backend.sum(e, 2, keepdims=True)
@@ -310,31 +313,46 @@ class KlConv2Db(k.layers.Conv2D):
 
 	def call(self, x, mask=None):
 		xprob = x
-		logker1 = -k.backend.softplus(self.kernel)
-		logker0 = -k.backend.softplus(-self.kernel)
-		cross = k.backend.conv2d(xprob,
-		                         logker1,
-		                         strides=self.strides,
-		                         padding=self.padding,
-		                         data_format=self.data_format,
-		                         dilation_rate=self.dilation_rate)
-		cross += k.backend.conv2d(1-xprob,
-		                         logker0,
-		                         strides=self.strides,
-		                         padding=self.padding,
-		                         data_format=self.data_format,
-		                         dilation_rate=self.dilation_rate)
+		xprob = k.backend.clip(xprob, k.backend.epsilon(), 1-k.backend.epsilon())
+		logx1 = k.backend.log(xprob)
+		logx0 = k.backend.log(1-xprob)
+		logker1 = -k.backend.softplus(-self.kernel)
+		logker0 = -k.backend.softplus(self.kernel)
+		cross_xp_kerlog = k.backend.conv2d(xprob,
+		                                   logker1,
+		                                   strides=self.strides,
+		                                   padding=self.padding,
+		                                   data_format=self.data_format,
+		                                   dilation_rate=self.dilation_rate)
+		cross_xp_kerlog += k.backend.conv2d(1 - xprob,
+				                            logker0,
+				                            strides=self.strides,
+				                            padding=self.padding,
+				                            data_format=self.data_format,
+				                            dilation_rate=self.dilation_rate)
+		cross_xlog_kerp = k.backend.conv2d(logx1,
+				                           k.backend.sigmoid(self.kernel),
+				                           strides=self.strides,
+				                           padding=self.padding,
+				                           data_format=self.data_format,
+				                           dilation_rate=self.dilation_rate)
+		cross_xlog_kerp += k.backend.conv2d(logx0,
+		                                   k.backend.sigmoid(-self.kernel),
+		                                   strides=self.strides,
+		                                   padding=self.padding,
+		                                   data_format=self.data_format,
+		                                   dilation_rate=self.dilation_rate)
 
 		ent_ker = self.ent_kernel()
-		code_length_x = xprob*k.backend.log(xprob)
-		code_lenght_nx = (1-xprob)*k.backend.log(1-xprob)
-		ent_x = k.backend.conv2d(-xprob*k.backend.log(x + k.backend.epsilon()),
+		code_length_x = xprob*logx1
+		code_lenght_nx = (1-xprob)*logx0
+		ent_x = k.backend.conv2d(code_length_x,
 		                         self.const_kernel,
 		                         strides=self.strides,
 		                         padding=self.padding,
 		                         data_format=self.data_format,
 		                         dilation_rate=self.dilation_rate)
-		ent_x += k.backend.conv2d(-(1-xprob) * k.backend.log(1-x + k.backend.epsilon()),
+		ent_x += k.backend.conv2d(code_lenght_nx,
 		                          self.const_kernel,
 		                          strides=self.strides,
 		                          padding=self.padding,
@@ -342,7 +360,7 @@ class KlConv2Db(k.layers.Conv2D):
 		                          dilation_rate=self.dilation_rate)
 		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
 
-		return cross + ent_x
+		return calc_dist(cross_xp_kerlog, cross_xlog_kerp, ent_x, ent_ker)
 
 	def get_config(self):
 		base_config = super(KlConv2Db, self).get_config()
@@ -358,10 +376,22 @@ class KlAveragePooling2D(AveragePooling2D):
 		                          padding, data_format, pool_mode='avg')
 		output = k.backend.log(output)
 		return output
+
+
+def calc_dist(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker):
+	distance = 0
+	#distance += cross_xlog_kerprob
+	distance += cross_xprob_kerlog
+	distance += ent_x
+	#distance += ent_ker
+	return distance
+
+
 def KlLoss(y_true,y_pred):
-	cr = -y_true*y_pred
+	cr = y_true*y_pred
 	ent_preds = -k.backend.exp(y_pred)*y_pred
 	ent_labels = 0
 	cr = k.backend.sum(cr, axis=[-1])
 	ent_preds = k.backend.sum(ent_preds, axis=[-1])
-	return cr + ent_preds
+	calc_dist(0, cr, ent_preds, 0)
+	return -cr
