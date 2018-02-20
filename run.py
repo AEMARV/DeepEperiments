@@ -19,40 +19,35 @@ def check_model_list(model_list, datasets):
 			set_model_string(opts, model)
 			model_dict= get_model_from_db(model, opts)
 			model = model_dict['model']
-			model.summary()
+			#model.summary()
 
 
 if __name__ == '__main__':
-	# gatenet_binary_merged_model lenet_amir ,gatenet_binary_model
 	for total_params in [0]:
 		# total_params=1;
-		models = ['helloKl']
+		models = ['helloKl','helloKl']
 		datasets = ['cifar10','cifar100']
 		experiment_name = get_experiment_name_prompt()
 		check_model_list(models, datasets)
 		print(keras.__version__)
 		for dataset_str in datasets:
-			# set dataset_params
 			for model_str in models:
 				try:
 
 					print(100 * '*', 3 * '\n', model_str, '\n', dataset_str, 3 * '\n', 100 * '*')
 					opts = default_opt_creator()
 					opts['experiment_name'] = experiment_name
-
 					set_dataset(opts, dataset=dataset_str)
 					opts = set_model_string(opts, model_str)
 					opts = set_default_opts_based_on_model_dataset(opts)
-
 					input_shape = opts['training_opts']['dataset']['input_shape']
 					nb_class = opts['training_opts']['dataset']['nb_classes']
-					# opts = set_expand_rate(opts, param_expand_sel)
-					# optimizer = optimizers.Nadam()
-					optimizer = optimizers.SGD(lr=opts['optimizer_opts']['lr'], momentum=opts['optimizer_opts']['momentum'],
-					                           decay=opts['optimizer_opts']['decay'], nesterov=opts['optimizer_opts']['nestrov'])
-					# optimizer = optimizers.Adadelta()
 					""" MODEL PREPARE """
 					model_dict = get_model_from_db(model_str, opts)
+					optimizer = optimizers.SGD(lr=opts['optimizer_opts']['lr'],
+					                           momentum=opts['optimizer_opts']['momentum'],
+					                           decay=opts['optimizer_opts']['decay'],
+					                           nesterov=opts['optimizer_opts']['nestrov'])
 					model = model_dict['model']
 					model_total_params = (model.count_params() // 100000) / 10
 					if (not total_params == 0) and (not model_total_params== total_params):

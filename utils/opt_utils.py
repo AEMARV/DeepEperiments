@@ -127,7 +127,7 @@ def set_default_opts_based_on_model_dataset(opts):
 	opts['optimizer_opts']['momentum'] = .9
 	opts['optimizer_opts']['decay'] = 0#1e-6
 	opts['optimizer_opts']['nestrov'] = False
-	opts['optimizer_opts']['loss']['method'] = kl_loss# 'categorical_crossentropy'
+	opts['optimizer_opts']['loss']['method'] = 'categorical_crossentropy'
 
 	if opts['training_opts']['dataset']['method'] == 'cifar100':
 		opts['training_opts']['dataset']['nb_classes'] = 100
@@ -140,7 +140,7 @@ def set_default_opts_based_on_model_dataset(opts):
 		opts['training_opts']['dataset']['input_shape'] = (3, 224, 224)
 	opts['training_opts']['samples_per_epoch'] = -1
 	opts['training_opts']['batch_size'] = 128
-	opts['training_opts']['epoch_nb'] = 265
+	opts['training_opts']['epoch_nb'] = 150
 	opts['training_opts']['metrics'] = ['accuracy', 'mean_absolute_percentage_error', 'cosine_proximity', 'top_k_categorical_accuracy']
 	opts['training_opts']['lr_sched_family'] = 'vgg'
 	return opts

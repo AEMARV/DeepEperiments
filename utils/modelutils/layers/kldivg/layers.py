@@ -84,7 +84,7 @@ class KlConv2D(k.layers.Conv2D):
 		kernel_shape = self.kernel_size + (input_dim, self.filters)
 
 		self.kernel = self.add_weight(shape=kernel_shape,
-		                              initializer=Softmax_Init(),
+		                              initializer=Exp_Init(),
 		                              name='kernel',
 		                              regularizer=self.kernel_regularizer,
 		                              constraint=self.kernel_constraint)
@@ -143,9 +143,15 @@ class KlConv2D(k.layers.Conv2D):
 		return None
 
 	def normalize_weights(self):
-		nkernel = self.kernel - k.backend.logsumexp(self.kernel,
-		                                                axis=KER_CHAN_DIM,
-		                                                keepdims=True)
+		gamma = False
+		if not gamma:
+			nkernel = self.kernel - k.backend.logsumexp(self.kernel,
+			                                                axis=KER_CHAN_DIM,
+			                                                keepdims=True)
+		else:
+			nkernel = self.kernel/k.backend.sum(self.kernel,axis=KER_CHAN_DIM,keepdims=True)
+			nkernel = k.backend.clip(nkernel,k.backend.epsilon(),1-k.backend.epsilon())
+			nkernel = k.backend.log(nkernel)
 		return nkernel
 
 	def entropy(self):
@@ -384,8 +390,8 @@ class KlAveragePooling2D(AveragePooling2D):
 def calc_dist(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker):
 	distance = 0
 	distance += cross_xlog_kerprob
-	distance += cross_xprob_kerlog
-	distance += ent_x
+	#distance += cross_xprob_kerlog
+	#distance += ent_x
 	distance += ent_ker
 	return distance
 
