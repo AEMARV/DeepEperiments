@@ -141,7 +141,7 @@ def set_default_opts_based_on_model_dataset(opts):
 	opts['training_opts']['samples_per_epoch'] = -1
 	opts['training_opts']['batch_size'] = 128
 	opts['training_opts']['epoch_nb'] = 150
-	opts['training_opts']['metrics'] = ['accuracy', 'mean_absolute_percentage_error', 'cosine_proximity', 'top_k_categorical_accuracy']
+	opts['training_opts']['metrics'] = ['accuracy', 'top_k_categorical_accuracy']
 	opts['training_opts']['lr_sched_family'] = 'vgg'
 	return opts
 

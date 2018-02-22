@@ -8,6 +8,7 @@ from utils.gen_utils import *
 from utils.modelutils import model_modification_utils
 from utils.opt_utils import *
 from utils.trainingutils.training_phases_utils import *
+import gc
 
 
 def check_model_list(model_list, datasets):
@@ -25,8 +26,15 @@ def check_model_list(model_list, datasets):
 if __name__ == '__main__':
 	for total_params in [0]:
 		# total_params=1;
-		models = ['helloKl_super_small']
-		datasets = ['cifar10','cifar100']
+		models = ['helloKl',
+		          'helloKl_datacentric',
+		          'helloKl_modelcentric',
+		          'helloKl_both_centric_both_layersandloss',
+		          'helloKl_layers_data_loss_both_centric',
+		          'helloKl_layers_model_loss_both_centric',
+		          'helloKl_layers_data_loss_model',
+		          'helloKl_layers_model_loss_data']
+		datasets = ['cifar10']
 		experiment_name = get_experiment_name_prompt()
 		check_model_list(models, datasets)
 		print(keras.__version__)
@@ -87,7 +95,12 @@ if __name__ == '__main__':
 						nb_epoch=opts['training_opts']['epoch_nb'],
 						callbacks=callback_list,
 						validation_data=(data_test, label_test))
+					model = None
 					keras.backend.clear_session()
+					gc.collect()
 				except:
 					print(model_str, dataset_str)
 					traceback.print_exc()
+					model = None
+					keras.backend.clear_session()
+					gc.collect()
