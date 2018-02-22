@@ -149,7 +149,7 @@ class KlConv2D(k.layers.Conv2D):
 	def normalize_weights(self):
 
 		if not self.use_link_func:
-			nkernel = -self.kernel - k.backend.logsumexp(-self.kernel,
+			nkernel = self.kernel - k.backend.logsumexp(self.kernel,
 			                                                axis=KER_CHAN_DIM,
 			                                                keepdims=True)
 		else:
