@@ -42,10 +42,10 @@ class TensorboardVisualizer(Callback):
 				for weight in layer.trainable_weights:
 					if isinstance(layer, KlConv2D):
 						scalar_summary_list +=[tf.summary.scalar(name='Entropy_{}'.format(layer.name),
-						                                         tensor=layer.entropy())]
+						                                         tensor=layer.avg_entropy())]
 					elif isinstance(layer, KlConv2Db):
 						scalar_summary_list += [tf.summary.scalar(name='Entropy_{}'.format(layer.name),
-						                                          tensor=layer.entropy())]
+						                                          tensor=layer.avg_entropy())]
 					mapped_weight_name = weight.name.replace(':', '_')
 					tf.summary.histogram(mapped_weight_name, weight)
 					if self.write_grads:

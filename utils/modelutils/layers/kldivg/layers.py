@@ -1,5 +1,6 @@
 from keras.layers import Layer
 import keras as k
+import numpy as np
 import tensorflow as tf
 from keras import activations
 from keras import initializers
@@ -45,13 +46,15 @@ class KlConv2D(k.layers.Conv2D):
 	             dilation_rate=1,
 	             activation=None,
 	             use_bias=False,
-	             kernel_initializer='glorot_uniform',
-	             bias_initializer='zeros',
+	             kernel_initializer=None,
+	             bias_initializer=None,
 	             kernel_regularizer=None,
 	             bias_regularizer=None,
 	             activity_regularizer=None,
 	             kernel_constraint=None,
 	             bias_constraint=None,
+	             dist_measure=None,
+	             use_link_func=None,
 	             **kwargs):
 		super(KlConv2D, self).__init__(filters,kernel_size,**kwargs)
 		self.rank = rank
@@ -64,13 +67,15 @@ class KlConv2D(k.layers.Conv2D):
 		self.activation = activations.get(activation)
 		self.use_bias = False
 		self.kernel_initializer = initializers.get(kernel_initializer)
-		self.bias_initializer = initializers.get(bias_initializer)
-		self.kernel_regularizer = None
+		self.bias_initializer = None
+		self.kernel_regularizer = regularizers.get(kernel_regularizer)
 		self.bias_regularizer = None
 		self.activity_regularizer = None
 		self.kernel_constraint = None
 		self.bias_constraint = None
 		self.input_spec = InputSpec(ndim=self.rank + 2)
+		self.dist_measure = dist_measure
+		self.use_link_func = use_link_func
 
 	def build(self, input_shape):
 		if self.data_format == 'channels_first':
@@ -82,9 +87,8 @@ class KlConv2D(k.layers.Conv2D):
 			                 'should be defined. Found `None`.')
 		input_dim = input_shape[channel_axis]
 		kernel_shape = self.kernel_size + (input_dim, self.filters)
-
 		self.kernel = self.add_weight(shape=kernel_shape,
-		                              initializer=Exp_Init(),
+		                              initializer=self.kernel_initializer,
 		                              name='kernel',
 		                              regularizer=self.kernel_regularizer,
 		                              constraint=self.kernel_constraint)
@@ -143,15 +147,16 @@ class KlConv2D(k.layers.Conv2D):
 		return None
 
 	def normalize_weights(self):
-		gamma = False
-		if not gamma:
-			nkernel = self.kernel - k.backend.logsumexp(self.kernel,
+
+		if not self.use_link_func:
+			nkernel = -self.kernel - k.backend.logsumexp(-self.kernel,
 			                                                axis=KER_CHAN_DIM,
 			                                                keepdims=True)
 		else:
-			nkernel = self.kernel/k.backend.sum(self.kernel,axis=KER_CHAN_DIM,keepdims=True)
-			nkernel = k.backend.clip(nkernel,k.backend.epsilon(),1-k.backend.epsilon())
-			nkernel = k.backend.log(nkernel)
+			nkernel = self.kernel_initializer.linkfunc(self.kernel)
+			#nkernel = self.kernel/k.backend.sum(self.kernel,axis=KER_CHAN_DIM,keepdims=True)
+			#nkernel = k.backend.clip(nkernel,k.backend.epsilon(),1-k.backend.epsilon())
+			#nkernel = k.backend.log(nkernel)
 		return nkernel
 
 	def entropy(self):
@@ -161,7 +166,21 @@ class KlConv2D(k.layers.Conv2D):
 		ent = k.backend.sum(ent, 0)
 		ent = k.backend.sum(ent, 0)
 		return ent
+	def avg_entropy(self):
+		e = self.ent_per_param()
+		e = k.backend.mean(e, 0)
+		e = k.backend.mean(e, 0)
+		e = k.backend.sum(e, 0)
+		e = k.backend.sum(e, 0)
+		sh = K.int_shape(self.kernel)
+		cat_num = sh[2]
 
+		e = e/np.log(cat_num)
+		return e
+	def ent_per_param(self):
+		nkernel = self.normalize_weights()
+		e = -nkernel* K.exp(nkernel)
+		return e
 	def ent_kernel(self):
 		nkernel = self.normalize_weights()
 		e = -nkernel * k.backend.exp(nkernel)
@@ -194,11 +213,12 @@ class KlConv2D(k.layers.Conv2D):
 		                         data_format=self.data_format,
 		                         dilation_rate=self.dilation_rate)
 		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
-		y = calc_dist(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker)
+		y = self.dist_measure(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker)
 		return y
 
 
 class KlConv2Db(k.layers.Conv2D):
+	#TODO IMPLEMENT THE INITIALIZATION e.g. KErnel INIT, Reg, CALCDIST, LINKFUNC option
 	def __init__(self,
 	             filters,
 	             kernel_size,
@@ -209,13 +229,15 @@ class KlConv2Db(k.layers.Conv2D):
 	             dilation_rate=1,
 	             activation=None,
 	             use_bias=False,
-	             kernel_initializer='glorot_uniform',
+	             kernel_initializer=None,
 	             bias_initializer='zeros',
 	             kernel_regularizer=None,
 	             bias_regularizer=None,
 	             activity_regularizer=None,
 	             kernel_constraint=None,
 	             bias_constraint=None,
+	             dist_measure=None,
+	             use_link_func=None,
 	             **kwargs):
 		super(KlConv2Db, self).__init__(filters, kernel_size,**kwargs)
 		self.rank = rank
@@ -228,13 +250,15 @@ class KlConv2Db(k.layers.Conv2D):
 		self.activation = activations.get(activation)
 		self.use_bias = False
 		self.kernel_initializer = initializers.get(kernel_initializer)
-		self.bias_initializer = initializers.get(bias_initializer)
-		self.kernel_regularizer = None
+		self.bias_initializer = None
+		self.kernel_regularizer = regularizers.get(kernel_regularizer)
 		self.bias_regularizer = None
-		self.activity_regularizer = regularizers.get(activity_regularizer)
+		self.activity_regularizer = None
 		self.kernel_constraint = constraints.get(kernel_constraint)
 		self.bias_constraint = constraints.get(bias_constraint)
 		self.input_spec = InputSpec(ndim=self.rank + 2)
+		self.dist_measure = dist_measure
+		self.use_link_func = use_link_func
 
 	def compute_output_shape(self, input_shape):
 		if self.data_format == 'channels_last':
@@ -272,7 +296,6 @@ class KlConv2Db(k.layers.Conv2D):
 			                 'should be defined. Found `None`.')
 		input_dim = input_shape[channel_axis]
 		kernel_shape = self.kernel_size + (input_dim, self.filters)
-
 		self.kernel = self.add_weight(shape=kernel_shape,
 		                              initializer=Sigmoid_Init(),
 		                              name='kernel',
@@ -309,8 +332,24 @@ class KlConv2Db(k.layers.Conv2D):
 		e = k.backend.sum(e, 0)
 
 		return e
+	def avg_entropy(self):
+		e = self.ent_per_param()
+		e = k.backend.mean(e, 0)
+		e = k.backend.mean(e, 0)
+		e = k.backend.mean(e, 0)
+		e = k.backend.sum(e, 0)
+		sh = K.int_shape(self.kernel)
+		e = e/np.log(2)
+		return e
+
+	def ent_per_param(self):
+		e1 = k.backend.sigmoid(self.kernel) * k.backend.softplus(-self.kernel)
+		e0 = k.backend.sigmoid(-self.kernel) * k.backend.softplus(self.kernel)
+		return e1 + e0
 
 	def ent_kernel(self):
+		'''Ent Kernel calculates the entropy of each kernel -PlogP
+		note that the - sign is implicit in softplus'''
 		e1 = k.backend.sigmoid(self.kernel)*k.backend.softplus(-self.kernel)
 		e0 = k.backend.sigmoid(-self.kernel)*k.backend.softplus(self.kernel)
 		e = k.backend.sum(e0 + e1, 0, keepdims=True)
@@ -367,7 +406,7 @@ class KlConv2Db(k.layers.Conv2D):
 		                          dilation_rate=self.dilation_rate)
 		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
 
-		return calc_dist(cross_xp_kerlog, cross_xlog_kerp, ent_x, ent_ker)
+		return self.dist_measure(cross_xp_kerlog, cross_xlog_kerp, ent_x, ent_ker)
 
 	def get_config(self):
 		base_config = super(KlConv2Db, self).get_config()
@@ -387,20 +426,5 @@ class KlAveragePooling2D(AveragePooling2D):
 		return output
 
 
-def calc_dist(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker):
-	distance = 0
-	distance += cross_xlog_kerprob
-	#distance += cross_xprob_kerlog
-	#distance += ent_x
-	distance += ent_ker
-	return distance
 
 
-def kl_loss(y_true,y_pred):
-	cr = y_true*y_pred
-	ent_preds = -k.backend.exp(y_pred)*y_pred
-	ent_labels = 0
-	cr = k.backend.sum(cr, axis=[-1])
-	ent_preds = k.backend.sum(ent_preds, axis=[-1])
-	calc_dist(0, cr, ent_preds, 0)
-	return -cr

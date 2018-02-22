@@ -8,6 +8,8 @@ from utils import opt_utils
 from utils.opt_utils import default_opt_creator
 from utils.modelutils.layers.kldivg.initializers import *
 from utils.modelutils.layers.kldivg.regularizers import *
+from utils.modelutils.layers.kldivg.distances import *
+from utils.modelutils.layers.kldivg.kl_models import *
 def Layer_on_list(layer, tensor_list):
     res = []
     tensor_list = node_list_to_list(tensor_list)
@@ -16,63 +18,6 @@ def Layer_on_list(layer, tensor_list):
     return res
 
 # KL Convolutional
-def helloKl(opts, input_shape, nb_classes, getstring_flag=False):
-    # Same Structure as nin besh 1 2 3
-    regklb = None
-    distvec=[]
-    model_string = 'klconvb|f:32,r:5,l2_val:5e-4->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconv|f:64,r:5,l2_val:1e-4->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconv|f:128,r:3,l2_val:1e-4->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconv|f:192,r:1,l2_val:1e-4->lsoft' \
-                   '->klconv|f:' + str(nb_classes) + ',r:1->lsoft' \
-                                                     '->klavgpool|r:3,s:1' \
-                                                     '->flattensh' \
-                                                     '->lsoft->fin'
-    opts['optimizer_opts']['loss']['method'] = kl_loss
-    opts['model_opts']['klopts']['regularization'] = None
-    opts['model_opts']['klopts']['klb_initial'] = Sigmoid_Init
-    opts['model_opts']['klopts']['kl_initial'] = Softmax_Init
-    return get_model_out_dict(opts, model_string=model_string)
-def nin_KL(opts, input_shape, nb_classes, getstring_flag=False):
-    # Same Structure as nin besh 1 2 3
-    model_string = 'klconvb|f:192,r:5->lsoft' \
-                   '->klconv|f:160,r:1->lsoft' \
-                   '->klconv|f:96,r:1->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconv|f:192,r:5->lsoft' \
-                   '->klconv|f:192,r:1->lsoft' \
-                   '->klconv|f:192,r:1->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconv|f:192,r:3->lsoft' \
-                   '->klconv|f:192,r:1->lsoft' \
-                   '->klconv|f:' + str(nb_classes) + ',r:1->lsoft' \
-                                                     '->klavgpool|r:7,s:1' \
-                                                     '->flattensh' \
-                                                     '->lsoft->fin'
-
-    return get_model_out_dict(opts, model_string=model_string)
-def kldeeperv1(opts, input_shape, nb_classes, getstring_flag=False):
-    # Same Structure as nin besh 1 2 3
-    model_string = 'klconvb|f:32,r:5,l2_val:5e-4->lsoft' \
-                   '->klconv|f:64,r:5,l2_val:1e-4->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconv|f:64,r:5,l2_val:1e-4->lsoft' \
-                   '->klconv|f:64,r:5,l2_val:1e-4->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconv|f:128,r:3,l2_val:1e-4->lsoft' \
-                   '->klconv|f:128,r:5,l2_val:1e-4->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconv|f:192,r:1,l2_val:1e-4->lsoft' \
-                   '->klconv|f:192,r:1,l2_val:1e-4->lsoft' \
-                   '->klconv|f:' + str(nb_classes) + ',r:1->lsoft' \
-                                                     '->klavgpool|r:3,s:1' \
-                                                     '->flattensh' \
-                                                     '->lsoft->fin'
-    opts['optimizer_opts']['loss']['method'] = kl_loss
-    return get_model_out_dict(opts, model_string=model_string)
 
 def simplenn_BE(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3

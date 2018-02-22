@@ -25,7 +25,7 @@ def check_model_list(model_list, datasets):
 if __name__ == '__main__':
 	for total_params in [0]:
 		# total_params=1;
-		models = ['helloKl','helloKl']
+		models = ['helloKl_super_small']
 		datasets = ['cifar10','cifar100']
 		experiment_name = get_experiment_name_prompt()
 		check_model_list(models, datasets)
@@ -87,6 +87,7 @@ if __name__ == '__main__':
 						nb_epoch=opts['training_opts']['epoch_nb'],
 						callbacks=callback_list,
 						validation_data=(data_test, label_test))
+					keras.backend.clear_session()
 				except:
 					print(model_str, dataset_str)
 					traceback.print_exc()

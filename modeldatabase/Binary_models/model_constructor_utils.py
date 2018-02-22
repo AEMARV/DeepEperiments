@@ -68,40 +68,69 @@ def model_constructor(opts, model_dict=None):
 				f_size = int(param['r'])
 				use_bias = bool(param['bias'] if 'bias' in param else 1)
 				padding = param['padding'] if 'padding' in param else 'same'
-				activation = param['activation'] if 'activation' in param else None
-				initializion = param['int'] if 'init' in param else 'he_normal'
-				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
-				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
-				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+
+				"""INIT"""
+				init = opts['model_opts']['kl_opts']['kl_initial']
+
+				"""Distance Measure"""
+				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
+
+				"""Weight Encoding"""
+				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
+				"""Regularization"""
+				reg = opts['model_opts']['kl_opts']['convreg']
+				if reg is not None:
+					reg_coef = param['coef'] if 'coef' in param else 1
+					reg = reg(coef=reg_coef)
+					reg.use_link_func = use_link_func
+					reg.link_func = init.linkfunc
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
 				x = Layer_on_list(KlConv2D(filters=int(nb_filter * expand_rate),
 				                           kernel_size=kernel_size,
 				                           padding=padding,
-										   kernel_initializer=initializion,
-										   kernel_regularizer=None,
+										   kernel_initializer=init,
+										   kernel_regularizer=reg,
 										   activation=None,
+				                           use_link_func=use_link_func,
+				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
 										   use_bias=False), x)
 			elif component == 'klconvb':
+
+				"""Generic Setting"""
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
-				use_bias = bool(param['bias'] if 'bias' in param else 1)
 				padding = param['padding'] if 'padding' in param else 'same'
-				activation = param['activation'] if 'activation' in param else None
-				initializion = param['int'] if 'init' in param else 'he_normal'
-				w_reg_l1_val = param['l1_val'] if 'l1_val' in param else 0
-				w_reg_l2_val = param['l2_val'] if 'l2_val' in param else 0
-				w_reg = l1_l2(l1=w_reg_l1_val, l2=w_reg_l2_val)
+
+				"""INIT"""
+				init = opts['model_opts']['kl_opts']['klb_initial']
+
+				"""Distance Measure"""
+				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
+
+				"""Weight Encoding"""
+				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
+
+				"""Regularization"""
+				reg = opts['model_opts']['kl_opts']['convbreg']
+				if reg is not None:
+					reg_coef = param['coef'] if 'coef' in param else 1
+					reg = reg(coef=reg_coef)
+					reg.use_link_func = use_link_func
+					reg.link_func = init.linkfunc
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
 				x = Layer_on_list(KlConv2Db(filters=int(nb_filter * expand_rate),
 				                            kernel_size=kernel_size,
 				                            padding=padding,
-										    kernel_initializer=initializion,
-										    kernel_regularizer=None, activation=None,
+										    kernel_initializer=init,
+										    kernel_regularizer=reg,
+										    activation=None,
 										    name=KL_CONVB_NAME.format(block_index),
+				                            use_link_func=use_link_func,
+				                            dist_measure=dist_measure,
 										    use_bias=False), x)
 			elif component == 'klavgpool':
 				pool_size = int(param['r'])
