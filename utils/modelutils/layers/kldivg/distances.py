@@ -27,6 +27,20 @@ def kl_model_centric(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker):
 	distance += ent_x
 	#distance += ent_ker
 	return distance
+def kl_cross_ent_model_centric(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker):
+	distance = 0
+	#distance += cross_xlog_kerprob
+	distance += cross_xprob_kerlog
+	#distance += ent_x
+	# distance += ent_ker
+	return distance
+def kl_cross_ent_data_centric(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker):
+	distance = 0
+	distance += cross_xlog_kerprob
+	#distance += cross_xprob_kerlog
+	#distance += ent_x
+	# distance += ent_ker
+	return distance
 
 def kl_loss_model_centric(y_true,y_pred):
 	loss = 0
