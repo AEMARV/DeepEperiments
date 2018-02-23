@@ -26,14 +26,10 @@ def check_model_list(model_list, datasets):
 if __name__ == '__main__':
 	for total_params in [0]:
 		# total_params=1;
-		models = ['helloKl',
-		          'helloKl_datacentric',
-		          'helloKl_modelcentric',
-		          'helloKl_both_centric_both_layersandloss',
-		          'helloKl_layers_data_loss_both_centric',
-		          'helloKl_layers_model_loss_both_centric',
-		          'helloKl_layers_data_loss_model',
-		          'helloKl_layers_model_loss_data']
+		models = ['helloKl_layers_cross_data_centric_loss_data',
+				  'helloKl_layers_cross_model_centric_loss_data',
+				  'helloKl_layers_cross_model_centric_loss_model',
+				  'helloKl_layers_cross_data_centric_loss_data']
 		datasets = ['cifar10']
 		experiment_name = get_experiment_name_prompt()
 		check_model_list(models, datasets)
