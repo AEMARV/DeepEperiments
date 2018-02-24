@@ -306,6 +306,33 @@ def helloKl_layers_cross_data_centric_loss_model(opts, input_shape, nb_classes, 
     opts['model_opts']['kl_opts']['dist_measure'] = kl_cross_ent_data_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+# Unit Sphere Models
+def helloK_Jeffreys(opts, input_shape, nb_classes, getstring_flag=False):
+    # Same Structure as nin besh 1 2 3
+    regklb = None
+    distvec=[]
+    model_string = 'klconvbSP|f:32,r:5,l2_val:5e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconv|f:64,r:5,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconv|f:128,r:3,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconv|f:192,r:1,l2_val:1e-4->lsoft' \
+                   '->klconv|f:' + str(nb_classes) + ',r:1->lsoft' \
+                                                     '->klavgpool|r:3,s:1' \
+                                                     '->flattensh' \
+                                                     '->lsoft->fin'
+    use_link_func = True
+    opts['model_opts']['kl_opts'] = {}
+    opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
+    opts['model_opts']['kl_opts']['convbreg'] = None
+    opts['model_opts']['kl_opts']['convreg'] = None
+    opts['model_opts']['kl_opts']['klb_initial'] = Sigmoid_Unit_Sphere_Init(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['kl_initial'] = Unit_Sphere_Init(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
+    opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    return get_model_out_dict(opts, model_string=model_string)
+
 # Others
 def helloKl_super_small(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
