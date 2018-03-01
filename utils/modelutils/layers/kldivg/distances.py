@@ -90,3 +90,23 @@ def kl_loss_both_centric(y_true,y_pred):
 	loss += cross_xlog_mp
 	loss += ent_labels
 	return -loss
+def kl_bregman(y_true,y_pred):
+	loss = 0
+	y_true_cut = K.clip(y_true, K.epsilon(), 1 - K.epsilon())
+	y_true_cut = y_true_cut / K.sum(y_true_cut, axis=[-1], keepdims=True)
+	ent_preds = -K.exp(y_pred) * y_pred
+	ent_preds = K.sum(ent_preds, axis=[-1])
+	ent_labels = -K.log(y_true_cut) * y_true_cut
+	ent_labels = K.sum(ent_labels, axis=[-1])
+	cross_xlog_mp = y_true * y_pred
+	cross_xlog_mp = K.sum(cross_xlog_mp, axis=[-1])
+	cross_xp_mlog = K.exp(y_pred) * K.log(y_true_cut)
+	cross_xp_mlog = K.sum(cross_xp_mlog, axis=[-1])
+
+	#loss += cross_xp_mlog
+	#loss += ent_preds
+	loss += cross_xlog_mp
+	loss -= K.sum(K.exp(y_pred),axis=-1)
+	loss += K.sum(y_true,axis=[-1])
+	#loss += ent_labels
+	return -loss

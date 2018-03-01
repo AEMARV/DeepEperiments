@@ -47,7 +47,7 @@ class KlConv2D(k.layers.Conv2D):
 	             activation=None,
 	             use_bias=False,
 	             kernel_initializer=None,
-	             bias_initializer=None,
+	             bias_initializer='zeros',
 	             kernel_regularizer=None,
 	             bias_regularizer=None,
 	             activity_regularizer=None,
@@ -210,8 +210,208 @@ class KlConv2D(k.layers.Conv2D):
 		                         data_format=self.data_format,
 		                         dilation_rate=self.dilation_rate)
 		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
-		y = self.dist_measure(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker)
-		return y
+		out = self.dist_measure(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker)
+		if self.use_bias:
+			out = K.bias_add(out,self.bias,data_format=self.data_format)
+		return out
+
+class KlConv2D_Breg(k.layers.Conv2D):
+
+	def __init__(self,
+	             filters,
+	             kernel_size,
+	             rank=2,
+	             strides=1,
+	             padding='valid',
+	             data_format=None,
+	             dilation_rate=1,
+	             activation=None,
+	             use_bias=False,
+	             kernel_initializer=None,
+	             bias_initializer='zeros',
+	             kernel_regularizer=None,
+	             bias_regularizer=None,
+	             activity_regularizer=None,
+	             kernel_constraint=None,
+	             bias_constraint=None,
+	             dist_measure=None,
+	             use_link_func=None,
+	             **kwargs):
+		super(KlConv2D_Breg, self).__init__(filters,kernel_size,**kwargs)
+		self.rank = rank
+		self.filters = filters
+		self.kernel_size = conv_utils.normalize_tuple(kernel_size, rank, 'kernel_size')
+		self.strides = conv_utils.normalize_tuple(strides, rank, 'strides')
+		self.padding = conv_utils.normalize_padding(padding)
+		self.data_format = conv_utils.normalize_data_format(data_format)
+		self.dilation_rate = conv_utils.normalize_tuple(dilation_rate, rank, 'dilation_rate')
+		self.activation = activations.get(activation)
+		self.use_bias = False
+		self.kernel_initializer = initializers.get(kernel_initializer)
+		self.bias_initializer = None
+		self.kernel_regularizer = regularizers.get(kernel_regularizer)
+		self.bias_regularizer = None
+		self.activity_regularizer = None
+		self.kernel_constraint = None
+		self.bias_constraint = None
+		self.input_spec = InputSpec(ndim=self.rank + 2)
+		self.dist_measure = dist_measure
+		self.use_link_func = use_link_func
+
+	def build(self, input_shape):
+		if self.data_format == 'channels_first':
+			channel_axis = 1
+		else:
+			channel_axis = -1
+		if input_shape[channel_axis] is None:
+			raise ValueError('The channel dimension of the inputs '
+			                 'should be defined. Found `None`.')
+		input_dim = input_shape[channel_axis]
+		kernel_shape = self.kernel_size + (input_dim, self.filters)
+		self.kernel = self.add_weight(shape=kernel_shape,
+		                              initializer=self.kernel_initializer,
+		                              name='kernel',
+		                              regularizer=self.kernel_regularizer,
+		                              constraint=self.kernel_constraint)
+		self.const_kernel = self.add_weight(shape=kernel_shape,
+		                                    initializer=k.initializers.Ones(),
+		                                    name='const_kernel',
+		                                    constraint=self.kernel_constraint,
+		                                    trainable=False,
+		                                    dtype='float32')
+		if self.use_bias:
+			self.bias = self.add_weight(shape=(self.filters,),
+			                            initializer=self.bias_initializer,
+			                            name='bias',
+			                            regularizer=self.bias_regularizer,
+			                            constraint=self.bias_constraint)
+		else:
+			self.bias = None
+		# Set input spec.
+		self.input_spec = k.engine.InputSpec(ndim=self.rank + 2,
+		                                     axes={channel_axis: input_dim})
+
+
+		self.built = True
+
+	def get_config(self):
+		base_config = super(KlConv2D_Breg, self).get_config()
+		return base_config
+
+	def compute_output_shape(self, input_shape):
+		if self.data_format == 'channels_last':
+			space = input_shape[1:-1]
+			new_space = []
+			for i in range(len(space)):
+				new_dim = conv_utils.conv_output_length(
+					space[i],
+					self.kernel_size[i],
+					padding=self.padding,
+					stride=self.strides[i],
+					dilation=self.dilation_rate[i])
+				new_space.append(new_dim)
+			return (input_shape[0],) + tuple(new_space) + (self.filters,)
+		if self.data_format == 'channels_first':
+			space = input_shape[2:]
+			new_space = []
+			for i in range(len(space)):
+				new_dim = conv_utils.conv_output_length(
+					space[i],
+					self.kernel_size[i],
+					padding=self.padding,
+					stride=self.strides[i],
+					dilation=self.dilation_rate[i])
+				new_space.append(new_dim)
+			return (input_shape[0], self.filters) + tuple(new_space)
+
+	def compute_mask(self, input, input_mask=None):
+		return None
+
+	def normalize_weights(self):
+
+		if not self.use_link_func:
+			nkernel = self.kernel - k.backend.logsumexp(self.kernel,
+			                                                axis=KER_CHAN_DIM,
+			                                                keepdims=True)
+		else:
+			nkernel = self.kernel_initializer.linkfunc(self.kernel)
+		return nkernel
+
+	def entropy(self):
+		ent = self.ent_kernel()
+		ent = k.backend.sum(ent, 0)
+		ent = k.backend.sum(ent, 0)
+		ent = k.backend.sum(ent, 0)
+		ent = k.backend.sum(ent, 0)
+		return ent
+	def avg_entropy(self):
+		e = self.ent_per_param()
+		e = k.backend.mean(e, 0)
+		e = k.backend.mean(e, 0)
+		e = k.backend.sum(e, 0)
+		e = k.backend.sum(e, 0)
+		sh = K.int_shape(self.kernel)
+		cat_num = sh[2]
+
+		e = e/np.log(cat_num)
+		return e
+	def ent_per_param(self):
+		nkernel = self.normalize_weights()
+		e = -nkernel* K.exp(nkernel)
+		return e
+	def ent_kernel(self):
+		nkernel = self.normalize_weights()
+		e = -nkernel * k.backend.exp(nkernel)
+		e = k.backend.sum(e, 0, keepdims=True)
+		e = k.backend.sum(e, 1, keepdims=True)
+		e = k.backend.sum(e, 2, keepdims=True)
+		return e
+
+	def call(self, x, mask=None):
+		nkernel = self.normalize_weights()
+		expnkernel = K.exp(nkernel)
+		xprob = k.backend.exp(x)
+		cross_xprob_kerlog = k.backend.conv2d(xprob,
+		                         nkernel,
+		                         strides=self.strides,
+		                         padding=self.padding,
+		                         data_format=self.data_format,
+		                         dilation_rate=self.dilation_rate)
+		cross_xlog_kerprob = k.backend.conv2d(x,
+		                                      k.backend.exp(nkernel),
+		                                      strides=self.strides,
+		                                      padding=self.padding,
+		                                      data_format=self.data_format,
+		                                      dilation_rate=self.dilation_rate)
+
+		ent_ker = self.ent_kernel()
+		ker_sum = K.sum(expnkernel,axis=2,keepdims=True)
+		ker_sum = K.log(ker_sum)
+		ker_sum = K.sum(ker_sum,axis=0,keepdims=True)
+		ker_sum = K.sum(ker_sum,axis =1,keepdims=True)
+		ker_sum = K.exp(ker_sum)
+		ker_sum = k.backend.permute_dimensions(ker_sum, [0, 3, 1, 2])
+		ent_x = k.backend.conv2d(-xprob*x,
+		                         self.const_kernel,
+		                         strides=self.strides,
+		                         padding=self.padding,
+		                         data_format=self.data_format,
+		                         dilation_rate=self.dilation_rate)
+		data_sum = k.backend.sum(xprob,axis=1,keepdims=True)
+		data_sum = k.backend.log(data_sum)
+		a = self.const_kernel[:,:,0:1,:]
+		data_sum = k.backend.conv2d(data_sum,
+		                         self.const_kernel[:,:,0:1,0:1],
+		                         strides=self.strides,
+		                         padding=self.padding,
+		                         data_format=self.data_format,
+		                         dilation_rate=self.dilation_rate)
+		data_sum = K.exp(data_sum)
+
+		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
+		out = cross_xlog_kerprob + ent_ker + ker_sum - data_sum
+
+		return out
 
 
 class KlConv2Db(k.layers.Conv2D):
@@ -403,7 +603,10 @@ class KlConv2Db(k.layers.Conv2D):
 		                          dilation_rate=self.dilation_rate)
 		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
 
-		return self.dist_measure(cross_xp_kerlog, cross_xlog_kerp, ent_x, ent_ker)
+		out = self.dist_measure(cross_xp_kerlog, cross_xlog_kerp, ent_x, ent_ker)
+		if self.use_bias:
+			out = K.bias_add(out,self.bias,data_format=self.data_format)
+		return out
 
 	def get_config(self):
 		base_config = super(KlConv2Db, self).get_config()
@@ -608,7 +811,9 @@ class KlConv2Db_Sep_Filt(k.layers.Conv2D):
 		                          data_format=self.data_format,
 		                          dilation_rate=self.dilation_rate)
 		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
-
+		out = self.dist_measure(cross_xp_kerlog, cross_xlog_kerp, ent_x, ent_ker)
+		if self.use_bias:
+			out = K.bias_add(out,self.bias,data_format=self.data_format)
 		return self.dist_measure(cross_xp_kerlog, cross_xlog_kerp, ent_x, ent_ker)
 
 	def get_config(self):
