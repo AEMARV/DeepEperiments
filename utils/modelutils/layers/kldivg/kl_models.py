@@ -40,7 +40,7 @@ def helloKl(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['convbreg'] = None
     opts['model_opts']['kl_opts']['convreg'] = None
     opts['model_opts']['kl_opts']['klb_initial'] = Sigmoid_Init(use_link_func=use_link_func)
-    opts['model_opts']['kl_opts']['kl_initial'] = Softmax_Init(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['kl_initial'] = Dirichlet_Init(use_link_func=use_link_func)
     opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
@@ -520,6 +520,61 @@ def helloKlBreg(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['kl_initial'] = Softmax_Init(use_link_func=use_link_func)
     opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    return get_model_out_dict(opts, model_string=model_string)
+def helloKlBreg_UnNorm(opts, input_shape, nb_classes, getstring_flag=False):
+    # Same Structure as nin besh 1 2 3
+    regklb = None
+    distvec=[]
+    model_string = 'klconvbSPbreg|f:32,r:5,l2_val:5e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvbregunnorm|f:64,r:5,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvbregunnorm|f:128,r:3,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvbregunnorm|f:192,r:1,l2_val:1e-4->lsoft' \
+                   '->klconvbregunnorm|f:' + str(nb_classes) + ',r:1->lsoft' \
+                                                     '->klavgpool|r:3,s:1' \
+                                                     '->flattensh' \
+                                                     '->lsoft->fin'
+    use_link_func = False
+    opts['model_opts']['kl_opts'] = {}
+    opts['optimizer_opts']['loss']['method'] = kl_bregman
+    opts['model_opts']['kl_opts']['convbreg'] = None
+    opts['model_opts']['kl_opts']['convreg'] = None
+    opts['model_opts']['kl_opts']['klb_initial'] = Exp_Init(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['kl_initial'] = Exp_Init_Norm(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
+    opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    ## Optimizer Opts
+    opts['optimizer_opts']['momentum'] = 0.9
+    return get_model_out_dict(opts, model_string=model_string)
+# Concentrated KL divg
+def helloKl_Concentrated(opts, input_shape, nb_classes, getstring_flag=False):
+    # Same Structure as nin besh 1 2 3
+    regklb = None
+    distvec=[]
+    model_string = 'klconvbconc|f:32,r:5,l2_val:5e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvconc|f:64,r:5,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvconc|f:128,r:3,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvconc|f:192,r:1,l2_val:1e-4->lsoft' \
+                   '->klconvconc|f:' + str(nb_classes) + ',r:1->lsoft' \
+                                                     '->klavgpool|r:3,s:1' \
+                                                     '->flattensh' \
+                                                     '->lsoft->fin'
+    use_link_func = False
+    opts['model_opts']['kl_opts'] = {}
+    opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
+    opts['model_opts']['kl_opts']['convbreg'] = None
+    opts['model_opts']['kl_opts']['convreg'] = None
+    opts['model_opts']['kl_opts']['klb_initial'] =Sigmoid_Init(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['kl_initial'] = Dirichlet_Init(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
+    opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    ## Optimizer Opts
+    opts['optimizer_opts']['momentum'] = 0.9
     return get_model_out_dict(opts, model_string=model_string)
 # NIN Variants
 def nin_KL(opts, input_shape, nb_classes, getstring_flag=False):
