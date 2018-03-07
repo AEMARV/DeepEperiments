@@ -43,7 +43,7 @@ class TensorboardVisualizer(Callback):
 					if isinstance(layer, KlConv2D):
 						scalar_summary_list +=[tf.summary.scalar(name='Entropy_{}'.format(layer.name),
 						                                         tensor=layer.avg_entropy())]
-					elif isinstance(layer, KlConv2Db):
+					elif isinstance(layer, KlConvBin2D):
 						scalar_summary_list += [tf.summary.scalar(name='Entropy_{}'.format(layer.name),
 						                                          tensor=layer.avg_entropy())]
 					mapped_weight_name = weight.name.replace(':', '_')

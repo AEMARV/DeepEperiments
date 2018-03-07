@@ -28,6 +28,7 @@ class Sigmoid_Init(Initializer):
 	def get_log_normalizer(self,x):
 		return x*0
 
+
 class Dirichlet_Init(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
@@ -54,6 +55,8 @@ class Dirichlet_Init(Initializer):
 		return K.sum(K.abs(x), axis=2, keepdims=True)
 	def get_log_normalizer(self,x):
 		return K.log(K.sum(K.abs(x), axis=2, keepdims=True))
+
+
 class Dirichlet_Init_Bin(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
@@ -64,8 +67,6 @@ class Dirichlet_Init_Bin(Initializer):
 	def __call__(self, shape, dtype=None):
 		out = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
 		out = np.log(out)
-		if not self.use_link_func:
-			raise Exception('Logit Init not using link function')
 		return out
 
 	def get_log_prob(self, x0,x1):
@@ -84,10 +85,11 @@ class Dirichlet_Init_Bin(Initializer):
 
 	def get_log_normalizer(self,x0,x1):
 		return K.log(K.abs(x0)+K.abs(x1))
+
 	def get_normalizer(self,x0,x1):
 		return K.abs(x0)+K.abs(x1)
 
-
+# Unit Sphere -- Jeffreis prior
 class Unit_Sphere_Init(Initializer):
 	def __init__(self, use_link_func=False):
 		self.use_link_func = use_link_func
@@ -121,14 +123,16 @@ class Unit_Sphere_Init(Initializer):
 		y = x**2
 		normalizer = K.sum(y, axis=2, keepdims=True)
 		return normalizer
-class Unit_Sphere_Init_Logit(Initializer):
+
+
+class Unit_Sphere_Init_Bin(Initializer):
 	def __init__(self, use_link_func=False):
 		self.use_link_func = use_link_func
 
 	def __call__(self, shape, dtype=None):
 		out = np.random.normal(loc=0, scale=1, size=shape)
 		if not self.use_link_func:
-			raise Exception('Logit INIT not using Link Function')
+			out = out**2
 
 		return out
 	def get_log_prob(self,x0,x1):
@@ -142,9 +146,7 @@ class Unit_Sphere_Init_Logit(Initializer):
 		norm = x0**2 + x1**2
 		y0 = x0**2/norm
 		y1 = x1**2/norm
-		logprob0 = K.log(y0)
-		logprob1 = K.log(y1)
-		return logprob0, logprob1
+		return y0, y1
 	def get_log_normalizer(self,x0,x1):
 		norm = x0**2 + x1**2
 		return K.log(norm)
@@ -153,6 +155,31 @@ class Unit_Sphere_Init_Logit(Initializer):
 		return norm
 
 
+class Unit_Sphere_Init_Logit(Initializer):
+	def __init__(self, use_link_func=False):
+		self.use_link_func = use_link_func
+
+	def __call__(self, shape, dtype=None):
+		out0 = np.random.normal(loc=0, scale=1, size=shape)
+		out1 = np.random.normal(loc=0, scale=1, size=shape)
+		out = np.log(out0**2) - np.log(out1**2)
+
+		return out
+	def get_log_prob(self,diff):
+		logprob0 = -K.softplus(diff)
+		logprob1 = -K.softplus(-diff)
+		return logprob0, logprob1
+	def get_prob(self,diff):
+		prob0 = K.sigmoid(-diff)
+		prob1 = K.sigmoid(diff)
+		return prob0,prob1
+	def get_log_normalizer(self,diff):
+
+		return diff*0
+	def get_normalizer(self,diff):
+		return diff*0 + 1
+
+# Exponential init
 class Exp_Init(Initializer):
 	def __init__(self, use_link_func=False):
 		self.use_link_func = use_link_func
@@ -177,15 +204,15 @@ class Exp_Init(Initializer):
 	def get_normalizer(self,x):
 		normalizer = K.logsumexp(x, axis=2, keepdims=True)
 		return K.exp(normalizer)
-class Exp_Init_Logit(Initializer):
+
+
+class Exp_Init_Bin(Initializer):
 	def __init__(self, use_link_func=False):
 		self.use_link_func = use_link_func
 
 	def __call__(self, shape, dtype=None):
 		out_unif = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
 		out = np.log(out_unif)
-		if not self.use_link_func:
-			out = out - K.logsumexp(out, axis=2, keepdims=True)
 		return out
 	def get_log_prob(self,x0,x1):
 

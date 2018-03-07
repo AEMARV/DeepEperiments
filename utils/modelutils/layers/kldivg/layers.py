@@ -34,7 +34,7 @@ class LogSoftmax(Layer):
 	def get_config(self):
 		base_config = super(LogSoftmax, self).get_config()
 		return dict(list(base_config.items()))
-#TODO in normalizers please fix the permute thingy
+
 
 # Interface Class
 class _KlConv2D(k.layers.Conv2D):
@@ -175,6 +175,7 @@ class _KlConv2D(k.layers.Conv2D):
 		norm = K.sum(norm,axis=0,keepdims=True)
 		norm = K.sum(norm, axis=1, keepdims=True)
 		norm = K.sum(norm, axis=2, keepdims=True)
+		norm = k.backend.permute_dimensions(norm, [0, 3, 1, 2])
 		return K.exp(norm)
 
 	def get_log_normalizer(self):
@@ -187,6 +188,7 @@ class _KlConv2D(k.layers.Conv2D):
 		norm = K.sum(norm, axis=0, keepdims=True)
 		norm = K.sum(norm, axis=1, keepdims=True)
 		norm = K.sum(norm, axis=2, keepdims=True)
+		norm = k.backend.permute_dimensions(norm, [0, 3, 1, 2])
 		return norm
 
 	def get_bias(self):
@@ -239,7 +241,6 @@ class _KlConv2D(k.layers.Conv2D):
 		                                      data_format=self.data_format,
 		                                      dilation_rate=self.dilation_rate)
 		ent_ker = self.ent_kernel()
-		ent_ker = k.backend.permute_dimensions(ent_ker, [0, 3, 1, 2])
 		return cross_xlog_kerprob + ent_ker
 	def kl_xp_kl(self,xl):
 		lkernel = self.get_log_kernel()
@@ -368,8 +369,11 @@ class _KlConvLogit2D(k.layers.Conv2D):
 
 	# Weight Retrieval
 	def get_log_kernel(self):
-		kernel0 = -K.softplus(self.kernel)
-		kernel1 = -K.softplus(-self.kernel)
+		if not self.use_link_func:
+			kernel0 = -K.softplus(self.kernel)
+			kernel1 = -K.softplus(-self.kernel)
+		else:
+			kernel0,kernel1 = self.kernel_initializer.get_log_prob(self.kernel)
 		return kernel0, kernel1
 
 	def get_prob_kernel(self):
@@ -391,6 +395,7 @@ class _KlConvLogit2D(k.layers.Conv2D):
 		z = K.sum(z, axis=0, keepdims=True)
 		z = K.sum(z, axis=1, keepdims=True)
 		z = K.sum(z, axis=2, keepdims=True)
+		z = k.backend.permute_dimensions(z, [0, 3, 1, 2])
 		return K.exp(z)
 
 	def get_log_normalizer(self):
@@ -402,6 +407,7 @@ class _KlConvLogit2D(k.layers.Conv2D):
 		z = K.sum(z, axis=0, keepdims=True)
 		z = K.sum(z, axis=1, keepdims=True)
 		z = K.sum(z, axis=2, keepdims=True)
+		z = k.backend.permute_dimensions(z, [0, 3, 1, 2])
 		return z
 
 	# Entropy Retrieval
@@ -615,7 +621,7 @@ class _KlConvBin2D(k.layers.Conv2D):
 			nkernel0 = -K.softplus(self.kernel1 - self.kernel0)
 			nkernel1 = -K.softplus(self.kernel0 - self.kernel1)
 		else:
-			nkernel0,nkernel1 = self.kernel_initializer.get_log_prob(self.kernel0,self.kernel1)
+			nkernel0,nkernel1 = self.kernel_initializer.get_log_prob(self.kernel0, self.kernel1)
 
 		return nkernel0, nkernel1
 
@@ -624,7 +630,7 @@ class _KlConvBin2D(k.layers.Conv2D):
 			nkernel0 = K.sigmoid(self.kernel0 - self.kernel1)
 			nkernel1 = K.sigmoid(self.kernel1 - self.kernel0)
 		else:
-			nkernel0,nkernel1 = self.kernel_initializer.get_prob(self.kernel0,self.kernel1)
+			nkernel0,nkernel1 = self.kernel_initializer.get_prob(self.kernel0, self.kernel1)
 
 		return nkernel0, nkernel1
 
@@ -642,6 +648,7 @@ class _KlConvBin2D(k.layers.Conv2D):
 		z = K.sum(z, axis=0, keepdims=True)
 		z = K.sum(z, axis=1, keepdims=True)
 		z = K.sum(z, axis=2, keepdims=True)
+		z = k.backend.permute_dimensions(z, [0, 3, 1, 2])
 		return K.exp(z)
 
 	def get_log_normalizer(self):
@@ -653,6 +660,7 @@ class _KlConvBin2D(k.layers.Conv2D):
 		z = K.sum(z, axis=0, keepdims=True)
 		z = K.sum(z, axis=1, keepdims=True)
 		z = K.sum(z, axis=2, keepdims=True)
+		z = k.backend.permute_dimensions(z, [0, 3, 1, 2])
 		return z
 
 	# Entropy
@@ -671,7 +679,6 @@ class _KlConvBin2D(k.layers.Conv2D):
 		e = k.backend.mean(e, 0)
 		e = k.backend.mean(e, 0)
 		e = k.backend.sum(e, 0)
-		sh = K.int_shape(self.kernel)
 		e = e/np.log(2)
 		return e
 
@@ -797,19 +804,19 @@ class KlConv2D(_KlConv2D):
 		return out
 
 
-class KlConv2Db(_KlConvLogit2D):
+class KlConvLogit2D(_KlConvLogit2D):
 
 	def __init__(self,
 				 filters,
 				 kernel_size,
 				 **kwargs):
-		super(KlConv2Db, self).__init__(
+		super(KlConvLogit2D, self).__init__(
 			filters=filters,
 			kernel_size=kernel_size,
 			**kwargs)
 
 	def get_config(self):
-		base_config = super(KlConv2Db, self).get_config()
+		base_config = super(KlConvLogit2D, self).get_config()
 		return base_config
 
 	def call(self, x, mask=None):
@@ -927,7 +934,7 @@ class KlConvBin2D(_KlConvBin2D):
 
 		out = self.dist_measure(cross_xp_kerlog, cross_xlog_kerp, ent_x, ent_ker)
 		if self.use_bias:
-			out = K.bias_add(out,self.bias,data_format=self.data_format)
+			out = K.bias_add(out, self.bias, data_format=self.data_format)
 		return out
 
 	def get_config(self):
@@ -1055,108 +1062,43 @@ class KlConv2Db_Concentrated(_KlConvLogit2D):
 
 
 # Unnormalized
-class KlConv2D_Un_Norm(_KlConv2D):
+class KlConv2D_Unnorm(_KlConv2D):
 
 	def __init__(self,
 				 filters,
 				 kernel_size,
 				 **kwargs):
-		super(KlConv2D_Un_Norm, self).__init__(
+		super(KlConv2D_Unnorm, self).__init__(
 			filters=filters,
 			kernel_size=kernel_size,
 			**kwargs)
 
-	def get_config(self):
-		base_config = super(KlConv2D_Breg_Un_Norm, self).get_config()
-		return base_config
-
 	def call(self, x, mask=None):
-		KLD =self.kl_xl_kp(x)
-		normalizer = self.get_normalizer()*KLD
-
+		KLD = self.kl_xl_kp(x)
+		KLDI = self.kl_xp_kl(x)
+		kernel_norm = self.get_normalizer()
+		out = KLDI/kernel_norm
+		if self.use_bias:
+			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
 		return out
-class KlConv2D_Un_Norm(_KlConv2D):
+class KlConv2D_Unnorm_Bin(_KlConvBin2D):
 
 	def __init__(self,
 				 filters,
 				 kernel_size,
 				 **kwargs):
-		super(KlConv2D_Un_Norm, self).__init__(
+		super(KlConv2D_Unnorm_Bin, self).__init__(
 			filters=filters,
 			kernel_size=kernel_size,
 			**kwargs)
 
-	def get_config(self):
-		base_config = super(KlConv2D_Breg_Un_Norm, self).get_config()
-		return base_config
-
-
-	def get_normalizer(self):
-
-		if not self.use_link_func:
-			z = K.logsumexp(self.kernel, axis=2, keepdims=True)
-		else:
-			z = self.kernel_initializer.get_log_normalizer(self.kernel)
-		z = K.sum(z, axis=0, keepdims=True)
-		z = K.sum(z, axis=1, keepdims=True)
-		return K.exp(z)
-	def get_log_normalizer(self):
-
-		if not self.use_link_func:
-			z = K.logsumexp(self.kernel, axis=2, keepdims=True)
-		else:
-			z = self.kernel_initializer.get_log_normalizer(self.kernel)
-		z = K.sum(z, axis=0, keepdims=True)
-		z = K.sum(z, axis=1, keepdims=True)
-		return z
-
 	def call(self, x, mask=None):
-		nkernel = self.get_log_kernel()
-		normalizer = self.get_normalizer()
-		expnkernel = K.exp(nkernel)
-		xprob = k.backend.exp(x)
-		cross_xprob_kerlog = k.backend.conv2d(xprob,
-											  nkernel,
-											  strides=self.strides,
-											  padding=self.padding,
-											  data_format=self.data_format,
-											  dilation_rate=self.dilation_rate)
-		cross_xlog_kerprob = k.backend.conv2d(x,
-											  k.backend.exp(nkernel),
-											  strides=self.strides,
-											  padding=self.padding,
-											  data_format=self.data_format,
-											  dilation_rate=self.dilation_rate)
-
-		ent_ker = self.ent_kernel()
-		ker_sum = K.sum(expnkernel, axis=2, keepdims=True)
-		ker_sum = K.log(ker_sum)
-		ker_sum = K.sum(ker_sum, axis=0, keepdims=True)
-		ker_sum = K.sum(ker_sum, axis=1, keepdims=True)
-		ker_sum = K.exp(ker_sum)
-		ker_sum = k.backend.permute_dimensions(ker_sum, [0, 3, 1, 2])
-		ent_x = k.backend.conv2d(-xprob * x,
-								 self.const_kernel,
-								 strides=self.strides,
-								 padding=self.padding,
-								 data_format=self.data_format,
-								 dilation_rate=self.dilation_rate)
-		data_sum = k.backend.sum(xprob, axis=1, keepdims=True)
-		data_sum = k.backend.log(data_sum)
-		a = self.const_kernel[:, :, 0:1, :]
-		data_sum = k.backend.conv2d(data_sum,
-									self.const_kernel[:, :, 0:1, 0:1],
-									strides=self.strides,
-									padding=self.padding,
-									data_format=self.data_format,
-									dilation_rate=self.dilation_rate)
-		data_sum = K.exp(data_sum)
-
-
-		normalizer = k.backend.permute_dimensions(normalizer, [0, 3, 1, 2])
-		out = (cross_xlog_kerprob + ent_ker)*normalizer# +ker_sum - data_sum
-
-
+		KLD = self.kl_xl_kp(x)
+		KLDI = self.kl_xp_kl(x)
+		kernel_norm = self.get_normalizer()
+		out = KLDI/kernel_norm
+		if self.use_bias:
+			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
 		return out
 
 # Bregman
@@ -1330,27 +1272,6 @@ class KlConv2D_Breg_Un_Norm(_KlConv2D):
 	def get_config(self):
 		base_config = super(KlConv2D_Breg_Un_Norm, self).get_config()
 		return base_config
-
-	def get_normalizer(self):
-		if not self.use_link_func:
-
-			z = K.logsumexp(self.kernel, axis=2,keepdims=True)
-		else:
-			z = self.kernel_initializer.get_log_normalizer(self.kernel)
-		z = K.sum(z, axis=0, keepdims=True)
-		z = K.sum(z, axis=1, keepdims=True)
-		z = K.exp(z)
-		return z
-
-	def get_log_normalizer(self):
-		if not self.use_link_func:
-
-			z = K.logsumexp(self.kernel, axis=2,keepdims=True)
-		else:
-			z = self.kernel_initializer.get_log_normalizer(self.kernel)
-		z = K.sum(z, axis=0, keepdims=True)
-		z = K.sum(z, axis=1, keepdims=True)
-		return z
 
 	def call(self, x, mask=None):
 		nkernel = self.get_log_kernel()

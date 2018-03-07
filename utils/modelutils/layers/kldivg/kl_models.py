@@ -39,11 +39,38 @@ def helloKl(opts, input_shape, nb_classes, getstring_flag=False):
     opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
     opts['model_opts']['kl_opts']['convbreg'] = None
     opts['model_opts']['kl_opts']['convreg'] = None
-    opts['model_opts']['kl_opts']['klb_initial'] = Sigmoid_Init(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['klb_initial'] = Dirichlet_Init_Bin(use_link_func=use_link_func)
     opts['model_opts']['kl_opts']['kl_initial'] = Dirichlet_Init(use_link_func=use_link_func)
     opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
+def helloKl_LinkFunc_Spherical(opts, input_shape, nb_classes, getstring_flag=False):
+    # Same Structure as nin besh 1 2 3
+    regklb = None
+    distvec=[]
+    model_string = 'klconvb|f:32,r:5,l2_val:5e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconv|f:64,r:5,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconv|f:128,r:3,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconv|f:192,r:1,l2_val:1e-4->lsoft' \
+                   '->klconv|f:' + str(nb_classes) + ',r:1->lsoft' \
+                                                     '->klavgpool|r:3,s:1' \
+                                                     '->flattensh' \
+                                                     '->lsoft->fin'
+    use_link_func = True
+    opts['model_opts']['kl_opts'] = {}
+    opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
+    opts['model_opts']['kl_opts']['convbreg'] = None
+    opts['model_opts']['kl_opts']['convreg'] = None
+    opts['model_opts']['kl_opts']['klb_initial'] = Unit_Sphere_Init_Bin(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['kl_initial'] = Unit_Sphere_Init(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
+    opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    return get_model_out_dict(opts, model_string=model_string)
+
 # Loss and KL assymetry experiments
 def helloKl_datacentric(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
@@ -70,6 +97,7 @@ def helloKl_datacentric(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['dist_measure'] = kl_data_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_modelcentric(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -95,6 +123,7 @@ def helloKl_modelcentric(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['dist_measure'] = kl_model_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_both_centric_both_layersandloss(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -120,6 +149,7 @@ def helloKl_both_centric_both_layersandloss(opts, input_shape, nb_classes, getst
     opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_layers_data_loss_both_centric(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -145,6 +175,7 @@ def helloKl_layers_data_loss_both_centric(opts, input_shape, nb_classes, getstri
     opts['model_opts']['kl_opts']['dist_measure'] = kl_data_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_layers_model_loss_both_centric(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -170,6 +201,7 @@ def helloKl_layers_model_loss_both_centric(opts, input_shape, nb_classes, getstr
     opts['model_opts']['kl_opts']['dist_measure'] = kl_model_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_layers_data_loss_model(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -195,6 +227,7 @@ def helloKl_layers_data_loss_model(opts, input_shape, nb_classes, getstring_flag
     opts['model_opts']['kl_opts']['dist_measure'] = kl_data_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_layers_model_loss_data(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -220,6 +253,7 @@ def helloKl_layers_model_loss_data(opts, input_shape, nb_classes, getstring_flag
     opts['model_opts']['kl_opts']['dist_measure'] = kl_data_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 #Cross Entropy Models
 def helloKl_layers_cross_model_centric_loss_data(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
@@ -246,6 +280,7 @@ def helloKl_layers_cross_model_centric_loss_data(opts, input_shape, nb_classes, 
     opts['model_opts']['kl_opts']['dist_measure'] = kl_cross_ent_model_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_layers_cross_data_centric_loss_data(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -271,6 +306,7 @@ def helloKl_layers_cross_data_centric_loss_data(opts, input_shape, nb_classes, g
     opts['model_opts']['kl_opts']['dist_measure'] = kl_cross_ent_data_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_layers_cross_model_centric_loss_model(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -296,6 +332,7 @@ def helloKl_layers_cross_model_centric_loss_model(opts, input_shape, nb_classes,
     opts['model_opts']['kl_opts']['dist_measure'] = kl_cross_ent_model_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_layers_cross_data_centric_loss_model(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -347,6 +384,7 @@ def helloK_Jeffreys(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloK_Jeffreys_data_centric_dist(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -373,7 +411,32 @@ def helloK_Jeffreys_data_centric_dist(opts, input_shape, nb_classes, getstring_f
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
 
-
+# Unnormalized
+def helloKl_UnNorm_Spherical(opts, input_shape, nb_classes, getstring_flag=False):
+    # Same Structure as nin besh 1 2 3
+    regklb = None
+    distvec=[]
+    model_string = 'klconvbu|f:32,r:5,l2_val:5e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvu|f:64,r:5,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvu|f:128,r:3,l2_val:1e-4->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvu|f:192,r:1,l2_val:1e-4->lsoft' \
+                   '->klconvu|f:' + str(nb_classes) + ',r:1->lsoft' \
+                                                     '->klavgpool|r:3,s:1' \
+                                                     '->flattensh' \
+                                                     '->lsoft->fin'
+    use_link_func = True
+    opts['model_opts']['kl_opts'] = {}
+    opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
+    opts['model_opts']['kl_opts']['convbreg'] = None
+    opts['model_opts']['kl_opts']['convreg'] = None
+    opts['model_opts']['kl_opts']['klb_initial'] = Unit_Sphere_Init_Bin(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['kl_initial'] = Unit_Sphere_Init(use_link_func=use_link_func)
+    opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
+    opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    return get_model_out_dict(opts, model_string=model_string)
 # Others
 def helloKl_super_small(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
@@ -399,6 +462,7 @@ def helloKl_super_small(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['dist_measure'] = kl_v3
     opts['model_opts']['kl_opts']['use_link_func'] = True
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_reg(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -423,6 +487,7 @@ def helloKl_reg(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['dist_measure'] = kl_v3
     opts['model_opts']['kl_opts']['use_link_func'] = True
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_inc_firstlay(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -447,6 +512,7 @@ def helloKl_inc_firstlay(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['dist_measure'] = kl_v1
     opts['model_opts']['kl_opts']['use_link_func'] = True
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_regv1(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -471,6 +537,7 @@ def helloKl_regv1(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['dist_measure'] = kl_v1
     opts['model_opts']['kl_opts']['use_link_func'] = True
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKl_DistKerfromX_NoReg(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -495,6 +562,7 @@ def helloKl_DistKerfromX_NoReg(opts, input_shape, nb_classes, getstring_flag=Fal
     opts['model_opts']['kl_opts']['dist_measure'] = kl_v1
     opts['model_opts']['kl_opts']['use_link_func'] = True
     return get_model_out_dict(opts, model_string=model_string)
+
 # Bregman KL divg
 def helloKlBreg(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
@@ -521,6 +589,7 @@ def helloKlBreg(opts, input_shape, nb_classes, getstring_flag=False):
     opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     return get_model_out_dict(opts, model_string=model_string)
+
 def helloKlBreg_UnNorm(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
     regklb = None
@@ -548,6 +617,7 @@ def helloKlBreg_UnNorm(opts, input_shape, nb_classes, getstring_flag=False):
     ## Optimizer Opts
     opts['optimizer_opts']['momentum'] = 0.9
     return get_model_out_dict(opts, model_string=model_string)
+
 # Concentrated KL divg
 def helloKl_Concentrated(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
@@ -576,6 +646,7 @@ def helloKl_Concentrated(opts, input_shape, nb_classes, getstring_flag=False):
     ## Optimizer Opts
     opts['optimizer_opts']['momentum'] = 0.9
     return get_model_out_dict(opts, model_string=model_string)
+
 # NIN Variants
 def nin_KL(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
@@ -595,6 +666,7 @@ def nin_KL(opts, input_shape, nb_classes, getstring_flag=False):
                                                      '->lsoft->fin'
 
     return get_model_out_dict(opts, model_string=model_string)
+
 # Deep Models
 def kldeeperv1(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
