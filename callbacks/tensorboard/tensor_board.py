@@ -39,13 +39,22 @@ class TensorboardVisualizer(Callback):
 		filter_num_to_show_max = 256
 		if self.histogram_freq and self.merged is None:
 			for layer in self.model.layers:
+				if isinstance(layer, KlConv2DInterface):
+					scalar_summary_list += [tf.summary.scalar(name='Entropy_{}'.format(layer.name),
+					                                          tensor=layer.avg_entropy())]
+					scalar_summary_list += [tf.summary.scalar(name='Bias_Entropy_{}'.format(layer.name),
+					                                          tensor=layer.bias_entropy())]
+					scalar_summary_list += [tf.summary.scalar(name='Avg_Conc{}'.format(layer.name),
+					                                          tensor=layer.avg_concentration())]
+				elif isinstance(layer, KlConvBin2DInterface):
+					scalar_summary_list += [tf.summary.scalar(name='Entropy_{}'.format(layer.name),
+					                                          tensor=layer.avg_entropy())]
+					scalar_summary_list += [tf.summary.scalar(name='Bias_Entropy_{}'.format(layer.name),
+					                                          tensor=layer.bias_entropy())]
+					scalar_summary_list += [tf.summary.scalar(name='Avg_Conc{}'.format(layer.name),
+					                                          tensor=layer.avg_concentration())]
 				for weight in layer.trainable_weights:
-					if isinstance(layer, KlConv2D):
-						scalar_summary_list +=[tf.summary.scalar(name='Entropy_{}'.format(layer.name),
-						                                         tensor=layer.avg_entropy())]
-					elif isinstance(layer, KlConvBin2D):
-						scalar_summary_list += [tf.summary.scalar(name='Entropy_{}'.format(layer.name),
-						                                          tensor=layer.avg_entropy())]
+
 					mapped_weight_name = weight.name.replace(':', '_')
 					tf.summary.histogram(mapped_weight_name, weight)
 					if self.write_grads:

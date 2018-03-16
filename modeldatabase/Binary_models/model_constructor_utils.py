@@ -63,12 +63,14 @@ def model_constructor(opts, model_dict=None):
 
 			elif component == 'lsoft':
 				x = Layer_on_list(LogSoftmax(), x)
+			elif component == 'normlog':
+				x = Layer_on_list(NormalizeLog(), x)
 			# Normalized KL CONVS
 			elif component == 'klconv':
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
-				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
 				padding = param['padding'] if 'padding' in param else 'same'
 
 				"""INIT"""
@@ -97,7 +99,7 @@ def model_constructor(opts, model_dict=None):
 				                           use_link_func=use_link_func,
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
-										   use_bias=True), x)
+										   use_bias=use_bias), x)
 			elif component == 'klconvl':
 
 				"""Generic Setting"""
@@ -105,7 +107,7 @@ def model_constructor(opts, model_dict=None):
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
 				padding = param['padding'] if 'padding' in param else 'same'
-
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
 				"""INIT"""
 				init = opts['model_opts']['kl_opts']['klb_initial']
 
@@ -133,13 +135,14 @@ def model_constructor(opts, model_dict=None):
 										    name=KL_CONVB_NAME.format(block_index),
 				                            use_link_func=use_link_func,
 				                            dist_measure=dist_measure,
-										    use_bias=True), x)
+										    use_bias=use_bias), x)
 			elif component == 'klconvb':
 
 				"""Generic Setting"""
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
 				padding = param['padding'] if 'padding' in param else 'same'
 
 				"""INIT"""
@@ -169,14 +172,14 @@ def model_constructor(opts, model_dict=None):
 										    name=KL_CONVB_NAME.format(block_index),
 				                            use_link_func=use_link_func,
 				                            dist_measure=dist_measure,
-										    use_bias=True), x)
+										    use_bias=use_bias), x)
 			# Unnormalized KL Conv
 			elif component == 'klconvu':
 				# TODO fix this block, nothing changed here
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
-				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
 				padding = param['padding'] if 'padding' in param else 'same'
 
 				"""INIT"""
@@ -205,13 +208,13 @@ def model_constructor(opts, model_dict=None):
 				                           use_link_func=use_link_func,
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
-										   use_bias=True), x)
+										   use_bias=use_bias), x)
 			elif component == 'klconvbu':
 				# TODO fix this block, nothing changed here
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
-				use_bias = bool(param['bias'] if 'bias' in param else 1)
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
 				padding = param['padding'] if 'padding' in param else 'same'
 
 				"""INIT"""
@@ -224,6 +227,7 @@ def model_constructor(opts, model_dict=None):
 				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
 				"""Regularization"""
 				reg = opts['model_opts']['kl_opts']['convbreg']
+
 				if reg is not None:
 					reg_coef = param['coef'] if 'coef' in param else 1
 					reg = reg(coef=reg_coef)
@@ -240,11 +244,9 @@ def model_constructor(opts, model_dict=None):
 				                           use_link_func=use_link_func,
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
-										   use_bias=True), x)
-			# Kl Conv with Concentration Parametrization
-			elif component == 'klconvconc':
-
-				# KL conv with Concentration
+										   use_bias=use_bias), x)
+			# Double Lobed
+			elif component == 'klconvlobed':
 				block_index += 1
 				nb_filter = int(param['f'])
 				f_size = int(param['r'])
@@ -268,6 +270,125 @@ def model_constructor(opts, model_dict=None):
 					reg.link_func = init.linkfunc
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
+				layer1 = KlConvLobed2D(filters=int(nb_filter * expand_rate),
+				                           kernel_size=kernel_size,
+				                           padding=padding,
+										   kernel_initializer=init,
+										   kernel_regularizer=reg,
+										   activation=None,
+				                           use_link_func=use_link_func,
+				                           dist_measure=dist_measure,
+										   name=KL_CONV_NAME.format(block_index)+'emp',
+										   use_bias=True)
+				layer2 = KlConvLobed2D(filters=int(nb_filter * expand_rate),
+				                      kernel_size=kernel_size,
+				                      padding=padding,
+				                      kernel_initializer=init,
+				                      kernel_regularizer=reg,
+				                      activation=None,
+				                      use_link_func=use_link_func,
+				                      dist_measure=dist_measure,
+				                      name=KL_CONV_NAME.format(block_index)+'igo',
+				                      use_bias=True)
+				res =[]
+				layer1.get_empathic()
+				res += [layer1(x[0])]
+				layer1.get_igo_centric()
+				res += [layer1(x[0])]
+				x = res
+			elif component == 'klconvlobedb':
+
+				"""Generic Setting"""
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				padding = param['padding'] if 'padding' in param else 'same'
+
+				"""INIT"""
+				init = opts['model_opts']['kl_opts']['klb_initial']
+
+				"""Distance Measure"""
+				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
+
+				"""Weight Encoding"""
+				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
+
+				"""Regularization"""
+				reg = opts['model_opts']['kl_opts']['convbreg']
+				if reg is not None:
+					reg_coef = param['coef'] if 'coef' in param else 1
+					reg = reg(coef=reg_coef)
+					reg.use_link_func = use_link_func
+					reg.link_func = init.linkfunc
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				layer1 = KlConvLobedBin2D(filters=int(nb_filter * expand_rate),
+				                            kernel_size=kernel_size,
+				                            padding=padding,
+										    kernel_initializer=init,
+										    kernel_regularizer=reg,
+										    activation=None,
+										    name=KL_CONVB_NAME.format(block_index)+'emp',
+				                            use_link_func=use_link_func,
+				                            dist_measure=dist_measure,
+										    use_bias=True)
+				layer2 = KlConvLobedBin2D(filters=int(nb_filter * expand_rate),
+				                         kernel_size=kernel_size,
+				                         padding=padding,
+				                         kernel_initializer=init,
+				                         kernel_regularizer=reg,
+				                         activation=None,
+				                         name=KL_CONVB_NAME.format(block_index)+'igo',
+				                         use_link_func=use_link_func,
+				                         dist_measure=dist_measure,
+				                         use_bias=True)
+				layer1.get_empathic()
+				res= []
+				res+= [layer1(x[0])]
+				layer1.get_igo_centric()
+				res+= [layer1(x[0])]
+				x = res
+			elif component == 'sumkl':
+				x = node_list_to_list(x)
+				if not x.__len__() == 1:
+					x = [add(x)]
+				else:
+					warnings.warn('tensor list has one element, Merge Branch is not needed')
+			elif component == 'avgkl':
+				x = node_list_to_list(x)
+				if not x.__len__() == 1:
+					layer = AvgLobeProb()
+					x = [layer(x)]
+				else:
+					warnings.warn('tensor list has one element, Merge Branch is not needed')
+			# Kl Conv with Concentration Parametrization
+			elif component == 'klconvconc':
+
+				# KL conv with Concentration
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
+				padding = param['padding'] if 'padding' in param else 'same'
+
+				"""INIT"""
+				init = opts['model_opts']['kl_opts']['kl_initial']
+
+				"""Distance Measure"""
+				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
+
+				"""Weight Encoding"""
+				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
+				"""Regularization"""
+				reg = opts['model_opts']['kl_opts']['convreg']
+				bias_reg = opts['model_opts']['kl_opts']['biasreg']
+				if reg is not None:
+					reg_coef = param['coef'] if 'coef' in param else 1
+					reg = reg(coef=reg_coef)
+					reg.use_link_func = use_link_func
+					reg.link_func = init.linkfunc
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
 				x = Layer_on_list(KlConv2D_Concentrated(filters=int(nb_filter * expand_rate),
 				                           kernel_size=kernel_size,
 				                           padding=padding,
@@ -277,7 +398,164 @@ def model_constructor(opts, model_dict=None):
 				                           use_link_func=use_link_func,
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
-										   use_bias=True), x)
+				                           bias_regularizer=bias_reg,
+										   use_bias=use_bias), x)
+			elif component == 'klconvbconc':
+
+				# KL conv with Concentration
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
+				padding = param['padding'] if 'padding' in param else 'same'
+
+				"""INIT"""
+				init = opts['model_opts']['kl_opts']['kl_initial']
+
+				"""Distance Measure"""
+				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
+
+				"""Weight Encoding"""
+				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
+				"""Regularization"""
+				reg = opts['model_opts']['kl_opts']['convreg']
+				bias_reg = opts['model_opts']['kl_opts']['biasreg']
+				if reg is not None:
+					reg_coef = param['coef'] if 'coef' in param else 1
+					reg = reg(coef=reg_coef)
+					reg.use_link_func = use_link_func
+					reg.link_func = init.linkfunc
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				x = Layer_on_list(KlConv2Db_Concentrated(filters=int(nb_filter * expand_rate),
+				                                        kernel_size=kernel_size,
+				                                        padding=padding,
+				                                        kernel_initializer=init,
+				                                        kernel_regularizer=reg,
+				                                        activation=None,
+				                                        use_link_func=use_link_func,
+				                                        dist_measure=dist_measure,
+				                                        name=KL_CONV_NAME.format(block_index),
+				                                        bias_regularizer=bias_reg,
+				                                        use_bias=use_bias), x)
+			# KL conv with Natural Parameterization + natural Concentration
+			elif component == 'klconvnat':
+
+				# KL conv with Concentration
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
+				padding = param['padding'] if 'padding' in param else 'same'
+
+				"""INIT"""
+				init = opts['model_opts']['kl_opts']['kl_initial']
+
+				"""Distance Measure"""
+				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
+
+				"""Weight Encoding"""
+				use_link_func = True
+				"""Regularization"""
+				reg = opts['model_opts']['kl_opts']['convreg']
+				bias_reg = opts['model_opts']['kl_opts']['biasreg']
+				if reg is not None:
+					reg_coef = param['coef'] if 'coef' in param else 1
+					reg = reg(coef=reg_coef)
+					reg.use_link_func = use_link_func
+					reg.link_func = init.linkfunc
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				x = Layer_on_list(KlConv2D_NConcentrated(filters=int(nb_filter * expand_rate),
+				                           kernel_size=kernel_size,
+				                           padding=padding,
+										   kernel_initializer=init,
+										   kernel_regularizer=reg,
+										   activation=None,
+				                           use_link_func=use_link_func,
+				                           dist_measure=dist_measure,
+										   name=KL_CONV_NAME.format(block_index),
+				                           bias_regularizer=bias_reg,
+										   use_bias=use_bias), x)
+			elif component == 'klconvbnat':
+
+				# KL conv with Concentration
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
+				padding = param['padding'] if 'padding' in param else 'same'
+
+				"""INIT"""
+				init = opts['model_opts']['kl_opts']['klb_initial']
+
+				"""Distance Measure"""
+				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
+
+				"""Weight Encoding"""
+				use_link_func = True
+				"""Regularization"""
+				reg = opts['model_opts']['kl_opts']['convreg']
+				bias_reg = opts['model_opts']['kl_opts']['biasreg']
+				if reg is not None:
+					reg_coef = param['coef'] if 'coef' in param else 1
+					reg = reg(coef=reg_coef)
+					reg.use_link_func = use_link_func
+					reg.link_func = init.linkfunc
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				x = Layer_on_list(KlConv2Db_NConcentrated(filters=int(nb_filter * expand_rate),
+				                                        kernel_size=kernel_size,
+				                                        padding=padding,
+				                                        kernel_initializer=init,
+				                                        kernel_regularizer=reg,
+				                                        activation=None,
+				                                        use_link_func=use_link_func,
+				                                        dist_measure=dist_measure,
+				                                        name=KL_CONV_NAME.format(block_index),
+				                                        bias_regularizer=bias_reg,
+				                                        use_bias=use_bias), x)
+			# KL conv single component natural concentration
+			elif component == 'klconvscnat':
+
+				# KL conv with Concentration
+				block_index += 1
+				nb_filter = int(param['f'])
+				f_size = int(param['r'])
+				use_bias = bool(param['bias'] if 'bias' in param else 0)
+				padding = param['padding'] if 'padding' in param else 'same'
+				is_input = bool(1 if 'input' in param else 0)
+				"""INIT"""
+				init = opts['model_opts']['kl_opts']['kl_initial']
+
+				"""Distance Measure"""
+				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
+
+				"""Weight Encoding"""
+				use_link_func = True
+				"""Regularization"""
+				reg = opts['model_opts']['kl_opts']['convreg']
+				bias_reg = opts['model_opts']['kl_opts']['biasreg']
+				if reg is not None:
+					reg_coef = param['coef'] if 'coef' in param else 1
+					reg = reg(coef=reg_coef)
+					reg.use_link_func = use_link_func
+					reg.link_func = init.linkfunc
+				kernel_size = (f_size, f_size)
+				x = node_list_to_list(x)
+				x = Layer_on_list(KlConv2DSC(filters=int(nb_filter * expand_rate),
+				                           kernel_size=kernel_size,
+				                           padding=padding,
+										   kernel_initializer=init,
+										   kernel_regularizer=reg,
+										   activation=None,
+				                           use_link_func=use_link_func,
+				                           dist_measure=dist_measure,
+										   name=KL_CONV_NAME.format(block_index),
+				                           bias_regularizer=bias_reg,
+										   use_bias=use_bias,
+				                           isinput=is_input), x)
+			# Archived Layers
 			elif component == 'klconvbreg':
 				block_index += 1
 				nb_filter = int(param['f'])
@@ -346,43 +624,6 @@ def model_constructor(opts, model_dict=None):
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
 										   use_bias=False), x)
-
-			elif component == 'klconvbconc':
-
-				# KL conv with Concentration
-				block_index += 1
-				nb_filter = int(param['f'])
-				f_size = int(param['r'])
-				use_bias = bool(param['bias'] if 'bias' in param else 1)
-				padding = param['padding'] if 'padding' in param else 'same'
-
-				"""INIT"""
-				init = opts['model_opts']['kl_opts']['kl_initial']
-
-				"""Distance Measure"""
-				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
-
-				"""Weight Encoding"""
-				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
-				"""Regularization"""
-				reg = opts['model_opts']['kl_opts']['convreg']
-				if reg is not None:
-					reg_coef = param['coef'] if 'coef' in param else 1
-					reg = reg(coef=reg_coef)
-					reg.use_link_func = use_link_func
-					reg.link_func = init.linkfunc
-				kernel_size = (f_size, f_size)
-				x = node_list_to_list(x)
-				x = Layer_on_list(KlConv2Db_Concentrated(filters=int(nb_filter * expand_rate),
-				                                        kernel_size=kernel_size,
-				                                        padding=padding,
-				                                        kernel_initializer=init,
-				                                        kernel_regularizer=reg,
-				                                        activation=None,
-				                                        use_link_func=use_link_func,
-				                                        dist_measure=dist_measure,
-				                                        name=KL_CONV_NAME.format(block_index),
-				                                        use_bias=True), x)
 			elif component == 'klconvbSP':
 
 				"""Generic Setting"""
@@ -455,6 +696,7 @@ def model_constructor(opts, model_dict=None):
 				                            use_link_func=use_link_func,
 				                            dist_measure=dist_measure,
 										    use_bias=True), x)
+			# KL Pools
 			elif component == 'klavgpool':
 				pool_size = int(param['r'])
 				strides = int(param['s'])
@@ -1240,7 +1482,7 @@ def model_constructor(opts, model_dict=None):
 				for index, tensor in enumerate(x):
 					res += [Crelu('relu', name=ACT_NAME_RULE.format(block_index, 'CRELU', index))(tensor)]
 				x = res
-			elif component == 'averagepool':
+			elif component == 'avgpool':
 				pool_size = int(param['r'])
 				strides = int(param['s'])
 				pool_size = (pool_size, pool_size)

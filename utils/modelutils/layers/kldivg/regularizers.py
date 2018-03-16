@@ -53,5 +53,32 @@ class Ent_Reg_Sigmoid(Regularizer):
 		return -ent
 
 
+class BiasMinEnt(Regularizer):
+	def get_config(self):
+		return {'BiasMinEnt': float(self.coef)}
+
+	def __init__(self, coef=None,use_link_func=None,link_func=None):
+		self.coef = K.cast_to_floatx(coef)
+	def __call__(self, x):
+		bnorm = x - K.logsumexp(x)
+		bexp = K.exp(bnorm)
+		bexp = K.clip(bexp,K.epsilon(),1- K.epsilon())
+		H = -bexp*bnorm
+		H = self.coef * K.sum(H)
+		return H
+class BiasMaxEnt(Regularizer):
+	def get_config(self):
+		return {'BiasMaxEnt': float(self.coef)}
+
+	def __init__(self, coef=None,use_link_func=None,link_func=None):
+		self.coef = K.cast_to_floatx(coef)
+	def __call__(self, x):
+		bnorm = x - K.logsumexp(x)
+		bexp = K.exp(bnorm)
+		bexp = K.clip(bexp, K.epsilon(), 1- K.epsilon())
+		H = -bexp*bnorm
+		H = self.coef * K.sum(H)
+		return -H
+
 
 

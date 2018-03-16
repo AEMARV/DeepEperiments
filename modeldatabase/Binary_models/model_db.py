@@ -90,6 +90,24 @@ def nin_relu_baseline_caffe(opts, input_shape, nb_classes, getstring_flag=False)
 
     return get_model_out_dict(opts, model_string=model_string)
 
+def nin_relu_baseline_caffe_lsoft(opts, input_shape, nb_classes, getstring_flag=False):
+    # Same Structure as nin besh 1 2 3
+    model_string = 'convsh|f:192,r:5,l2_val:1e-4->lsoft' \
+                   '->convsh|f:160,r:1,l2_val:1e-4->lsoft' \
+                   '->convsh|f:96,r:1,l2_val:1e-4->lsoft' \
+                   '->maxpool|r:3,s:2->dropout|p:.5' \
+                   '->convsh|f:192,r:5,l2_val:1e-4->lsoft' \
+                   '->convsh|f:192,r:1,l2_val:1e-4->lsoft' \
+                   '->convsh|f:192,r:1,l2_val:1e-4->lsoft' \
+                   '->averagepool|r:3,s:2->dropout|p:.5' \
+                   '->convsh|f:192,r:3,l2_val:1e-4->lsoft' \
+                   '->convsh|f:192,r:1,l2_val:1e-4->lsoft' \
+                   '->convsh|f:' + str(nb_classes) + ',r:1,l2_val:1e-4->lsoft' \
+                                                     '->averagepool|r:7,s:1' \
+                                                     '->flattensh' \
+                                                     '->softmax->fin'
+
+    return get_model_out_dict(opts, model_string=model_string)
 
 def nin_besh_caffe(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
