@@ -806,17 +806,21 @@ def helloKl_MultiConcentrated(opts, input_shape, nb_classes, getstring_flag=Fals
     # Same Structure as nin besh 1 2 3
     regklb = None
     distvec=[]
-    model_string = 'klconvbconc|f:32,r:5,l2_val:5e-4,bias:1->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconvconc|f:64,r:5,l2_val:1e-4,bias:1->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconvconc|f:128,r:3,l2_val:1e-4,bias:1->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconvconc|f:192,r:1,l2_val:1e-4,bias:1->lsoft' \
-                   '->klconvconc|f:' + str(nb_classes) + ',r:1->lsoft' \
-                                                     '->klavgpool|r:3,s:1' \
+    pool='klavgpool'
+    nl = ''
+    conv = 'klconvconc'
+    convb= 'klconvbconc'
+    model_string = convb+'|f:32,r:5,l2_val:5e-4,bias:1->lsoft' \
+                   '->'+ pool +'|r:3,s:2' \
+                   '->'+ conv + '|f:32,r:5,l2_val:1e-4,bias:1->lsoft' \
+                   '->'+ pool +'|r:3,s:2' \
+                   '->'+ conv +'|f:64,r:5,l2_val:1e-4,bias:1->lsoft' \
+                   '->'+ pool +'|r:3,s:2' \
+                   '->'+ conv +'|f:64,r:5,l2_val:1e-4,bias:1->lsoft' \
+                   '->' + pool + '|r:3,s:1'\
+                   '->'+ conv +'|f:' + str(nb_classes) + ',r:1->lsoft' \
                                                      '->flattensh' \
-                                                     '->lsoft->fin'
+                                                     '->fin'
     use_link_func = False
     opts['model_opts']['kl_opts'] = {}
     opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
@@ -828,7 +832,7 @@ def helloKl_MultiConcentrated(opts, input_shape, nb_classes, getstring_flag=Fals
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     opts['model_opts']['kl_opts']['biasreg']= None
     ## Optimizer Opts
-    opts['optimizer_opts']['momentum'] = 0
+    opts['optimizer_opts']['momentum'] = 0.9
     return get_model_out_dict(opts, model_string=model_string)
 
 def helloKl_Concentrated_Widev1(opts, input_shape, nb_classes, getstring_flag=False):
@@ -864,26 +868,26 @@ def helloKl_Natural_Concentrated(opts, input_shape, nb_classes, getstring_flag=F
     # Same Structure as nin besh 1 2 3
     regklb = None
     distvec=[]
-    model_string = 'klconvbnat|f:32,r:5,l2_val:5e-4,bias:1->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconvnat|f:64,r:5,l2_val:1e-4,bias:1->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconvnat|f:128,r:3,l2_val:1e-4,bias:1->lsoft' \
-                   '->klavgpool|r:3,s:2' \
-                   '->klconvnat|f:192,r:1,l2_val:1e-4,bias:1->lsoft' \
-                   '->klconvnat|f:' + str(nb_classes) + ',r:1->lsoft' \
-                                                     '->klavgpool|r:3,s:1' \
+    model_string = 'klconvnat|f:32,r:5,l2_val:5e-4,bias:0,input:1' \
+                   '->maxpool|r:3,s:2' \
+                   '->klconvnat|f:32,r:5,l2_val:1e-4,bias:0,input:0' \
+                   '->maxpool|r:3,s:2' \
+                   '->klconvnat|f:128,r:3,l2_val:1e-4,bias:0,input:0' \
+                   '->maxpool|r:3,s:2' \
+                   '->klconvnat|f:192,r:1,l2_val:1e-4,bias:0,input:0' \
+                   '->klconvnat|f:' + str(nb_classes) + ',r:1,input:0' \
+                                                     '->maxpool|r:3,s:1' \
                                                      '->flattensh' \
                                                      '->lsoft->fin'
     use_link_func = True
-    linker = linker_id
+    linker = linker_abs
     opts['model_opts']['kl_opts'] = {}
     opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
     opts['model_opts']['kl_opts']['convbreg'] = None
     opts['model_opts']['kl_opts']['convreg'] = None
     opts['model_opts']['kl_opts']['klb_initial'] = AlphaInitBin(use_link_func=use_link_func,
                                                                 linker=linker)
-    opts['model_opts']['kl_opts']['kl_initial'] = AlphaInit(use_link_func=use_link_func,
+    opts['model_opts']['kl_opts']['kl_initial'] = LogInit(use_link_func=use_link_func,
                                                             linker=linker)
     opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
@@ -896,15 +900,15 @@ def helloKL_SingleComponent(opts, input_shape, nb_classes, getstring_flag=False)
 # Concentrated, Natural and Single Component
     regklb = None
     distvec=[]
-    model_string = 'klconvscnat|f:32,r:5,l2_val:5e-4,bias:1,input:1' \
-                   '->klavgpool|r:3,s:2' \
+    model_string = 'concent->klconvscnat|f:32,r:5,l2_val:5e-4,bias:1,input:1' \
+                   '->maxpool|r:3,s:2' \
                    '->klconvscnat|f:64,r:5,l2_val:1e-4,bias:1' \
-                   '->avgpool|r:3,s:2' \
+                   '->maxpool|r:3,s:2' \
                    '->klconvscnat|f:128,r:3,l2_val:1e-4,bias:1' \
-                   '->klavgpool|r:3,s:2' \
+                   '->maxpool|r:3,s:2' \
                    '->klconvscnat|f:192,r:1,l2_val:1e-4,bias:1' \
                    '->klconvscnat|f:' + str(nb_classes) + ',r:1' \
-                                                     '->klavgpool|r:3,s:1' \
+                                                     '->maxpool|r:3,s:1' \
                                                      '->flattensh' \
                                                      '->lsoft->fin'
     use_link_func = True
@@ -913,15 +917,15 @@ def helloKL_SingleComponent(opts, input_shape, nb_classes, getstring_flag=False)
     opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
     opts['model_opts']['kl_opts']['convbreg'] = None
     opts['model_opts']['kl_opts']['convreg'] = None
-    opts['model_opts']['kl_opts']['klb_initial'] = ConcentratedSC(use_link_func=use_link_func,
+    opts['model_opts']['kl_opts']['klb_initial'] = LogInitSC(use_link_func=use_link_func,
                                                                 linker=linker)
-    opts['model_opts']['kl_opts']['kl_initial'] = ConcentratedSC(use_link_func=use_link_func,
+    opts['model_opts']['kl_opts']['kl_initial'] = LogInitSC(use_link_func=use_link_func,
                                                             linker=linker)
     opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
     opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
     opts['model_opts']['kl_opts']['biasreg']= None
     ## Optimizer Opts
-    opts['optimizer_opts']['momentum'] = 0
+    opts['optimizer_opts']['momentum'] = 0.9
     return get_model_out_dict(opts, model_string=model_string)
 # DEEP Concentrated
 def nin_KL_ConcV1(opts, input_shape, nb_classes, getstring_flag=False):
@@ -954,23 +958,61 @@ def nin_KL_ConcV1(opts, input_shape, nb_classes, getstring_flag=False):
 # NIN Variants
 def nin_KL(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
-    model_string = 'klconvb|f:192,r:5->lsoft' \
-                   '->klconv|f:160,r:1->lsoft' \
-                   '->klconv|f:96,r:1->lsoft' \
+    model_string = 'klconvbconc|f:192,r:5,bias:1->lsoft' \
+                   '->klconvconc|f:160,r:1,bias:1->lsoft' \
+                   '->klconvconc|f:96,r:1,bias:1->lsoft' \
                    '->klavgpool|r:3,s:2' \
-                   '->klconv|f:192,r:5->lsoft' \
-                   '->klconv|f:192,r:1->lsoft' \
-                   '->klconv|f:192,r:1->lsoft' \
+                   '->klconvconc|f:192,r:5,bias:1->lsoft' \
+                   '->klconvconc|f:192,r:1,bias:1->lsoft' \
+                   '->klconvconc|f:192,r:1,bias:1->lsoft' \
                    '->klavgpool|r:3,s:2' \
-                   '->klconv|f:192,r:3->lsoft' \
-                   '->klconv|f:192,r:1->lsoft' \
-                   '->klconv|f:' + str(nb_classes) + ',r:1->lsoft' \
+                   '->klconvconc|f:192,r:3,bias:1->lsoft' \
+                   '->klconvconc|f:192,r:1,bias:1->lsoft' \
+                   '->klconvconc|f:' + str(nb_classes) + ',r:1->lsoft' \
                                                      '->klavgpool|r:7,s:1' \
                                                      '->flattensh' \
-                                                     '->lsoft->fin'
-
+                                                     '->fin'
+    use_link_func = False
+    linker = linker_abs
+    opts['model_opts']['kl_opts'] = {}
+    opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
+    opts['model_opts']['kl_opts']['convbreg'] = None
+    opts['model_opts']['kl_opts']['convreg'] = None
+    opts['model_opts']['kl_opts']['klb_initial'] = Dirichlet_Init_Bin(use_link_func=use_link_func,linker=linker)
+    opts['model_opts']['kl_opts']['kl_initial'] = Dirichlet_Init(use_link_func=use_link_func,linker=linker)
+    opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
+    opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    opts['model_opts']['kl_opts']['biasreg'] = None
     return get_model_out_dict(opts, model_string=model_string)
 
+def nin_KL_nat(opts, input_shape, nb_classes, getstring_flag=False):
+    # Same Structure as nin besh 1 2 3
+    model_string = 'klconvbnat|f:192,r:5,bias:1->lsoft' \
+                   '->klconvnat|f:160,r:1,bias:1->lsoft' \
+                   '->klconvnat|f:96,r:1,bias:1->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvnat|f:192,r:5,bias:1->lsoft' \
+                   '->klconvnat|f:192,r:1,bias:1->lsoft' \
+                   '->klconvnat|f:192,r:1,bias:1->lsoft' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconvnat|f:192,r:3,bias:1->lsoft' \
+                   '->klconvnat|f:192,r:1,bias:1->lsoft' \
+                   '->klconvnat|f:' + str(nb_classes) + ',r:1->lsoft' \
+                                                     '->klavgpool|r:7,s:1' \
+                                                     '->flattensh' \
+                                                     '->fin'
+    use_link_func = False
+    linker = linker_abs
+    opts['model_opts']['kl_opts'] = {}
+    opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
+    opts['model_opts']['kl_opts']['convbreg'] = None
+    opts['model_opts']['kl_opts']['convreg'] = None
+    opts['model_opts']['kl_opts']['klb_initial'] = Dirichlet_Init_Bin(use_link_func=use_link_func,linker=linker)
+    opts['model_opts']['kl_opts']['kl_initial'] = Dirichlet_Init(use_link_func=use_link_func,linker=linker)
+    opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
+    opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    opts['model_opts']['kl_opts']['biasreg'] = None
+    return get_model_out_dict(opts, model_string=model_string)
 # Deep Models
 def kldeeperv1(opts, input_shape, nb_classes, getstring_flag=False):
     # Same Structure as nin besh 1 2 3
@@ -991,4 +1033,37 @@ def kldeeperv1(opts, input_shape, nb_classes, getstring_flag=False):
                                                      '->lsoft->fin'
     opts['optimizer_opts']['loss']['method'] = kl_loss
     return get_model_out_dict(opts, model_string=model_string)
-
+def kl_vgg_baseline(opts, input_shape, nb_classes, getstring_flag=False):
+    model_string = 'klconvbconc|f:64,r:3,bias:1->lsoft' \
+                   '->klconvconc|f:64,r:3,bias:1->lsoft' \
+                   '->klavgpool|r:2,s:2' \
+                   '->klconvconc|f:128,r:3,bias:1->lsoft' \
+                   '->klconvconc|f:128,r:3,bias:1->lsoft' \
+                   '->klavgpool|r:2,s:2' \
+                   '->klconvconc|f:256,r:3,bias:1->lsoft' \
+                   '->klconvconc|f:256,r:3,bias:1->lsoft' \
+                   '->klconvconc|f:256,r:3,bias:1->lsoft' \
+                   '->klavgpool|r:2,s:2' \
+                   '->klconvconc|f:512,r:3,bias:1->lsoft' \
+                   '->klconvconc|f:512,r:3,bias:1->lsoft' \
+                   '->klconvconc|f:512,r:3,bias:1->lsoft' \
+                   '->klavgpool|r:2,s:2' \
+                   '->klconvconc|f:512,r:3,bias:1->lsoft' \
+                   '->klconvconc|f: 512,r:3,bias:1->lsoft' \
+                   '->klconvconc|f: 512,r:3,bias:1->lsoft' \
+                   '->klavgpool|r:2,s:2' \
+                   '->klconvconc|f: 512,r: 1,bias:1->lsoft' \
+                   '->klconvconc|f:{},r:1->lsoft' \
+                   '->flattensh->fin'.format(nb_classes)
+    use_link_func = False
+    linker = linker_abs
+    opts['model_opts']['kl_opts'] = {}
+    opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
+    opts['model_opts']['kl_opts']['convbreg'] = None
+    opts['model_opts']['kl_opts']['convreg'] = None
+    opts['model_opts']['kl_opts']['klb_initial'] = Dirichlet_Init_Bin(use_link_func=use_link_func, linker=linker)
+    opts['model_opts']['kl_opts']['kl_initial'] = Dirichlet_Init(use_link_func=use_link_func, linker=linker)
+    opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
+    opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    opts['model_opts']['kl_opts']['biasreg'] = None
+    return get_model_out_dict(opts, model_string=model_string)

@@ -26,7 +26,7 @@ def check_model_list(model_list, datasets):
 if __name__ == '__main__':
 	for total_params in [0]:
 		# total_params=1;
-		models = ['helloKL_SingleComponent']
+		models = ['kl_vgg_baseline']
 		datasets = ['cifar10']
 		experiment_name = get_experiment_name_prompt()
 		check_model_list(models, datasets)

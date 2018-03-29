@@ -1,4 +1,6 @@
 from keras.initializers import *
+from keras.regularizers import *
+import keras as k
 import numpy as np
 import keras.backend as K
 from tensorflow.contrib.distributions.python.ops import uniform
@@ -36,61 +38,121 @@ class Dirichlet_Init(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
 
-	def __init__(self, use_link_func=False):
+	def __init__(self, use_link_func=False, linker=None):
 		self.use_link_func = use_link_func
+		self.linker = linker
 
 	def __call__(self, shape, dtype=None):
 		out = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
 		out = np.log(out)
-		if not self.use_link_func:
-			out = np.log(out/np.sum(out, axis=2, keepdims=True))
-		return out
+		out = 2.0*np.log(out/np.sum(out, axis=2, keepdims=True))
+		#if not self.use_link_func:
 
+		return out
 	def get_log_prob(self, x):
-		x = K.abs(x)
-		y = x/K.sum(x, axis=2, keepdims=True)
-		return K.log(y)
+		if self.use_link_func:
+			x = self.linker(x)
+			y = x/K.sum(x, axis=2, keepdims=True)
+			K.log(y)
+		else:
+			y = x - self.get_log_normalizer(x)
+		return y
 	def get_prob(self,x):
-		x = K.abs(x)
-		y = x / K.sum(x, axis=2, keepdims=True)
+		if self.use_link_func:
+			x = self.linker(x)
+			y = x / K.sum(x, axis=2, keepdims=True)
+		else:
+			y = K.exp(self.get_log_prob(x))
+
 		return y
 	def get_normalizer(self,x):
-		return K.sum(K.abs(x), axis=2, keepdims=True)
-	def get_log_normalizer(self,x):
-		return K.log(K.sum(K.abs(x), axis=2, keepdims=True))
+		if self.use_link_func:
+			y = K.sum(self.linker(x), axis=2, keepdims=True)
+		else:
+			y = K.exp(self.get_log_normalizer(x))
 
+		return y
+	def get_log_normalizer(self,x):
+		if self.use_link_func:
+			y = K.log(K.sum(self.linker(x), axis=2, keepdims=True))
+		else:
+			y = K.logsumexp(x,axis=2,keepdims=True)
+
+		return y
+	def get_concentration(self, x):
+		if self.use_link_func:
+			y = self.linker(x)
+		else:
+			y = K.exp(x)
+
+		return y
 
 class Dirichlet_Init_Bin(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
 
-	def __init__(self, use_link_func=False):
+	def __init__(self, use_link_func=False,linker=None):
 		self.use_link_func = use_link_func
+		self.linker = linker
 
 	def __call__(self, shape, dtype=None):
+
 		out = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
-		out = np.log(out)
+		if not self.use_link_func:
+			out = 2.0*np.log(out)
 		return out
 
 	def get_log_prob(self, x0,x1):
-		x0 = K.abs(x0)
-		x1 = K.abs(x1)
-		y0 = x0/(x0+x1)
-		y1 = x1/(x0+x1)
-		return K.log(y0), K.log(y1)
+		if self.use_link_func:
+			x0 = self.linker(x0)
+			x1 = self.linker(x1)
+			y0 = x0 / (x0 + x1)
+			y1 = x1 / (x0 + x1)
+			y0 = K.log(y0)
+			y1 = K.log(y1)
+		else:
+			y0 = x0 - K.softplus(x1-x0)
+			y1 = x1 - K.softplus(x0-x1)
 
-	def get_prob(self, x0, x1):
-		x0 = K.abs(x0)
-		x1 = K.abs(x1)
-		y0 = x0 / (x0 + x1)
-		y1 = x1 / (x0 + x1)
 		return y0, y1
 
-	def get_log_normalizer(self,x0,x1):
-		return K.log(K.abs(x0)+K.abs(x1))
+	def get_prob(self, x0, x1):
+		if self.use_link_func:
+			x0 = self.linker(x0)
+			x1 = self.linker(x1)
+			y0 = x0 / (x0 + x1)
+			y1 = x1 / (x0 + x1)
+		else:
+			y0, y1 = self.get_log_prob(x0,x1)
+			y0 = K.exp(y0)
+			y1 = K.exp(y1)
 
-	def get_normalizer(self,x0,x1):
-		return K.abs(x0)+K.abs(x1)
+		return y0, y1
+
+	def get_log_normalizer(self, x0, x1):
+		if self.use_link_func:
+			y = self.get_normalizer(x0, x1)
+			y = K.log(y)
+		else:
+			y = x0 + K.softplus(x1-x0)
+		return y
+
+	def get_normalizer(self, x0, x1):
+		if self.use_link_func:
+			y = self.linker(x0) + self.linker(x1)
+		else:
+			y = K.exp(self.get_log_normalizer(x0, x1))
+		return y
+
+	def get_concentration(self, x0, x1):
+		if self.use_link_func:
+			y0 = self.linker(x0)
+			y1 = self.linker(x1)
+		else:
+			y0 = K.exp(x0)
+			y1 = K.exp(x1)
+
+		return y0 , y1
 
 # Unit Sphere -- Jeffreis prior
 class Unit_Sphere_Init(Initializer):
@@ -245,34 +307,102 @@ class AlphaInit(Initializer):
 
 	def __call__(self, shape, dtype=None):
 		uniform_dist = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
+		uniform_dist = np.log(uniform_dist)
 		normal_dist = np.random.normal(0, 0.001, shape)
-		return uniform_dist
+		return uniform_dist/np.sum(uniform_dist, axis=2, keepdims=True)
+	def get_regularizer(self):
+		return L1L2(0,0)
 
-	def get_concentration(self,alpha0):
+	def get_concentration(self, alpha0):
 		return self.linker(alpha0)
 
 	def get_log_prob(self,alpha):
-		alpha = self.linker(alpha)
-		p = alpha / K.sum(alpha,axis=2,keepdims=True)
+		p = self.get_prob(alpha)
+#		p = K.clip(p,K.epsilon(),None)
 		logprob = K.log(p)
 		return logprob
 
-	def get_prob(self,alpha):
+	def get_prob(self, alpha):
 		alpha = self.linker(alpha)
-		p = alpha / K.sum(alpha,axis=2,keepdims=True)
+		p = alpha / K.sum(alpha, axis=2, keepdims=True)
 		return p
 
-	def get_log_normalizer(self,alpha):
+	def get_log_normalizer(self, alpha):
 		alpha = self.linker(alpha)
 		log_normalizer = K.log(K.sum(alpha,axis=2,keepdims=True))
 		return log_normalizer
 
-	def get_normalizer(self,alpha):
+	def get_normalizer(self, alpha):
 		alpha = self.linker(alpha)
 		normalizer = K.sum(alpha,axis=2,keepdims=True)
 		return normalizer
+class LogInit(Initializer):
+	def __init__(self, use_link_func=False, linker=K.abs):
+		self.use_link_func = use_link_func
+		self.linker = linker
+
+	def __call__(self, shape, dtype=None):
+		uniform_dist = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
+		uniform_dist = np.log(uniform_dist)
+		normal_dist = np.random.normal(0, 0.001, shape)
+		return np.log(uniform_dist / np.sum(uniform_dist, axis=2, keepdims=True))
+
+	def get_regularizer(self):
+		return None
+
+	def get_concentration(self, alpha0):
+		return K.exp(alpha0)
+
+	def get_log_prob(self, alpha):
+		return alpha - K.logsumexp(alpha,axis=2,keepdims=True)
+
+	def get_prob(self, alpha):
+		logp = self.get_log_prob(alpha)
+		p = K.exp(logp)
+		return p
+
+	def get_log_normalizer(self, alpha):
+		log_normalizer = K.logsumexp(alpha,axis=2,keepdims=True)
+		return log_normalizer
+
+	def get_normalizer(self, alpha):
+		normalizer = K.exp(self.get_log_normalizer(alpha))
+		return normalizer
 
 
+class LogInitSC(Initializer):
+	def __init__(self, use_link_func=False, linker=K.abs):
+		self.use_link_func = use_link_func
+		self.linker = linker
+
+	def __call__(self, shape, dtype=None):
+		uniform_dist = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
+		uniform_dist = np.log(uniform_dist)
+		normal_dist = np.random.normal(0, 0.001, shape)
+		return np.log(uniform_dist / np.sum(uniform_dist, axis=(0,1,2), keepdims=True))
+
+	def get_regularizer(self):
+		return None
+
+	def get_concentration(self, alpha0):
+		return K.exp(alpha0)
+
+	def get_log_prob(self, alpha):
+		z=  self.get_log_normalizer(alpha)
+		return alpha - z
+
+	def get_prob(self, alpha):
+		logp = self.get_log_prob(alpha)
+		p = K.exp(logp)
+		return p
+
+	def get_log_normalizer(self, alpha):
+		log_normalizer = K.logsumexp(alpha,axis=(0,1,2),keepdims=True)
+		return log_normalizer
+
+	def get_normalizer(self, alpha):
+		normalizer = K.exp(self.get_log_normalizer(alpha))
+		return normalizer
 class AlphaInitBin(Initializer):
 	def __init__(self, use_link_func=False,linker=K.abs):
 		self.use_link_func = use_link_func

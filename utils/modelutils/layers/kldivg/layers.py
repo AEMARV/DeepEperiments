@@ -46,7 +46,50 @@ class AvgLobeProb(_Merge):
 		output = inputs[1] + K.softplus(diff) - K.log(2.0)
 		return output
 
+class ConstMul(Layer):
+	def __init__(self, **kwargs):
+		self.supports_masking = False
+		super(ConstMul, self).__init__(**kwargs)
 
+	def compute_output_shape(self, input_shape):
+		return input_shape
+
+	def compute_mask(self, input, input_mask=None):
+		return None
+
+	def build(self, input_shape):
+		self.kernel = self.add_weight(shape=(1,1),
+									  initializer=initializers.Constant(0),
+									  name='Concentration_Loss')
+		super(ConstMul, self).build(input_shape)  # Be sure to call this somewhere!
+		self.built = True
+
+	def call(self, x, mask=None):
+		y = x*(1+ K.exp(self.kernel))
+		return y
+	def get_config(self):
+		base_config = super(ConstMul, self).get_config()
+		return dict(list(base_config.items()))
+	def get_conc(self):
+		return (1+ K.exp( K.sum(self.kernel)))
+class Normalize(Layer):
+	def __init__(self, **kwargs):
+		self.supports_masking = False
+		super(Normalize, self).__init__(**kwargs)
+
+	def compute_output_shape(self, input_shape):
+		return input_shape
+
+	def compute_mask(self, input, input_mask=None):
+		return None
+
+	def call(self, x, mask=None):
+		y = x/K.sum(x, 1, True)
+		#self.add_loss(K.mean(-k.backend.logsumexp(x, 1, True)))
+		return y
+	def get_config(self):
+		base_config = super(Normalize, self).get_config()
+		return dict(list(base_config.items()))
 class LogSoftmax(Layer):
 	def __init__(self, **kwargs):
 		self.supports_masking = False
@@ -59,7 +102,10 @@ class LogSoftmax(Layer):
 		return None
 
 	def call(self, x, mask=None):
-		y = x - k.backend.logsumexp(x, 1, True)
+		m = k.backend.logsumexp(x, 1, True)
+		y = x - m
+		l = K.mean(m)
+		#self.add_loss(-l/1000.0, x)
 		#self.add_loss(K.mean(-k.backend.logsumexp(x, 1, True)))
 		return y
 	def get_config(self):
@@ -78,7 +124,7 @@ class NormalizeLog(Layer):
 
 	def call(self, x, mask=None):
 		y = x/ K.sum(x, 1, True)
-		y = K.clip(y,K.epsilon(),None)
+		y = K.clip(y, K.epsilon(), None)
 		y = K.log(y)
 
 		#self.add_loss(K.mean(-k.backend.logsumexp(x, 1, True)))
@@ -129,7 +175,7 @@ class KlConv2DInterface(k.layers.Conv2D):
 		self.use_link_func = use_link_func
 		self.dist_measure = dist_measure
 		self.hasConcentrationPar = False
-		self.concent_type = None
+		self.concent_type = 'perlayer'
 	def get_config(self):
 		base_config = super(KlConv2DInterface, self).get_config()
 		return dict(list(base_config.items()))
@@ -158,11 +204,11 @@ class KlConv2DInterface(k.layers.Conv2D):
 											dtype='float32')
 		if self.hasConcentrationPar:
 			if self.concent_type == 'perfilter':
-				concshape = (1, 1, 1, kernel_shape[3])
+				concshape = (1,kernel_shape[3], 1 , 1)
 			elif self.concent_type=='perlayer':
 				concshape = (1, 1, 1, 1)
 			self.concent_par = self.add_weight(shape=concshape,
-			                                    initializer=k.initializers.Constant(1),
+			                                    initializer=k.initializers.Constant(5),
 			                                    name='concentpar',
 			                                    constraint=self.kernel_constraint,
 			                                    regularizer=None,
@@ -214,31 +260,18 @@ class KlConv2DInterface(k.layers.Conv2D):
 	# Weight Retrieval
 	def get_log_kernel(self):
 
-		if not self.use_link_func:
-			nkernel = self.kernel - k.backend.logsumexp(self.kernel,
-															axis=KER_CHAN_DIM,
-															keepdims=True)
-		else:
-			nkernel = self.kernel_initializer.get_log_prob(self.kernel)
+
+		nkernel = self.kernel_initializer.get_log_prob(self.kernel)
 		return nkernel
 
 	def get_prob_kernel(self):
 
-		if not self.use_link_func:
-			c = self.get_concentration()
-			nkernel = self.kernel/c - k.backend.logsumexp(self.kernel/c,
-														axis=KER_CHAN_DIM,
-														keepdims=True)
-			nkernel = K.exp(nkernel)
-		else:
-			nkernel = self.kernel_initializer.get_prob(self.kernel)
+		nkernel = self.kernel_initializer.get_prob(self.kernel)
 		return nkernel
 
 	def get_normalizer(self):
-		if not self.use_link_func:
-			norm = k.backend.logsumexp(self.kernel, axis=KER_CHAN_DIM, keepdims=True)
-		else:
-			norm = self.kernel_initializer.get_log_normalizer(self.kernel)
+
+		norm = self.kernel_initializer.get_log_normalizer(self.kernel)
 		norm = K.sum(norm, axis=0,keepdims=True)
 		norm = K.sum(norm, axis=1, keepdims=True)
 		norm = K.sum(norm, axis=2, keepdims=True)
@@ -246,12 +279,8 @@ class KlConv2DInterface(k.layers.Conv2D):
 		return K.exp(norm)
 
 	def get_log_normalizer(self):
-		if not self.use_link_func:
-			norm = k.backend.logsumexp(self.kernel,
-															axis=KER_CHAN_DIM,
-															keepdims=True)
-		else:
-			norm = self.kernel_initializer.get_log_normalizer(self.kernel)
+
+		norm = self.kernel_initializer.get_log_normalizer(self.kernel)
 		norm = K.sum(norm, axis=0, keepdims=True)
 		norm = K.sum(norm, axis=1, keepdims=True)
 		norm = K.sum(norm, axis=2, keepdims=True)
@@ -318,7 +347,7 @@ class KlConv2DInterface(k.layers.Conv2D):
 
 	#OPS
 	# KL operations
-	def kl_xl_kp(self,xl):
+	def kl_xl_kp(self, xl):
 		pkernel = self.get_prob_kernel()
 		cross_xlog_kerprob = k.backend.conv2d(xl,
 											  pkernel,
@@ -329,7 +358,7 @@ class KlConv2DInterface(k.layers.Conv2D):
 		ent_ker = self.ent_kernel()
 		return cross_xlog_kerprob + ent_ker
 
-	def kl_xp_kl(self,xl):
+	def kl_xp_kl(self, xl):
 		lkernel = self.get_log_kernel()
 		xprob = k.backend.exp(xl)
 		cross_xprob_kerlog = k.backend.conv2d(xprob,
@@ -410,7 +439,7 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 		self.use_link_func = use_link_func
 		self.dist_measure = dist_measure
 		self.hasConcentrationPar = False
-		self.concent_type = None
+		self.concent_type = 'perlayer'
 	def get_config(self):
 		base_config = super(KlConvBin2DInterface, self).get_config()
 		return dict(list(base_config.items()))
@@ -476,8 +505,10 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 				concshape = (kernel_shape[0], kernel_shape[1], 1, kernel_shape[3])
 			elif self.concent_type=='perlayer':
 				concshape = (1, 1, 1, 1)
+			elif self.concent_type=='perfilter':
+				concshape = (1, kernel_shape[3], 1, 1)
 			self.concent_par = self.add_weight(shape=concshape,
-			                                    initializer=k.initializers.Constant(1),
+			                                    initializer=k.initializers.Constant(5),
 			                                    name='concentpar',
 			                                    constraint=self.kernel_constraint,
 			                                    regularizer=None,
@@ -500,22 +531,12 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 
 	# Weight Retrieval
 	def get_log_kernel(self):
-		if not self.use_link_func:
-			c = self.get_concentration()
-			nkernel0 = -K.softplus((self.kernel1 - self.kernel0)/c)
-			nkernel1 = -K.softplus((self.kernel0 - self.kernel1)/c)
-		else:
-			nkernel0, nkernel1 = self.kernel_initializer.get_log_prob(self.kernel0, self.kernel1)
+		nkernel0, nkernel1 = self.kernel_initializer.get_log_prob(self.kernel0, self.kernel1)
 
 		return nkernel0, nkernel1
 
 	def get_prob_kernel(self):
-		if not self.use_link_func:
-			c= self.get_concentration()
-			nkernel0 = K.sigmoid((self.kernel0 - self.kernel1)/c)
-			nkernel1 = K.sigmoid((self.kernel1 - self.kernel0)/c)
-		else:
-			nkernel0, nkernel1 = self.kernel_initializer.get_prob(self.kernel0, self.kernel1)
+		nkernel0, nkernel1 = self.kernel_initializer.get_prob(self.kernel0, self.kernel1)
 
 		return nkernel0, nkernel1
 
@@ -525,11 +546,8 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 		return b
 
 	def get_normalizer(self):
-		if not self.use_link_func:
-			z = self.kernel0 + K.softplus(self.kernel1 - self.kernel0)
 
-		else:
-			z = self.kernel_initializer.get_log_normalizer(self.kernel0,self.kernel1)
+		z = self.kernel_initializer.get_log_normalizer(self.kernel0,self.kernel1)
 		z = K.sum(z, axis=0, keepdims=True)
 		z = K.sum(z, axis=1, keepdims=True)
 		z = K.sum(z, axis=2, keepdims=True)
@@ -537,11 +555,7 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 		return K.exp(z)
 
 	def get_log_normalizer(self):
-		if not self.use_link_func:
-			z = self.kernel0 + K.softplus(self.kernel1 - self.kernel0)
-
-		else:
-			z = self.kernel_initializer.get_log_normalizer(self.kernel0,self.kernel1)
+		z = self.kernel_initializer.get_log_normalizer(self.kernel0,self.kernel1)
 		z = K.sum(z, axis=0, keepdims=True)
 		z = K.sum(z, axis=1, keepdims=True)
 		z = K.sum(z, axis=2, keepdims=True)
@@ -599,7 +613,7 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 
 	def avg_concentration(self):
 		conc0, conc1 = self.get_concentration()
-		return K.max(conc0/2+conc1/2)
+		return K.mean(conc0/2+conc1/2)
 
 	# OPS
 	def kl_xl_kp(self, x):
@@ -956,30 +970,7 @@ class KlConv2D(KlConv2DInterface):
 		return base_config
 
 	def call(self, xl, mask=None):
-		lkernel = self.get_log_kernel()
-		pkernel = self.get_prob_kernel()
-		xprob = k.backend.exp(xl)
-		cross_xprob_kerlog = k.backend.conv2d(xprob,
-								 lkernel,
-								 strides=self.strides,
-								 padding=self.padding,
-								 data_format=self.data_format,
-								 dilation_rate=self.dilation_rate)
-		cross_xlog_kerprob = k.backend.conv2d(xl,
-											  pkernel,
-											  strides=self.strides,
-											  padding=self.padding,
-											  data_format=self.data_format,
-											  dilation_rate=self.dilation_rate)
-
-		ent_ker = self.ent_kernel()
-		ent_x = k.backend.conv2d(-xprob*xl,
-								 self.const_kernel,
-								 strides=self.strides,
-								 padding=self.padding,
-								 data_format=self.data_format,
-								 dilation_rate=self.dilation_rate)
-		out = self.dist_measure(cross_xprob_kerlog, cross_xlog_kerprob, ent_x, ent_ker)
+		out = self.kl_xp_kl(xl) + self.kl_xl_kp(xl)
 		if self.use_bias:
 			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
 		return out
@@ -1066,54 +1057,7 @@ class KlConvBin2D(KlConvBin2DInterface):
 			**kwargs)
 
 	def call(self, x, mask=None):
-		xprob = x
-		xprob = k.backend.clip(xprob, k.backend.epsilon(), 1-k.backend.epsilon())
-		logx1 = k.backend.log(xprob)
-		logx0 = k.backend.log(1-xprob)
-		logker0,logker1 = self.get_log_kernel()
-		pker0, pker1 = self.get_prob_kernel()
-		cross_xp_kerlog = k.backend.conv2d(xprob,
-										   logker1,
-										   strides=self.strides,
-										   padding=self.padding,
-										   data_format=self.data_format,
-										   dilation_rate=self.dilation_rate)
-		cross_xp_kerlog += k.backend.conv2d(1 - xprob,
-											logker0,
-											strides=self.strides,
-											padding=self.padding,
-											data_format=self.data_format,
-											dilation_rate=self.dilation_rate)
-		cross_xlog_kerp = k.backend.conv2d(logx1,
-										   pker1,
-										   strides=self.strides,
-										   padding=self.padding,
-										   data_format=self.data_format,
-										   dilation_rate=self.dilation_rate)
-		cross_xlog_kerp += k.backend.conv2d(logx0,
-										   pker0,
-										   strides=self.strides,
-										   padding=self.padding,
-										   data_format=self.data_format,
-										   dilation_rate=self.dilation_rate)
-
-		ent_ker = self.ent_kernel()
-		code_length_x = xprob*logx1
-		code_lenght_nx = (1-xprob)*logx0
-		ent_x = k.backend.conv2d(code_length_x,
-								 self.const_kernel,
-								 strides=self.strides,
-								 padding=self.padding,
-								 data_format=self.data_format,
-								 dilation_rate=self.dilation_rate)
-		ent_x += k.backend.conv2d(code_lenght_nx,
-								  self.const_kernel,
-								  strides=self.strides,
-								  padding=self.padding,
-								  data_format=self.data_format,
-								  dilation_rate=self.dilation_rate)
-
-		out = self.dist_measure(cross_xp_kerlog, cross_xlog_kerp, ent_x, ent_ker)
+		out = self.kl_xl_kp(x) + self.kl_xp_kl(x)
 		if self.use_bias:
 			out = K.bias_add(out, self.bias, data_format=self.data_format)
 		return out
@@ -1135,6 +1079,7 @@ class KlConv2D_Concentrated(KlConv2DInterface):
 			kernel_size=kernel_size,
 			**kwargs)
 		self.hasConcentrationPar = True
+		self.concent_type = 'perlayer'
 
 
 	def get_config(self):
@@ -1143,7 +1088,7 @@ class KlConv2D_Concentrated(KlConv2DInterface):
 
 	def call(self, x, mask=None):
 		out = self.kl_xl_kp(x)
-		out = out * (K.exp(self.concent_par))
+		out = out * (K.softplus(self.concent_par))
 		#outI= self.kl_xp_kl(x)*(K.softplus(self.concent_par_input))
 		if self.use_bias:
 			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
@@ -1161,13 +1106,14 @@ class KlConv2Db_Concentrated(KlConvBin2DInterface):
 			kernel_size=kernel_size,
 			**kwargs)
 		self.hasConcentrationPar = True
+		self.concent_type = 'perlayer'
 
 
 	def call(self, x, mask=None):
 
 		out = self.kl_xl_kp(x)
-		out = out * (K.exp(self.concent_par))
-		#outI = self.kl_xp_kl(x) * (K.softplus(self.concent_par_input))
+		out = out * (K.softplus(self.concent_par))
+		#outI = self.kl_xp_kl(x) * (K.exp (self.concent_par_input))
 		if self.use_bias:
 			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
 		return out
@@ -1181,23 +1127,32 @@ class KlConv2D_NConcentrated(KlConv2DInterface):
 	def __init__(self,
 				 filters,
 				 kernel_size,
+				 isinput=False,
 				 **kwargs):
 		super(KlConv2D_NConcentrated, self).__init__(
 			filters=filters,
 			kernel_size=kernel_size,
 			**kwargs)
-		self.hasConcentrationPar = False
-		self.use_link_func = True
-	def kl_conc_xp_kl(self,xp):
+		self.hasConcentrationPar = True
+		self.use_link_func = False
+		self.is_input = isinput
+	def kl_conc_xp_kl(self,x,isprob):
 		lkernel = self.get_log_kernel()
-		xl = k.backend.log(xp)
+		if isprob:
+			xp = K.clip(x, K.epsilon(), None)
+			xpn = xp / K.sum(xp, axis=1, keepdims=True)
+			xpn = K.clip(xpn, K.epsilon(), None)
+			xl = K.log(xpn)
+		else:
+			xl = x
+			xp = K.exp(xl)
 		cross_xprob_kerlog = k.backend.conv2d(xp,
 											  lkernel,
 											  strides=self.strides,
 											  padding=self.padding,
 											  data_format=self.data_format,
 											  dilation_rate=self.dilation_rate)
-		ent_x = k.backend.conv2d(-xp * xl,
+		ent_x = k.backend.conv2d((-xp) * xl,
 								 self.const_kernel,
 								 strides=self.strides,
 								 padding=self.padding,
@@ -1205,19 +1160,24 @@ class KlConv2D_NConcentrated(KlConv2DInterface):
 								 dilation_rate=self.dilation_rate)
 		return cross_xprob_kerlog + ent_x
 	def get_prob_kernel(self):
-		conc = self.get_concentration()
-		kernelsz = K.shape(self.kernel)
-		kernelsz = float(kernelsz[0]*kernelsz[1])
-		normal_conc_par = (self.get_concentration())**(1/kernelsz)
-		conc = conc/normal_conc_par
-		conc = conc/K.sum(conc, axis=2, keepdims=True)
-		return conc
+		prob = self.kernel_initializer.get_prob(self.kernel/self.get_conc_par())
+		return prob
 	def get_log_kernel(self):
-		return K.log(self.get_prob_kernel())
+		log_prob = self.kernel_initializer.get_log_prob(self.kernel/self.get_conc_par())
+		return log_prob
+	def get_conc_par(self):
+		return (K.softplus(self.concent_par))
 	def call(self, x, mask=None):
-		out = self.kl_conc_xp_kl(x)
+		if self.is_input:
+			isinputprob = True
+		else:
+			isinputprob = False
+
+		out = self.kl_xl_kp(x)*self.get_conc_par()
 		if self.use_bias:
-			out = K.bias_add(out, self.bias, data_format=self.data_format)
+			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
+
+		#out = out - K.logsumexp(out,axis=1,keepdims=True)
 		return out
 
 
@@ -1231,13 +1191,19 @@ class KlConv2Db_NConcentrated(KlConvBin2DInterface):
 			filters=filters,
 			kernel_size=kernel_size,
 			**kwargs)
-		self.hasConcentrationPar = False
-		self.use_link_func = True
-
-
+		self.hasConcentrationPar = True
+		self.use_link_func = False
+	def get_prob_kernel(self):
+		prob0,prob1 = self.kernel_initializer.get_prob(self.kernel0/self.get_conc_par(),self.kernel1/self.get_conc_par())
+		return prob0,prob1
+	def get_log_kernel(self):
+		log_prob0,log_prob1 = self.kernel_initializer.get_log_prob(self.kernel0/self.get_conc_par(),self.kernel1/self.get_conc_par())
+		return log_prob0,log_prob1
+	def get_conc_par(self):
+		return (K.softplus(self.concent_par))
 	def call(self, x, mask=None):
 
-		out = self.kl_conc_xl_kp(x)
+		out = self.kl_conc_xl_kp(x)*self.get_conc_par()
 		if self.use_bias:
 			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
 		return out
@@ -1335,7 +1301,8 @@ class KlConv2DSC(KlConv2DInterface):
 		out = self.kl_xp_kl_sc(xp,xl)
 		if self.use_bias:
 			out = K.bias_add(out, self.bias, data_format=self.data_format)
-		#out = out - K.logsumexp(out,axis=1,keepdims=True)
+		out = out - K.logsumexp(out,axis=1,keepdims=True)
+
 		return out
 # Double Lobed Convs
 class KlConvLobed2D(KlConv2DInterface):
@@ -1603,9 +1570,9 @@ class KlConv2D_Logit_Breg(_KlConvLogit2D):
 class KlConv2D_Breg_Un_Norm(KlConv2DInterface):
 
 	def __init__(self,
-				 filters,
-				 kernel_size,
-				 **kwargs):
+	             filters,
+	             kernel_size,
+	             **kwargs):
 		super(KlConv2D_Breg_Un_Norm, self).__init__(
 			filters=filters,
 			kernel_size=kernel_size,
@@ -1621,17 +1588,17 @@ class KlConv2D_Breg_Un_Norm(KlConv2DInterface):
 		expnkernel = K.exp(nkernel)
 		xprob = k.backend.exp(x)
 		cross_xprob_kerlog = k.backend.conv2d(xprob,
-											  nkernel,
-											  strides=self.strides,
-											  padding=self.padding,
-											  data_format=self.data_format,
-											  dilation_rate=self.dilation_rate)
+		                                      nkernel,
+		                                      strides=self.strides,
+		                                      padding=self.padding,
+		                                      data_format=self.data_format,
+		                                      dilation_rate=self.dilation_rate)
 		cross_xlog_kerprob = k.backend.conv2d(x,
-											  k.backend.exp(nkernel),
-											  strides=self.strides,
-											  padding=self.padding,
-											  data_format=self.data_format,
-											  dilation_rate=self.dilation_rate)
+		                                      k.backend.exp(nkernel),
+		                                      strides=self.strides,
+		                                      padding=self.padding,
+		                                      data_format=self.data_format,
+		                                      dilation_rate=self.dilation_rate)
 
 		ent_ker = self.ent_kernel()
 		ker_sum = K.sum(expnkernel, axis=2, keepdims=True)
@@ -1641,20 +1608,20 @@ class KlConv2D_Breg_Un_Norm(KlConv2DInterface):
 		ker_sum = K.exp(ker_sum)
 		ker_sum = k.backend.permute_dimensions(ker_sum, [0, 3, 1, 2])
 		ent_x = k.backend.conv2d(-xprob * x,
-								 self.const_kernel,
-								 strides=self.strides,
-								 padding=self.padding,
-								 data_format=self.data_format,
-								 dilation_rate=self.dilation_rate)
+		                         self.const_kernel,
+		                         strides=self.strides,
+		                         padding=self.padding,
+		                         data_format=self.data_format,
+		                         dilation_rate=self.dilation_rate)
 		data_sum = k.backend.sum(xprob, axis=1, keepdims=True)
 		data_sum = k.backend.log(data_sum)
 		a = self.const_kernel[:, :, 0:1, :]
 		data_sum = k.backend.conv2d(data_sum,
-									self.const_kernel[:, :, 0:1, 0:1],
-									strides=self.strides,
-									padding=self.padding,
-									data_format=self.data_format,
-									dilation_rate=self.dilation_rate)
+		                            self.const_kernel[:, :, 0:1, 0:1],
+		                            strides=self.strides,
+		                            padding=self.padding,
+		                            data_format=self.data_format,
+		                            dilation_rate=self.dilation_rate)
 		data_sum = K.exp(data_sum)
 
 		normalizer = k.backend.permute_dimensions(normalizer, [0, 3, 1, 2])
@@ -1668,14 +1635,30 @@ class KlConv2D_Breg_Un_Norm(KlConv2DInterface):
 class KlAveragePooling2D(AveragePooling2D):
 
 	def _pooling_function(self, inputs, pool_size, strides,
-						  padding, data_format):
+	                      padding, data_format):
+		m = k.backend.max(inputs,(2,3),keepdims=True)
+		inputs = inputs - m
 		inputs = k.backend.exp(inputs)
 		output = k.backend.pool2d(inputs, pool_size, strides,
-								  padding, data_format, pool_mode='avg')
-		output = k.backend.clip(output, k.backend.epsilon(), 1-k.backend.epsilon())
-		#output = output/k.backend.sum(output,axis=KER_CHAN_DIM,keepdims=True)
+		                          padding, data_format, pool_mode='avg')
+		output = k.backend.clip(output, k.backend.epsilon(), None)
 		output = k.backend.log(output)
+		output += m
+
 		return output
+class LSEPooling2D(AveragePooling2D):
+	''' Log Sum Exp Pooling'''
+	def _pooling_function(self, inputs, pool_size, strides,
+	                      padding, data_format):
+		maxval = K.max(inputs, axis=(2, 3), keepdims=True)
+		x = inputs - maxval
+		x = K.exp(x)
+		output = k.backend.pool2d(x, pool_size, strides,
+		                          padding, data_format, pool_mode='avg')
+		#output = output/k.backend.sum(output,axis=KER_CHAN_DIM,keepdims=True)
+		output = k.backend.log(output*9.0) + maxval
+		return output
+
 
 
 

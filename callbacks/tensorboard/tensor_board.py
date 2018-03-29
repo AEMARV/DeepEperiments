@@ -53,6 +53,10 @@ class TensorboardVisualizer(Callback):
 					                                          tensor=layer.bias_entropy())]
 					scalar_summary_list += [tf.summary.scalar(name='Avg_Conc{}'.format(layer.name),
 					                                          tensor=layer.avg_concentration())]
+				elif isinstance(layer,ConstMul):
+					scalar_summary_list += [tf.summary.scalar(name='Concentration_All_{}'.format(layer.name),
+					                                          tensor=layer.get_conc())]
+
 				for weight in layer.trainable_weights:
 
 					mapped_weight_name = weight.name.replace(':', '_')

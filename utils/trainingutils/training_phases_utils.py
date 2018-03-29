@@ -90,11 +90,11 @@ def load_data(dataset, opts):
 		(data_train, label_train), (data_test, label_test) = cifar10.load_data()
 	else:
 		raise ValueError('dataset loader not defined')
-	nb_classes = opts['training_opts']['dataset']['nb_classes'];
+	nb_classes = opts['training_opts']['dataset']['nb_classes']
 	label_train = np_utils.to_categorical(label_train, nb_classes)
 	label_test = np_utils.to_categorical(label_test, nb_classes)
-	data_train = data_train.astype('float32')
-	data_test = data_test.astype('float32')
+	data_train = data_train.astype('float32')/256
+	data_test = data_test.astype('float32')/256
 	return (data_train, label_train), (data_test, label_test)
 
 

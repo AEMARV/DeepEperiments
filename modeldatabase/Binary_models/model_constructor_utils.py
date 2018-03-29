@@ -65,6 +65,10 @@ def model_constructor(opts, model_dict=None):
 				x = Layer_on_list(LogSoftmax(), x)
 			elif component == 'normlog':
 				x = Layer_on_list(NormalizeLog(), x)
+			elif component == 'norm':
+				x = Layer_on_list(Normalize(), x)
+			elif component == 'concent':
+				x = Layer_on_list(ConstMul(), x)
 			# Normalized KL CONVS
 			elif component == 'klconv':
 				block_index += 1
@@ -410,7 +414,7 @@ def model_constructor(opts, model_dict=None):
 				padding = param['padding'] if 'padding' in param else 'same'
 
 				"""INIT"""
-				init = opts['model_opts']['kl_opts']['kl_initial']
+				init = opts['model_opts']['kl_opts']['klb_initial']
 
 				"""Distance Measure"""
 				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
@@ -447,7 +451,7 @@ def model_constructor(opts, model_dict=None):
 				f_size = int(param['r'])
 				use_bias = bool(param['bias'] if 'bias' in param else 0)
 				padding = param['padding'] if 'padding' in param else 'same'
-
+				is_input = bool(param['input'] if 'input' in param else 0)
 				"""INIT"""
 				init = opts['model_opts']['kl_opts']['kl_initial']
 
@@ -476,7 +480,8 @@ def model_constructor(opts, model_dict=None):
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
 				                           bias_regularizer=bias_reg,
-										   use_bias=use_bias), x)
+										   use_bias=use_bias,
+				                           isinput=is_input), x)
 			elif component == 'klconvbnat':
 
 				# KL conv with Concentration
@@ -709,6 +714,18 @@ def model_constructor(opts, model_dict=None):
 					                   strides=strides,
 					                   padding=padding,
 					                   name=POOL_NAME_RULE.format(block_index, 'AVERAGE')), x)
+			elif component == 'lsepool':
+				pool_size = int(param['r'])
+				strides = int(param['s'])
+				pool_size = (pool_size, pool_size)
+				strides = (strides, strides)
+				padding = 'valid'
+				x = node_list_to_list(x)
+				x = Layer_on_list(
+					LSEPooling2D(pool_size=pool_size,
+					                   strides=strides,
+					                   padding=padding,
+					                   name=POOL_NAME_RULE.format(block_index, 'LSE')), x)
 			## End KL Layers
 			elif component == 'convsh':
 				block_index += 1
