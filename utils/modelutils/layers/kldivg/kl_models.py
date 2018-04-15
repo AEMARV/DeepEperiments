@@ -788,7 +788,7 @@ def helloKl_Concentrated(opts, input_shape, nb_classes, getstring_flag=False):
                    '->klconvconc|f:' + str(nb_classes) + ',r:1->lsoft' \
                                                      '->klavgpool|r:3,s:1' \
                                                      '->flattensh' \
-                                                     '->lsoft->fin'
+                                                     '->fin'
     use_link_func = False
     opts['model_opts']['kl_opts'] = {}
     opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric

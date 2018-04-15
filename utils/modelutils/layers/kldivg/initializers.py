@@ -1,10 +1,8 @@
 from keras.initializers import *
 from keras.regularizers import *
-import keras as k
 import numpy as np
 import keras.backend as K
-from tensorflow.contrib.distributions.python.ops import uniform
-
+import keras as k
 
 class Sigmoid_Init(Initializer):
 	"""Initializer that generates tensors uniform on log odds.
@@ -33,7 +31,7 @@ class Sigmoid_Init(Initializer):
 	def get_log_normalizer(self,x):
 		return x*0
 
-
+z= 4.0
 class Dirichlet_Init(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
@@ -43,9 +41,14 @@ class Dirichlet_Init(Initializer):
 		self.linker = linker
 
 	def __call__(self, shape, dtype=None):
+		filts = np.float(shape[3])
+		ndimens = np.float(shape[1]) * np.float(shape[0])
+		nsymbols =  np.float(shape[2])
+		lncorners = ndimens * np.log(nsymbols)
 		out = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
 		out = np.log(out)
-		out = 2.0*np.log(out/np.sum(out, axis=2, keepdims=True))
+		out = np.log(filts) * np.log(out/np.sum(out, axis=2, keepdims=True))
+		c = np.log(np.float(shape[3]))/(np.float(shape[0])*np.float(shape[1]))
 		#if not self.use_link_func:
 
 		return out
@@ -96,10 +99,14 @@ class Dirichlet_Init_Bin(Initializer):
 		self.linker = linker
 
 	def __call__(self, shape, dtype=None):
-
-		out = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
-		if not self.use_link_func:
-			out = 2.0*np.log(out)
+		filts = np.float(shape[3])
+		ndimens = np.float(shape[1])*np.float(shape[2])*np.float(shape[0])
+		nsymbols = 2
+		lncorners = ndimens * np.log(nsymbols)
+		out = np.random.uniform(K.epsilon(), 1 - K. epsilon(), shape)
+		out = np.log(out)
+		c = np.log(np.float(shape[3]))/(np.float(shape[0]) * np.float(shape[1]) * np.float(shape[2]))
+		out = np.log(filts)*out
 		return out
 
 	def get_log_prob(self, x0,x1):
@@ -304,7 +311,6 @@ class AlphaInit(Initializer):
 	def __init__(self, use_link_func=False,linker=K.abs):
 		self.use_link_func = use_link_func
 		self.linker = linker
-
 	def __call__(self, shape, dtype=None):
 		uniform_dist = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
 		uniform_dist = np.log(uniform_dist)

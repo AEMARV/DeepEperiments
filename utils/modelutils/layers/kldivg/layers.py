@@ -1,17 +1,8 @@
 from keras.layers import Layer
-import keras as k
-import numpy as np
-import tensorflow as tf
-from keras import activations
 from keras import initializers
-from keras import regularizers
-from keras import constraints
 from utils.modelutils.layers.kldivg.initializers import *
 from keras.utils import conv_utils
-from keras.engine import InputSpec
 from keras.layers.pooling import AveragePooling2D
-from keras.backend import epsilon
-from keras.legacy import interfaces
 from keras.layers.merge import _Merge
 KER_CHAN_DIM = 2
 
@@ -104,8 +95,9 @@ class LogSoftmax(Layer):
 	def call(self, x, mask=None):
 		m = k.backend.logsumexp(x, 1, True)
 		y = x - m
-		l = K.mean(m)
-		#self.add_loss(-l/1000.0, x)
+		l = K.logsumexp(m,(1,2,3),False)
+		l = K.sum(l)
+		self.add_loss(-l, x)
 		#self.add_loss(K.mean(-k.backend.logsumexp(x, 1, True)))
 		return y
 	def get_config(self):
@@ -207,8 +199,12 @@ class KlConv2DInterface(k.layers.Conv2D):
 				concshape = (1,kernel_shape[3], 1 , 1)
 			elif self.concent_type=='perlayer':
 				concshape = (1, 1, 1, 1)
+			filts = np.float(kernel_shape[3])
+			initconc = np.log(filts)
+			initconcnew = filts
+			initconst = np.log(np.e - 1)
 			self.concent_par = self.add_weight(shape=concshape,
-			                                    initializer=k.initializers.Constant(5),
+			                                    initializer=k.initializers.Constant(initconst),
 			                                    name='concentpar',
 			                                    constraint=self.kernel_constraint,
 			                                    regularizer=None,
@@ -507,8 +503,12 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 				concshape = (1, 1, 1, 1)
 			elif self.concent_type=='perfilter':
 				concshape = (1, kernel_shape[3], 1, 1)
+			filts = np.float(kernel_shape[3])
+			initconc = np.log(filts)
+			initconcnew = filts
+			initconst = np.log(np.e-1)
 			self.concent_par = self.add_weight(shape=concshape,
-			                                    initializer=k.initializers.Constant(5),
+			                                    initializer=k.initializers.Constant(initconst),
 			                                    name='concentpar',
 			                                    constraint=self.kernel_constraint,
 			                                    regularizer=None,
@@ -1085,10 +1085,16 @@ class KlConv2D_Concentrated(KlConv2DInterface):
 	def get_config(self):
 		base_config = super(KlConv2D_Concentrated, self).get_config()
 		return base_config
+	def get_concentration_perfilt(self):
 
+		conc = K.softplus(self.concent_par)
+		return conc
 	def call(self, x, mask=None):
 		out = self.kl_xl_kp(x)
-		out = out * (K.softplus(self.concent_par))
+		out = out * self.get_concentration_perfilt()
+		outval = self.kl_xp_kl(x) * self.get_concentration_perfilt()
+		# outI = self.kl_xp_kl(x) * (K.exp (self.concent_par_input))
+		#out = K.in_train_phase(outval, out)
 		#outI= self.kl_xp_kl(x)*(K.softplus(self.concent_par_input))
 		if self.use_bias:
 			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
@@ -1108,12 +1114,16 @@ class KlConv2Db_Concentrated(KlConvBin2DInterface):
 		self.hasConcentrationPar = True
 		self.concent_type = 'perlayer'
 
-
+	def get_concentration_perfilt(self):
+		conc = K.softplus(self.concent_par)
+		return conc
 	def call(self, x, mask=None):
 
 		out = self.kl_xl_kp(x)
-		out = out * (K.softplus(self.concent_par))
+		out = out * self.get_concentration_perfilt()
+		outval = self.kl_xp_kl(x)*self.get_concentration_perfilt()
 		#outI = self.kl_xp_kl(x) * (K.exp (self.concent_par_input))
+		#out = K.in_train_phase(outval,out)
 		if self.use_bias:
 			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
 		return out
@@ -1133,7 +1143,7 @@ class KlConv2D_NConcentrated(KlConv2DInterface):
 			filters=filters,
 			kernel_size=kernel_size,
 			**kwargs)
-		self.hasConcentrationPar = True
+		self.hasConcentrationPar = False
 		self.use_link_func = False
 		self.is_input = isinput
 	def kl_conc_xp_kl(self,x,isprob):
@@ -1160,13 +1170,13 @@ class KlConv2D_NConcentrated(KlConv2DInterface):
 								 dilation_rate=self.dilation_rate)
 		return cross_xprob_kerlog + ent_x
 	def get_prob_kernel(self):
-		prob = self.kernel_initializer.get_prob(self.kernel/self.get_conc_par())
+		prob = self.kernel_initializer.get_prob(self.kernel)
 		return prob
 	def get_log_kernel(self):
-		log_prob = self.kernel_initializer.get_log_prob(self.kernel/self.get_conc_par())
+		log_prob = self.kernel_initializer.get_log_prob(self.kernel)
 		return log_prob
 	def get_conc_par(self):
-		return (K.softplus(self.concent_par))
+		return (K.mean(K.softplus(self.get_log_normalizer())))
 	def call(self, x, mask=None):
 		if self.is_input:
 			isinputprob = True
@@ -1191,16 +1201,10 @@ class KlConv2Db_NConcentrated(KlConvBin2DInterface):
 			filters=filters,
 			kernel_size=kernel_size,
 			**kwargs)
-		self.hasConcentrationPar = True
+		self.hasConcentrationPar = False
 		self.use_link_func = False
-	def get_prob_kernel(self):
-		prob0,prob1 = self.kernel_initializer.get_prob(self.kernel0/self.get_conc_par(),self.kernel1/self.get_conc_par())
-		return prob0,prob1
-	def get_log_kernel(self):
-		log_prob0,log_prob1 = self.kernel_initializer.get_log_prob(self.kernel0/self.get_conc_par(),self.kernel1/self.get_conc_par())
-		return log_prob0,log_prob1
 	def get_conc_par(self):
-		return (K.softplus(self.concent_par))
+		return K.mean(K.softplus(self.get_log_normalizer()))
 	def call(self, x, mask=None):
 
 		out = self.kl_conc_xl_kp(x)*self.get_conc_par()
