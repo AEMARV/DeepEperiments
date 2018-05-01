@@ -62,7 +62,9 @@ def model_constructor(opts, model_dict=None):
 			#------------------------------------------------------Kl Layers
 
 			elif component == 'lsoft':
-				x = Layer_on_list(LogSoftmax(), x)
+				use_reg = bool(param['reg'] if 'reg' in param else 1)
+				x = Layer_on_list(LogSoftmax(reg=use_reg), x)
+
 			elif component == 'normlog':
 				x = Layer_on_list(NormalizeLog(), x)
 			elif component == 'norm':
@@ -79,7 +81,7 @@ def model_constructor(opts, model_dict=None):
 
 				"""INIT"""
 				init = opts['model_opts']['kl_opts']['kl_initial']
-
+				biasinit= opts['model_opts']['kl_opts']['bias_initial']
 				"""Distance Measure"""
 				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
 
@@ -87,11 +89,11 @@ def model_constructor(opts, model_dict=None):
 				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
 				"""Regularization"""
 				reg = opts['model_opts']['kl_opts']['convreg']
-				if reg is not None:
-					reg_coef = param['coef'] if 'coef' in param else 1
-					reg = reg(coef=reg_coef)
-					reg.use_link_func = use_link_func
-					reg.link_func = init.linkfunc
+				#if reg is not None:
+					#reg_coef = param['coef'] if 'coef' in param else 1
+					#reg = reg(coef=reg_coef)
+					#reg.use_link_func = use_link_func
+					#reg.link_func = init.linkfunc
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
 				x = Layer_on_list(KlConv2D(filters=int(nb_filter * expand_rate),
@@ -103,7 +105,8 @@ def model_constructor(opts, model_dict=None):
 				                           use_link_func=use_link_func,
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
-										   use_bias=use_bias), x)
+										   use_bias=use_bias,
+				                           bias_initializer=biasinit), x)
 			elif component == 'klconvl':
 
 				"""Generic Setting"""
@@ -151,7 +154,7 @@ def model_constructor(opts, model_dict=None):
 
 				"""INIT"""
 				init = opts['model_opts']['kl_opts']['klb_initial']
-
+				biasinit = opts['model_opts']['kl_opts']['bias_initial']
 				"""Distance Measure"""
 				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
 
@@ -176,7 +179,8 @@ def model_constructor(opts, model_dict=None):
 										    name=KL_CONVB_NAME.format(block_index),
 				                            use_link_func=use_link_func,
 				                            dist_measure=dist_measure,
-										    use_bias=use_bias), x)
+										    use_bias=use_bias,
+				                            bias_initializer=biasinit), x)
 			# Unnormalized KL Conv
 			elif component == 'klconvu':
 				# TODO fix this block, nothing changed here
@@ -377,7 +381,7 @@ def model_constructor(opts, model_dict=None):
 
 				"""INIT"""
 				init = opts['model_opts']['kl_opts']['kl_initial']
-
+				biasinit = opts['model_opts']['kl_opts']['bias_initial']
 				"""Distance Measure"""
 				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
 
@@ -403,7 +407,8 @@ def model_constructor(opts, model_dict=None):
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
 				                           bias_regularizer=bias_reg,
-										   use_bias=use_bias), x)
+										   use_bias=use_bias,
+										   bias_initializer=biasinit), x)
 			elif component == 'klconvbconc':
 
 				# KL conv with Concentration
@@ -415,7 +420,7 @@ def model_constructor(opts, model_dict=None):
 
 				"""INIT"""
 				init = opts['model_opts']['kl_opts']['klb_initial']
-
+				biasinit = opts['model_opts']['kl_opts']['bias_initial']
 				"""Distance Measure"""
 				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
 
@@ -441,7 +446,7 @@ def model_constructor(opts, model_dict=None):
 				                                        dist_measure=dist_measure,
 				                                        name=KL_CONV_NAME.format(block_index),
 				                                        bias_regularizer=bias_reg,
-				                                        use_bias=use_bias), x)
+				                                        use_bias=use_bias, bias_initializer=biasinit), x)
 			# KL conv with Natural Parameterization + natural Concentration
 			elif component == 'klconvnat':
 
@@ -454,7 +459,7 @@ def model_constructor(opts, model_dict=None):
 				is_input = bool(param['input'] if 'input' in param else 0)
 				"""INIT"""
 				init = opts['model_opts']['kl_opts']['kl_initial']
-
+				biasinit = opts['model_opts']['kl_opts']['bias_initial']
 				"""Distance Measure"""
 				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
 
@@ -480,7 +485,7 @@ def model_constructor(opts, model_dict=None):
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
 				                           bias_regularizer=bias_reg,
-										   use_bias=use_bias,
+										   use_bias=use_bias, bias_initializer=biasinit,
 				                           isinput=is_input), x)
 			elif component == 'klconvbnat':
 
@@ -493,7 +498,7 @@ def model_constructor(opts, model_dict=None):
 
 				"""INIT"""
 				init = opts['model_opts']['kl_opts']['klb_initial']
-
+				biasinit = opts['model_opts']['kl_opts']['bias_initial']
 				"""Distance Measure"""
 				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
 
@@ -519,7 +524,7 @@ def model_constructor(opts, model_dict=None):
 				                                        dist_measure=dist_measure,
 				                                        name=KL_CONV_NAME.format(block_index),
 				                                        bias_regularizer=bias_reg,
-				                                        use_bias=use_bias), x)
+				                                        use_bias=use_bias, bias_initializer=biasinit), x)
 			# KL conv single component natural concentration
 			elif component == 'klconvscnat':
 
@@ -714,6 +719,18 @@ def model_constructor(opts, model_dict=None):
 					                   strides=strides,
 					                   padding=padding,
 					                   name=POOL_NAME_RULE.format(block_index, 'AVERAGE')), x)
+			elif component == 'glklavgpool':
+				pool_size = int(param['r'])
+				strides = int(param['s'])
+				pool_size = (pool_size, pool_size)
+				strides = (strides, strides)
+				padding = param['pad'] if 'pad' in param.keys() else 'valid'
+				x = node_list_to_list(x)
+				x = Layer_on_list(
+					GlobalKlAveragePooling2D(pool_size=pool_size,
+					                   strides=strides,
+					                   padding=padding,
+					                   name=POOL_NAME_RULE.format(block_index, 'GlobalAvgKL')), x)
 			elif component == 'lsepool':
 				pool_size = int(param['r'])
 				strides = int(param['s'])

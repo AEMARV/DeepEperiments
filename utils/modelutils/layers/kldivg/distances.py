@@ -70,7 +70,7 @@ def kl_loss_data_centric(y_true,y_pred):
 
 
 	loss += cross_xlog_mp
-
+	loss = loss
 	return -loss
 def kl_loss_both_centric(y_true,y_pred):
 	loss = 0

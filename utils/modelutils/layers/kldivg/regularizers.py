@@ -24,7 +24,32 @@ class Ent_Reg_Softmax(Regularizer):
 			ent = -xnorm * K.exp(xnorm)
 			ent = self.coef * K.sum(ent)
 		return -ent
+class MixEntReg(Regularizer):
+	"""Regularizer for L1 and L2 regularization.
 
+	# Arguments
+		l1: Float; L1 regularization factor.
+		l2: Float; L2 regularization factor.
+	"""
+	def get_config(self):
+		return {'softm_coef': float(self.coef)}
+
+	def __init__(self, coef=None,initializer=None):
+		self.coef = K.cast_to_floatx(coef)
+		self.initializer = initializer
+	def __call__(self, x):
+		xp = self.initializer.get_prob(x)
+		xl = self.initializer.get_log_prob(x)
+		avgent = self.avg_entropy(xp,xl)
+		mixprob = K.mean(xp,3,keepdims=False)
+		mixent = self.avg_entropy(mixprob,K.log(K.clip(mixprob,K.epsilon(),1)))
+		deltaent = mixent - avgent
+		return -self.coef *deltaent
+	def avg_entropy(self,xp,xl):
+		h = xp*xl
+		h = -K.sum(h,(0,1,2),keepdims=False)
+		h = K.mean(h)
+		return h
 
 class Ent_Reg_Sigmoid(Regularizer):
 	def get_config(self):
