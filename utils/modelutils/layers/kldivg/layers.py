@@ -105,11 +105,12 @@ class LogSoftmax(Layer):
 		#x = K.clip(x,-100000.0,None)
 		m = K.logsumexp(x, 1, True)
 		y = x - m
-		pmix = K.mean(K.exp(y),(0,2,3),keepdims= True)
-		hmix = -pmix * K.log(K.clip(pmix,K.epsilon(),1))
-		hmix = K.sum(hmix)
-		h = K.sum( -y * K.exp(y),1)
-		h = K.mean(h)
+		#y = K.clip(y, -1000, None)
+		#pmix = K.mean(K.exp(y),(0,2,3),keepdims= True)
+		#hmix = -pmix * K.log(K.clip(pmix,K.epsilon(),1))
+		#hmix = K.sum(hmix)
+		#h = K.sum( -y * K.exp(y),1)
+		#h = K.mean(h)
 #		if self.reg:
 			#self.add_loss(h-hmix,x)
 
@@ -331,6 +332,8 @@ class KlConv2DInterface(k.layers.Conv2D):
 		conc = self.get_concentration()
 		conc = K.sum(conc,axis=2,keepdims=True)
 		return K.mean(conc)
+	def bias_concentration(self):
+		return K.sum(self.bias_initializer.get_concentration(self.bias))
 
 	# Entropy
 	def entropy(self):
@@ -710,7 +713,8 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 	def avg_concentration(self):
 		conc0, conc1 = self.get_concentration()
 		return K.mean(conc0+conc1)
-
+	def bias_concentration(self):
+		return K.sum(self.bias_initializer.get_concentration(self.bias))
 	# OPS
 	def kl_xl_kp(self, x):
 		xprob = x

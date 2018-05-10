@@ -4,6 +4,7 @@ import numpy as np
 import keras.backend as K
 import keras as k
 
+
 class Sigmoid_Init(Initializer):
 	"""Initializer that generates tensors uniform on log odds.
 	"""
@@ -31,7 +32,7 @@ class Sigmoid_Init(Initializer):
 	def get_log_normalizer(self,x):
 		return x*0
 
-z= 4.0
+
 class Dirichlet_Init(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
@@ -88,6 +89,7 @@ class Dirichlet_Init(Initializer):
 			y = K.exp(x)
 
 		return y
+
 
 class Dirichlet_Init_Bin(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
@@ -163,21 +165,23 @@ class Dirichlet_Init_Bin(Initializer):
 
 		return y0 , y1
 
+
 # Unit Sphere -- Jeffreis prior
 class UnitSphereInit(Initializer):
 	def __init__(self, use_link_func=False, linker=K.square):
 		self.use_link_func = use_link_func
 		self.linker = K.square
+
 	def __call__(self, shape, dtype=None):
 		filts = np.float(shape[3])
 		ndimens = np.float(shape[1]) * np.float(shape[2]) * np.float(shape[0])
 		nsymbols = 2
 		lncorners = ndimens * np.log(nsymbols)
 		out = np.random.normal(loc=0, scale=1, size=shape)
-		#out = out / np.sqrt(np.sum(out ** 2, axis=2, keepdims=True))
 		out = out / np.sqrt(np.sum(out**2, axis=2, keepdims=True))
 		return out
-	def get_log_prob(self,x):
+
+	def get_log_prob(self, x):
 		y = self.get_prob(x)
 		y = K.clip(y,K.epsilon(),None)
 		logprob = K.log(y)
@@ -188,28 +192,32 @@ class UnitSphereInit(Initializer):
 		y = y / self.get_normalizer(x)
 		return y
 
-	def get_log_normalizer(self,x):
+	def get_log_normalizer(self, x):
 		normalizer = self.get_normalizer(x)
 		return K.log(normalizer)
-	def get_normalizer(self,x):
+
+	def get_normalizer(self, x):
 		y = self.linker(x)
 		normalizer = K.sum(y, axis=2, keepdims=True)
 		return normalizer
-	def get_concentration(self,x):
+
+	def get_concentration(self, x):
 		return x**2
+
 
 class UnitSphereInitBin(Initializer):
 	def __init__(self, use_link_func=False, linker=K.square):
 		self.use_link_func = use_link_func
 		self.linker = K.square
+
 	def __call__(self, shape, dtype=None):
 		filts = np.float(shape[3])
 		ndimens = np.float(shape[1]) * np.float(shape[2]) * np.float(shape[0])
 		nsymbols = 2
 		lncorners = ndimens * np.log(nsymbols)
 		out = np.random.normal(loc=0, scale=1, size=shape)
-		#out = out / np.sqrt(np.sum(out ** 2, axis=3, keepdims=True))
 		return out
+
 	def get_log_prob(self,x0,x1):
 		y0,y1 = self.get_prob(x0, x1)
 		y0 = K.clip(y0, K.epsilon(), None)
@@ -218,32 +226,45 @@ class UnitSphereInitBin(Initializer):
 		logprob1 = K.log(y1)
 
 		return logprob0, logprob1
+
 	def get_prob(self,x0,x1):
 		norm = self.get_normalizer(x0, x1)
 		y0 = self.linker(x0)/norm
 		y1 = self.linker(x1)/norm
 		return y0, y1
+
 	def get_log_normalizer(self,x0,x1):
 		norm = self.get_normalizer(x0, x1)
 		return K.log(norm)
+
 	def get_normalizer(self,x0,x1):
 		norm = self.linker(x0) + self.linker(x1)
 		return norm
+
 	def get_concentration(self,x0,x1):
 		return x0**2,x1**2
+
+
 class UnitSphereInitBias(Initializer):
 	def __init__(self, use_link_func=False, linker=K.square):
 		self.use_link_func = use_link_func
 		self.linker = K.square
+
 	def __call__(self, shape, dtype=None):
 
-		out = (np.random.normal(loc=0, scale=1, size=shape)*0.0) +1
+		out = (np.random.normal(loc=0, scale=1, size=shape)*0.0) + 1
 		out = out / np.sqrt(np.sum(out**2))
 		return out
+
 	def get_log_bias(self,x):
 		y = self.get_prob_bias(x)
+		y = K.clip(y, K.epsilon(), None)
 		logprob = K.log(y)
 		return logprob
+
+	def get_concentration(self,x):
+		y = self.linker(x)
+		return y
 
 	def get_prob_bias(self, x):
 		y = self.linker(x)
@@ -253,11 +274,11 @@ class UnitSphereInitBias(Initializer):
 	def get_log_normalizer(self,x):
 		normalizer = self.get_normalizer(x)
 		return K.log(normalizer)
+
 	def get_normalizer(self,x):
 		y = self.linker(x)
 		normalizer = K.sum(y)
 		return normalizer
-
 
 
 class Unit_Sphere_Init_Logit(Initializer):
@@ -283,6 +304,7 @@ class Unit_Sphere_Init_Logit(Initializer):
 		return diff*0
 	def get_normalizer(self,diff):
 		return diff*0 + 1
+
 
 # Exponential init
 class Exp_Init(Initializer):
@@ -385,6 +407,8 @@ class AlphaInit(Initializer):
 		alpha = self.linker(alpha)
 		normalizer = K.sum(alpha, axis=2, keepdims=True)
 		return normalizer
+
+
 class AlphaInitBin(Initializer):
 
 	def __init__(self, use_link_func=False,linker=K.abs):
@@ -430,6 +454,8 @@ class AlphaInitBin(Initializer):
 		alpha1 = self.linker(alpha1)
 		z = alpha0 + alpha1
 		return z
+
+
 class AlphaInitBias(Initializer):
 	def __init__(self, use_link_func=False,linker=K.abs):
 		self.use_link_func = use_link_func
@@ -464,6 +490,8 @@ class AlphaInitBias(Initializer):
 		alpha = self.linker(alpha)
 		normalizer = K.sum(alpha)
 		return normalizer
+
+
 class LogInit(Initializer):
 	def __init__(self, use_link_func=False, linker=K.abs):
 		self.use_link_func = use_link_func
@@ -571,9 +599,12 @@ class ConcentratedSC(Initializer):
 		normalizer = K.sum(normalizer, axis=2, keepdims=True)
 		return normalizer
 
+
 def linker_square(x):
-	y= x**2
+	y = x**2
 	return y
+
+
 def linker_sqrt(x):
 	return K.sqrt(x)
 
@@ -585,7 +616,6 @@ def linker_id(x):
 
 def linker_abs(x):
 	y = K.abs(x)
-	#y = K.clip(y,K.epsilon(),None)
 	return y
 
 
@@ -593,12 +623,18 @@ def linker_softplus(x):
 	y = K.softplus(x)
 	y = K.clip(y, K.epsilon(), None)
 	return y
+
+
 def linker_exp(x):
 	y = K.exp(x)
 	return y
+
+
 def linker_logabs(x):
 	y = K.log(1 + K.abs(x))
 	return y
+
+
 def linker_log(x):
 	x = K.clip(x,K.epsilon(), 1 - K.epsilon())
 	y = -K.log(x)

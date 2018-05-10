@@ -43,7 +43,7 @@ class PolarSGD(Optimizer):
 		self.weights = [self.iterations] + moments
 		for p, g, m in zip(params, grads, moments):
 
-			v = self.momentum * m - lr * (g + self.get_weight_decay(p)*self.polar_decay)  # velocity
+			v = self.momentum * m - lr * (g)# + self.get_weight_decay(p)*self.polar_decay)  # velocity
 			self.updates.append(K.update(m, v))
 
 			if self.nesterov:
