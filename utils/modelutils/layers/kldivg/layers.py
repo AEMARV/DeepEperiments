@@ -110,10 +110,10 @@ class LogSoftmax(Layer):
 		hmix = K.sum(hmix)
 		h = K.sum( -y * K.exp(y),1)
 		h = K.mean(h)
-		#if self.reg:
+#		if self.reg:
 			#self.add_loss(h-hmix,x)
 
-		#self.add_loss(-K.mean(m), x)
+#		self.add_loss(-K.mean(m), x)
 		return y
 	def get_config(self):
 		base_config = super(LogSoftmax, self).get_config()
@@ -329,7 +329,8 @@ class KlConv2DInterface(k.layers.Conv2D):
 
 	def avg_concentration(self):
 		conc = self.get_concentration()
-		return K.max(conc)
+		conc = K.sum(conc,axis=2,keepdims=True)
+		return K.mean(conc)
 
 	# Entropy
 	def entropy(self):
@@ -672,7 +673,7 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 		return e
 	def ent_per_spatial(self):
 		e = self.ent_per_param()
-		e = K.sum(e,axis=KER_CHAN_DIM,keepdims=True)
+		e = K.sum(e, axis=KER_CHAN_DIM, keepdims=True)
 		return e
 	def conc_ent_per_spatial(self):
 		e = self.conc_ent_per_param()
@@ -708,7 +709,7 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 
 	def avg_concentration(self):
 		conc0, conc1 = self.get_concentration()
-		return K.mean(conc0/2+conc1/2)
+		return K.mean(conc0+conc1)
 
 	# OPS
 	def kl_xl_kp(self, x):
@@ -1112,11 +1113,13 @@ class KlConv2D(KlConv2DInterface):
 	def __init__(self,
 				 filters,
 				 kernel_size,
+	             isrelu=True,
 				 **kwargs):
 		super(KlConv2D, self).__init__(
 			filters=filters,
 			kernel_size=kernel_size,
 			**kwargs)
+		self.isrelu = isrelu
 
 	def get_config(self):
 		base_config = super(KlConv2D, self).get_config()
@@ -1124,7 +1127,10 @@ class KlConv2D(KlConv2DInterface):
 
 	def call(self, xl, mask=None):
 
-		out = self.kl_xl_kp(xl)# + self.kl_xl_kp(xl)
+		if self.isrelu:
+			out = self.kl_xl_kp(xl)# + self.kl_xp_kl(x)
+		else:
+			out =  self.kl_xp_kl(xl)
 
 		out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
 		return out
@@ -1204,14 +1210,18 @@ class KlConvBin2D(KlConvBin2DInterface):
 	def __init__(self,
 				 filters,
 				 kernel_size,
+	             isrelu=False,
 				 **kwargs):
 		super(KlConvBin2D, self).__init__(
 			filters=filters,
 			kernel_size=kernel_size,
 			**kwargs)
-
+		self.isrelu = isrelu
 	def call(self, x, mask=None):
-		out = self.kl_xl_kp(x)# + self.kl_xp_kl(x)
+		if self.isrelu:
+			out = self.kl_xl_kp(x)# + self.kl_xp_kl(x)
+		else:
+			out = self.kl_xp_kl(x)
 		out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
 		return out
 

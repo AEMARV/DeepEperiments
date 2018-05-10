@@ -176,7 +176,7 @@ class UnitSphereInit(Initializer):
 		out = np.random.normal(loc=0, scale=1, size=shape)
 		#out = out / np.sqrt(np.sum(out ** 2, axis=2, keepdims=True))
 		out = out / np.sqrt(np.sum(out**2, axis=2, keepdims=True))
-		return out/filts
+		return out
 	def get_log_prob(self,x):
 		y = self.get_prob(x)
 		y = K.clip(y,K.epsilon(),None)
@@ -209,7 +209,7 @@ class UnitSphereInitBin(Initializer):
 		lncorners = ndimens * np.log(nsymbols)
 		out = np.random.normal(loc=0, scale=1, size=shape)
 		#out = out / np.sqrt(np.sum(out ** 2, axis=3, keepdims=True))
-		return out/(filts)
+		return out
 	def get_log_prob(self,x0,x1):
 		y0,y1 = self.get_prob(x0, x1)
 		y0 = K.clip(y0, K.epsilon(), None)
@@ -353,9 +353,12 @@ class AlphaInit(Initializer):
 		#uniform_dist = np.log(uniform_dist)
 
 		#out = uniform_dist / np.sum(uniform_dist, axis=3, keepdims=True)
-		out = uniform_dist/np.sum(uniform_dist, axis=3, keepdims=True)
+		out = uniform_dist/np.sum(uniform_dist, axis=2, keepdims=True)
+		prop = np.log(np.random.uniform(K.epsilon(), 1 - K.epsilon(), [1, 1, 1, shape[3]]))
+		prop = prop / np.sum(prop)
+		out = out * prop
 		#out = np.log(np.exp(out)-1)
-		return out/2
+		return out
 	def get_regularizer(self):
 		return L1L2(0,0)
 
@@ -394,10 +397,13 @@ class AlphaInitBin(Initializer):
 		nsymbols = 2
 		lncorners = ndimens * np.log(nsymbols)
 		out = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
+		prop = np.log(np.random.uniform(K.epsilon(),1 - K.epsilon(),[1,1,1,shape[3]]))
+		prop = prop/np.sum(prop)
 		#out = np.log(out)
-		out = out / np.sum(out, axis=3, keepdims=True)
+		#out = out / np.sum(out, axis=2, keepdims=True)
+		#out = out * prop
 		#out = np.log(np.exp(out) - 1)
-		return out/2
+		return out
 
 	def get_regularizer(self):
 		return L1L2(0,0)

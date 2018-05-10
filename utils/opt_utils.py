@@ -123,7 +123,7 @@ def set_default_opts_based_on_model_dataset(opts):
 	opts['model_opts']['param_dict']['param_expand']['rate'] = 1
 	# End of Layer Parameters-------------------------------------------------------------------------------------
 
-	opts['optimizer_opts']['lr'] = 1.0#.1
+	opts['optimizer_opts']['lr'] = 1#.1
 	opts['optimizer_opts']['momentum'] = .9
 	opts['optimizer_opts']['decay'] = 0#1e-6
 	opts['optimizer_opts']['nestrov'] = False

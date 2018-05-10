@@ -84,11 +84,12 @@ def model_constructor(opts, model_dict=None):
 				biasinit= opts['model_opts']['kl_opts']['bias_initial']
 				"""Distance Measure"""
 				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
-
+				is_relu = bool(param['isrelu'] if 'isrelu' in param else 1)
 				"""Weight Encoding"""
 				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
 				"""Regularization"""
-				reg = opts['model_opts']['kl_opts']['convreg']
+				convreg = opts['model_opts']['kl_opts']['convreg']
+				biasreg = opts['model_opts']['kl_opts']['biasreg']
 				#if reg is not None:
 					#reg_coef = param['coef'] if 'coef' in param else 1
 					#reg = reg(coef=reg_coef)
@@ -100,13 +101,15 @@ def model_constructor(opts, model_dict=None):
 				                           kernel_size=kernel_size,
 				                           padding=padding,
 										   kernel_initializer=init,
-										   kernel_regularizer=reg,
+										   kernel_regularizer=convreg,
 										   activation=None,
 				                           use_link_func=use_link_func,
 				                           dist_measure=dist_measure,
 										   name=KL_CONV_NAME.format(block_index),
 										   use_bias=use_bias,
-				                           bias_initializer=biasinit), x)
+				                           bias_initializer=biasinit,
+				                           bias_regularizer=biasreg,
+				                           isrelu=is_relu), x)
 			elif component == 'klconvl':
 
 				"""Generic Setting"""
@@ -157,30 +160,33 @@ def model_constructor(opts, model_dict=None):
 				biasinit = opts['model_opts']['kl_opts']['bias_initial']
 				"""Distance Measure"""
 				dist_measure = opts['model_opts']['kl_opts']['dist_measure']
-
+				is_relu = bool(param['isrelu'] if 'isrelu' in param else 1)
 				"""Weight Encoding"""
 				use_link_func = opts['model_opts']['kl_opts']['use_link_func']
 
 				"""Regularization"""
-				reg = opts['model_opts']['kl_opts']['convbreg']
-				if reg is not None:
-					reg_coef = param['coef'] if 'coef' in param else 1
-					reg = reg(coef=reg_coef)
-					reg.use_link_func = use_link_func
-					reg.link_func = init.linkfunc
+				convreg = opts['model_opts']['kl_opts']['convbreg']
+				biasreg = opts['model_opts']['kl_opts']['biasreg']
+				#if reg is not None:
+				#	reg_coef = param['coef'] if 'coef' in param else 1
+				#	reg = reg(coef=reg_coef)
+				#	reg.use_link_func = use_link_func
+				#	reg.link_func = init.linkfunc
 				kernel_size = (f_size, f_size)
 				x = node_list_to_list(x)
 				x = Layer_on_list(KlConvBin2D(filters=int(nb_filter * expand_rate),
 				                            kernel_size=kernel_size,
 				                            padding=padding,
 										    kernel_initializer=init,
-										    kernel_regularizer=reg,
+										    kernel_regularizer=convreg,
 										    activation=None,
 										    name=KL_CONVB_NAME.format(block_index),
 				                            use_link_func=use_link_func,
 				                            dist_measure=dist_measure,
 										    use_bias=use_bias,
-				                            bias_initializer=biasinit), x)
+				                            bias_initializer=biasinit,
+				                            bias_regularizer=biasreg,
+				                              isrelu=is_relu), x)
 			# Unnormalized KL Conv
 			elif component == 'klconvu':
 				# TODO fix this block, nothing changed here
@@ -467,7 +473,7 @@ def model_constructor(opts, model_dict=None):
 				use_link_func = True
 				"""Regularization"""
 				reg = opts['model_opts']['kl_opts']['convreg']
-				bias_reg = opts['model_opts']['kl_opts']['biasreg']
+				bias_reg =None
 				if reg is not None:
 					reg_coef = param['coef'] if 'coef' in param else 1
 					reg = reg(coef=reg_coef)
@@ -506,7 +512,7 @@ def model_constructor(opts, model_dict=None):
 				use_link_func = True
 				"""Regularization"""
 				reg = opts['model_opts']['kl_opts']['convreg']
-				bias_reg = opts['model_opts']['kl_opts']['biasreg']
+				bias_reg =None
 				if reg is not None:
 					reg_coef = param['coef'] if 'coef' in param else 1
 					reg = reg(coef=reg_coef)

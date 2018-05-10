@@ -26,7 +26,7 @@ def check_model_list(model_list, datasets):
 if __name__ == '__main__':
 	for total_params in [0]:
 		# total_params=1;
-		models = ['kl_vgg_baseline_nat']
+		models = ['helloKl_Sigmoidal_v0']
 		datasets = ['cifar10']
 		experiment_name = get_experiment_name_prompt()
 		check_model_list(models, datasets)
@@ -45,10 +45,14 @@ if __name__ == '__main__':
 					nb_class = opts['training_opts']['dataset']['nb_classes']
 					""" MODEL PREPARE """
 					model_dict = get_model_from_db(model_str, opts)
-					optimizer = optimizers.SGD(lr=opts['optimizer_opts']['lr'],
-					                           momentum=opts['optimizer_opts']['momentum'],
-					                           decay=opts['optimizer_opts']['decay'],
-					                           nesterov=opts['optimizer_opts']['nestrov'])
+					if 'optimizer' in opts['optimizer_opts']:
+						optimizer = opts['optimizer_opts']['optimizer']
+						opts['optimizer_opts']['optimizer']=None
+					else:
+						optimizer = optimizers.SGD(lr=opts['optimizer_opts']['lr'],
+						                           momentum=opts['optimizer_opts']['momentum'],
+						                           decay=opts['optimizer_opts']['decay'],
+						                           nesterov=opts['optimizer_opts']['nestrov'])
 					model = model_dict['model']
 					model_total_params = (model.count_params() // 100000) / 10
 					if (not total_params == 0) and (not model_total_params== total_params):
