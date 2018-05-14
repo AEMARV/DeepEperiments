@@ -1,3 +1,5 @@
+from matplotlib.pyplot import axes
+
 from keras.layers import Layer
 from keras import initializers
 from utils.modelutils.layers.kldivg.initializers import *
@@ -5,6 +7,7 @@ from keras.utils import conv_utils
 from keras.layers.pooling import AveragePooling2D
 from keras.layers.merge import _Merge
 import keras.backend as K
+import tensorflow as tf
 KER_CHAN_DIM = 2
 KER_HEIGHT_DIM = 0
 KER_WIDTH_DIM = 1
@@ -144,6 +147,79 @@ class NormalizeLog(Layer):
 # Interface Base Class
 
 # Interface Class
+class Mixture(Layer):
+	def __init__(self, filters,
+	             bias_initializer=UnitSphereInit(),
+	             **kwargs):
+		super(Mixture, self).__init__(**kwargs)
+		self.filters = filters
+		self.bias_initializer = bias_initializer
+		self.data_format = 'channels_first'
+	def get_config(self):
+		base_config = super(Mixture, self).get_config()
+		return dict(list(base_config.items()))
+
+	def build(self, input_shape):
+		if self.data_format == 'channels_first':
+			channel_axis = 1
+		else:
+			channel_axis = -1
+		if input_shape[channel_axis] is None:
+			raise ValueError('The channel dimension of the inputs '
+			                 'should be defined. Found `None`.')
+		input_dim = input_shape[channel_axis]
+		self.input_dim = input_dim
+		self.biases = self.add_weight(shape=(1, 1,input_dim, self.filters),
+		                              initializer=self.bias_initializer,
+		                              name='biases',
+		                              regularizer=None,
+		                              constraint=None,
+		                              trainable=True)
+		# Set input spec.
+
+		self.built = True
+
+	def compute_output_shape(self, input_shape):
+		if self.data_format == 'channels_last':
+			space = input_shape[1:-1]
+			new_space = []
+			for i in range(len(space)):
+				new_dim = conv_utils.conv_output_length(
+					space[i],
+					self.kernel_size[i],
+					padding=self.padding,
+					stride=self.strides[i],
+					dilation=self.dilation_rate[i])
+				new_space.append(new_dim)
+			return (input_shape[0],) + tuple(new_space) + (self.filters,)
+		if self.data_format == 'channels_first':
+
+			return (input_shape[0],self.filters,input_shape[2],input_shape[3])
+
+	def compute_mask(self, input, input_mask=None):
+		return None
+	def get_log_bias(self):
+		return self.bias_initializer.get_log_prob(self.biases)
+	def call(self, inputs, **kwargs):
+		b = self.get_log_bias()
+
+		b = K.reshape(b,[self.input_dim,self.filters])
+		listall = []
+		sh = K.int_shape(b)
+		inputdim = sh[1]
+		for i in range(0,self.filters,1):
+
+			thisb = b[:,i]
+			inputthis = K.bias_add(inputs,thisb,data_format='channels_first')
+			inputthis = K.logsumexp(inputthis, axis=1, keepdims=True)
+			listall.append(inputthis)
+		output = K.concatenate(listall,axis=1)
+		return output
+
+
+	# Weight Retrieval
+
+
 class KlConv2DInterface(k.layers.Conv2D):
 	def __init__(self, filters,
 				 kernel_size,
@@ -328,6 +404,22 @@ class KlConv2DInterface(k.layers.Conv2D):
 		else:
 			return -1
 
+	def mixture_entropy(self):
+		logk = self.get_log_kernel()
+		sh = K.int_shape(logk)
+		logp = self.get_bias()
+		logp = K.reshape(logp,(1,1,1,sh[3]))
+		logkmix = logk + logp
+		logkmix = K.logsumexp(logkmix,axis=3,keepdims=True)
+		ent = -K.exp(logkmix)* logkmix
+		ent = K.sum(ent)
+		return ent
+	def lowbound_entropy(self):
+		ent = self.ent_kernel()
+		ent = k.backend.permute_dimensions(ent, [1, 0, 2, 3])
+		ent = ent *self.bias_initializer.get_prob_bias(self.bias)
+		ent = K.sum(ent)
+		return ent
 	def avg_concentration(self):
 		conc = self.get_concentration()
 		conc = K.sum(conc,axis=2,keepdims=True)
@@ -709,7 +801,12 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 		e = k.backend.mean(e, 0)
 		e = e/np.log(2)
 		return e
-
+	def lowbound_entropy(self):
+		ent = self.ent_kernel()
+		ent = k.backend.permute_dimensions(ent, [1, 0, 2, 3])
+		ent = ent *self.bias_initializer.get_prob_bias(self.bias)
+		ent = K.sum(ent)
+		return ent
 	def avg_concentration(self):
 		conc0, conc1 = self.get_concentration()
 		return K.mean(conc0+conc1)
@@ -1140,6 +1237,30 @@ class KlConv2D(KlConv2DInterface):
 		return out
 
 
+class KlConvBin2D(KlConvBin2DInterface):
+	def __init__(self,
+				 filters,
+				 kernel_size,
+	             isrelu=False,
+				 **kwargs):
+		super(KlConvBin2D, self).__init__(
+			filters=filters,
+			kernel_size=kernel_size,
+			**kwargs)
+		self.isrelu = isrelu
+	def call(self, x, mask=None):
+		if self.isrelu:
+			out = self.kl_xl_kp(x)# + self.kl_xp_kl(x)
+		else:
+			out = self.kl_xp_kl(x)
+		out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
+		return out
+
+	def get_config(self):
+		base_config = super(KlConvBin2D, self).get_config()
+		return base_config
+
+
 class KlConvLogit2D(_KlConvLogit2D):
 
 	def __init__(self,
@@ -1208,30 +1329,6 @@ class KlConvLogit2D(_KlConvLogit2D):
 		if self.use_bias:
 			out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
 		return out
-
-
-class KlConvBin2D(KlConvBin2DInterface):
-	def __init__(self,
-				 filters,
-				 kernel_size,
-	             isrelu=False,
-				 **kwargs):
-		super(KlConvBin2D, self).__init__(
-			filters=filters,
-			kernel_size=kernel_size,
-			**kwargs)
-		self.isrelu = isrelu
-	def call(self, x, mask=None):
-		if self.isrelu:
-			out = self.kl_xl_kp(x)# + self.kl_xp_kl(x)
-		else:
-			out = self.kl_xp_kl(x)
-		out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
-		return out
-
-	def get_config(self):
-		base_config = super(KlConvBin2D, self).get_config()
-		return base_config
 
 
 # KL Biased and Concentrated

@@ -33,12 +33,14 @@ class Sigmoid_Init(Initializer):
 		return x*0
 
 
-class Dirichlet_Init(Initializer):
+'''Log Simplex Parameterizations'''
+# Jeffreys Inits
+class LogSimplexParSphericalInit(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
 
 	def __init__(self, use_link_func=False, linker=None):
-		self.use_link_func = use_link_func
+		self.use_link_func = False
 		self.linker = linker
 
 	def __call__(self, shape, dtype=None):
@@ -46,11 +48,11 @@ class Dirichlet_Init(Initializer):
 		ndimens = np.float(shape[1]) * np.float(shape[0])
 		nsymbols =  np.float(shape[2])
 		lncorners = ndimens * np.log(nsymbols)
-		out = np.random.uniform(K.epsilon(), 1 - K.epsilon(), shape)
+
+		out = np.random.normal(loc=0, scale=1, size=shape)
+		out = out / np.sqrt(np.sum(out**2, axis=2, keepdims=True))
+		out = out**2
 		out = np.log(out)
-		c = np.log(filts)
-		out = np.log(out/np.sum(out, axis=2, keepdims=True))
-		out = out * c
 		#if not self.use_link_func:
 
 		return out
@@ -91,12 +93,12 @@ class Dirichlet_Init(Initializer):
 		return y
 
 
-class Dirichlet_Init_Bin(Initializer):
+class LogSimplexParSphericalInitBin(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
 
 	def __init__(self, use_link_func=False,linker=None):
-		self.use_link_func = use_link_func
+		self.use_link_func = False
 		self.linker = linker
 
 	def __call__(self, shape, dtype=None):
@@ -104,11 +106,9 @@ class Dirichlet_Init_Bin(Initializer):
 		ndimens = np.float(shape[1])*np.float(shape[2])*np.float(shape[0])
 		nsymbols = 2
 		lncorners = ndimens * np.log(nsymbols)
-		out = np.random.uniform(K.epsilon(), 1 - K. epsilon(), shape)
+		out = np.random.normal(loc=0, scale=1, size=shape)
+		out = out**2
 		out = np.log(out)
-		c = np.log(filts) / lncorners
-		c = np.log(filts)
-		out = c*out
 		return out
 
 	def get_log_prob(self, x0,x1):
@@ -166,7 +166,212 @@ class Dirichlet_Init_Bin(Initializer):
 		return y0 , y1
 
 
-# Unit Sphere -- Jeffreis prior
+class LogSimplexParSphericalInitBias(Initializer):
+	def __init__(self, use_link_func=False, linker= None):
+		self.use_link_func = use_link_func
+		self.linker = K.exp
+
+	def __call__(self, shape, dtype=None):
+
+		out = (np.random.normal(loc=0, scale=1, size=shape)*0.0) + 1
+		out = out / np.sqrt(np.sum(out**2))
+		out = out **2
+		out = np.log(out)
+		return out
+
+	def get_log_bias(self,x):
+		y = self.get_prob_bias(x)
+		y = K.clip(y, K.epsilon(), None)
+		logprob = K.log(y)
+		return logprob
+
+	def get_concentration(self,x):
+		y = self.linker(x)
+		return y
+
+	def get_prob_bias(self, x):
+		y = self.linker(x)
+		y = y / self.get_normalizer(x)
+		return y
+
+	def get_log_normalizer(self,x):
+		normalizer = self.get_normalizer(x)
+		return K.log(normalizer)
+
+	def get_normalizer(self,x):
+		y = self.linker(x)
+		normalizer = K.sum(y)
+		return normalizer
+
+# Dirichlet Init
+class Dirichlet_Init(Initializer):
+	"""Initializer that generates tensors Uniform on simplex.
+	"""
+
+	def __init__(self, use_link_func=False, linker=None):
+		self.use_link_func = False
+		self.linker = linker
+
+	def __call__(self, shape, dtype=None):
+		filts = np.float(shape[3])
+		ndimens = np.float(shape[1]) * np.float(shape[0])
+		nsymbols =  np.float(shape[2])
+		lncorners = ndimens * np.log(nsymbols)
+
+		out = np.random.uniform(low=K.epsilon(),high=1- K.epsilon(), size=shape)
+		out = -np.log(out)
+		out = out/ np.sum(out,axis=2,keepdims=True)
+		out = np.log(out)
+		#if not self.use_link_func:
+
+		return out
+	def get_log_prob(self, x):
+		if self.use_link_func:
+			x = self.linker(x)
+			y = x/K.sum(x, axis=2, keepdims=True)
+			K.log(y)
+		else:
+			y = x - self.get_log_normalizer(x)
+		return y
+	def get_prob(self,x):
+		if self.use_link_func:
+			x = self.linker(x)
+			y = x / K.sum(x, axis=2, keepdims=True)
+		else:
+			y = K.exp(self.get_log_prob(x))
+
+		return y
+	def get_normalizer(self,x):
+		if self.use_link_func:
+			y = K.sum(self.linker(x), axis=2, keepdims=True)
+		else:
+			y = K.exp(self.get_log_normalizer(x))
+		return y
+	def get_log_normalizer(self,x):
+		if self.use_link_func:
+			y = K.log(K.sum(self.linker(x), axis=2, keepdims=True))
+		else:
+			y = K.logsumexp(x, axis=2, keepdims=True)
+		return y
+	def get_concentration(self, x):
+		if self.use_link_func:
+			y = self.linker(x)
+		else:
+			y = K.exp(x)
+
+		return y
+
+
+class Dirichlet_Init_Bin(Initializer):
+	"""Initializer that generates tensors Uniform on simplex.
+	"""
+
+	def __init__(self, use_link_func=False,linker=None):
+		self.use_link_func = False
+		self.linker = linker
+
+	def __call__(self, shape, dtype=None):
+		filts = np.float(shape[3])
+		ndimens = np.float(shape[1])*np.float(shape[2])*np.float(shape[0])
+		nsymbols = 2
+		lncorners = ndimens * np.log(nsymbols)
+		out = np.random.uniform(low=K.epsilon(), high=1 - K.epsilon(), size=shape)
+		out = np.log(out)
+		return out
+
+	def get_log_prob(self, x0,x1):
+		if self.use_link_func:
+			x0 = self.linker(x0)
+			x1 = self.linker(x1)
+			y0 = x0 / (x0 + x1)
+			y1 = x1 / (x0 + x1)
+			y0 = K.log(y0)
+			y1 = K.log(y1)
+		else:
+			L = self.get_log_normalizer(x0,x1)
+			y0 = x0 - L
+			y1 = x1 - L
+
+		return y0, y1
+
+	def get_prob(self, x0, x1):
+		if self.use_link_func:
+			x0 = self.linker(x0)
+			x1 = self.linker(x1)
+			y0 = x0 / (x0 + x1)
+			y1 = x1 / (x0 + x1)
+		else:
+			y0, y1 = self.get_log_prob(x0,x1)
+			y0 = K.exp(y0)
+			y1 = K.exp(y1)
+
+		return y0, y1
+
+	def get_log_normalizer(self, x0, x1):
+		if self.use_link_func:
+			y = self.get_normalizer(x0, x1)
+			y = K.log(y)
+		else:
+			xall = K.stack([x0,x1],axis=4)
+			y = K.logsumexp(xall,axis=4,keepdims=False)
+		return y
+
+	def get_normalizer(self, x0, x1):
+		if self.use_link_func:
+			y = self.linker(x0) + self.linker(x1)
+		else:
+			y = K.exp(self.get_log_normalizer(x0, x1))
+		return y
+
+	def get_concentration(self, x0, x1):
+		if self.use_link_func:
+			y0 = self.linker(x0)
+			y1 = self.linker(x1)
+		else:
+			y0 = K.exp(x0)
+			y1 = K.exp(x1)
+
+		return y0 , y1
+
+
+class Dirichlet_Init_Bias(Initializer):
+	def __init__(self, use_link_func=False, linker= None):
+		self.use_link_func = use_link_func
+		self.linker = K.exp
+
+	def __call__(self, shape, dtype=None):
+
+		out = np.random.uniform(low=K.epsilon(),high=1- K.epsilon(), size=shape)
+		out = -np.log(out)
+		out = out/ np.sum(out)
+		out = np.log(out)
+		return out
+
+	def get_log_bias(self,x):
+		y = self.get_prob_bias(x)
+		y = K.clip(y, K.epsilon(), None)
+		logprob = K.log(y)
+		return logprob
+
+	def get_concentration(self,x):
+		y = self.linker(x)
+		return y
+
+	def get_prob_bias(self, x):
+		y = self.linker(x)
+		y = y / self.get_normalizer(x)
+		return y
+
+	def get_log_normalizer(self,x):
+		normalizer = self.get_normalizer(x)
+		return K.log(normalizer)
+
+	def get_normalizer(self,x):
+		y = self.linker(x)
+		normalizer = K.sum(y)
+		return normalizer
+
+'''Spherical Parameterizations'''
 class UnitSphereInit(Initializer):
 	def __init__(self, use_link_func=False, linker=K.square):
 		self.use_link_func = use_link_func

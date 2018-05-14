@@ -187,6 +187,12 @@ def model_constructor(opts, model_dict=None):
 				                            bias_initializer=biasinit,
 				                            bias_regularizer=biasreg,
 				                              isrelu=is_relu), x)
+			# Mixer
+			elif component == 'mixer':
+				block_index += 1
+				nb_filter = int(param['f'])
+				x = node_list_to_list(x)
+				x = Layer_on_list(Mixture(nb_filter), x)
 			# Unnormalized KL Conv
 			elif component == 'klconvu':
 				# TODO fix this block, nothing changed here

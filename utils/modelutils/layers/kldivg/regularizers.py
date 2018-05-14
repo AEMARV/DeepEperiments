@@ -24,6 +24,7 @@ class Ent_Reg_Softmax(Regularizer):
 			ent = -xnorm * K.exp(xnorm)
 			ent = self.coef * K.sum(ent)
 		return -ent
+
 class MixEntReg(Regularizer):
 	"""Regularizer for L1 and L2 regularization.
 

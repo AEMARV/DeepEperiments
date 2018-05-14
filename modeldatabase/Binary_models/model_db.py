@@ -11,6 +11,7 @@ from utils.modelutils.layers.kldivg.regularizers import *
 from utils.modelutils.layers.kldivg.distances import *
 from utils.modelutils.layers.kldivg.kl_models import *
 from utils.modelutils.layers.kldivg.models.hellokl import *
+from utils.modelutils.layers.kldivg.models.vgg import *
 def Layer_on_list(layer, tensor_list):
     res = []
     tensor_list = node_list_to_list(tensor_list)
