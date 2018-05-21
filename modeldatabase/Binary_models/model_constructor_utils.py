@@ -63,7 +63,7 @@ def model_constructor(opts, model_dict=None):
 
 			elif component == 'lsoft':
 				use_reg = bool(param['reg'] if 'reg' in param else 1)
-				x = Layer_on_list(LogSoftmax(reg=use_reg), x)
+				x = Layer_on_list(LogSoftmax(reg=use_reg,name='BLOCK{}_LNORM'.format(block_index)), x)
 
 			elif component == 'normlog':
 				x = Layer_on_list(NormalizeLog(), x)
@@ -191,8 +191,9 @@ def model_constructor(opts, model_dict=None):
 			elif component == 'mixer':
 				block_index += 1
 				nb_filter = int(param['f'])
+				init = opts['model_opts']['kl_opts']['mixer_initial']
 				x = node_list_to_list(x)
-				x = Layer_on_list(Mixture(nb_filter), x)
+				x = Layer_on_list(Mixture(nb_filter,bias_initializer=init), x)
 			# Unnormalized KL Conv
 			elif component == 'klconvu':
 				# TODO fix this block, nothing changed here

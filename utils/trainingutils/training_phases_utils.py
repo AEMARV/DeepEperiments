@@ -61,7 +61,8 @@ def collect_callbacks(opts):
 	# callback_list += [EarlyStopping('acc', min_delta=.001, patience=20, mode='max')]
 
 	callback_list += [ModelCheckpoint(result_manager.history_holder.dir_abs_path + '/checkpoint', period=2,save_best_only=True,save_weights_only=True)]
-	#callback_list += [LearningRateScheduler(lr_sched_fun_db.lr_sched_function_load(opt_utils.get_dataset_name(opts), opt_utils.get_lr_sched_family(opts)))]
+	if opts['optimizer_opts']['lrchange'] is True:
+		callback_list += [LearningRateScheduler(lr_sched_fun_db.lr_sched_function_load(opt_utils.get_dataset_name(opts), opt_utils.get_lr_sched_family(opts)))]
 	callback_list += [TerminateOnNaN()]
 	return callback_list
 

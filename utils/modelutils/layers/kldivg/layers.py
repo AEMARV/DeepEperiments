@@ -117,7 +117,7 @@ class LogSoftmax(Layer):
 #		if self.reg:
 			#self.add_loss(h-hmix,x)
 
-#		self.add_loss(-K.mean(m), x)
+		#self.add_loss(K.mean(K.abs(m))/45000, x)
 		return y
 	def get_config(self):
 		base_config = super(LogSoftmax, self).get_config()
@@ -303,12 +303,20 @@ class KlConv2DInterface(k.layers.Conv2D):
 			                                    trainable=True,
 			                                    dtype='float32')
 
-		self.bias = self.add_weight(shape=(self.filters,),
-									initializer=self.bias_initializer,
-									name='bias',
-									regularizer=self.bias_regularizer,
-									constraint=self.bias_constraint,
-		                            trainable=self.use_bias)
+		if self.use_bias:
+			self.bias = self.add_weight(shape=(self.filters,),
+										initializer=self.bias_initializer,
+										name='bias',
+										regularizer=self.bias_regularizer,
+										constraint=self.bias_constraint,
+			                            trainable=self.use_bias)
+		else:
+			self.bias = self.add_weight(shape=(self.filters,),
+			                            initializer='ones',
+			                            name='bias',
+			                            regularizer=self.bias_regularizer,
+			                            constraint=self.bias_constraint,
+			                            trainable=self.use_bias)
 		# Set input spec.
 		self.input_spec = k.engine.InputSpec(ndim=self.rank + 2,
 											 axes={channel_axis: input_dim})
@@ -400,7 +408,8 @@ class KlConv2DInterface(k.layers.Conv2D):
 			b = self.get_bias()
 			be = K.clip(K.exp(b), K.epsilon(), 1-K.epsilon())
 			H = - b*be
-			return K.sum(H)
+			sh = K.int_shape(b)
+			return K.sum(H)/sh[0]
 		else:
 			return -1
 
@@ -474,7 +483,8 @@ class KlConv2DInterface(k.layers.Conv2D):
 		ent_ker = self.ent_kernel()
 
 		kl = cross_xlog_kerprob + ent_ker
-		kl = self.rm_ent_from_padded(kl,xl)
+		if self.padding is 'same':
+			kl = self.rm_ent_from_padded(kl,xl)
 
 		return kl
 
@@ -695,13 +705,20 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 			                                    trainable=True,
 			                                    dtype='float32')
 
-
-		self.bias = self.add_weight(shape=(self.filters,),
-									initializer=self.bias_initializer,
-									name='bias',
-									regularizer=self.bias_regularizer,
-									constraint=self.bias_constraint,
-		                            trainable=self.use_bias)
+		if self.use_bias:
+			self.bias = self.add_weight(shape=(self.filters,),
+										initializer=self.bias_initializer,
+										name='bias',
+										regularizer=self.bias_regularizer,
+										constraint=self.bias_constraint,
+			                            trainable=self.use_bias)
+		else:
+			self.bias = self.add_weight(shape=(self.filters,),
+			                            initializer='zeros',
+			                            name='bias',
+			                            regularizer=self.bias_regularizer,
+			                            constraint=self.bias_constraint,
+			                            trainable=self.use_bias)
 
 		# Set input spec.
 		self.input_spec = k.engine.InputSpec(ndim=self.rank + 2,
@@ -834,7 +851,8 @@ class KlConvBin2DInterface(k.layers.Conv2D):
 
 		ent_ker = self.ent_kernel()
 		kl = cross_xlog_kerp + ent_ker
-		kl = self.rm_ent_from_padded(kl,xprob)
+		if self.padding is 'same':
+			kl = self.rm_ent_from_padded(kl,xprob)
 		#self.add_loss(K.max(K.relu(kl)), x)
 		return kl
 
@@ -1225,15 +1243,21 @@ class KlConv2D(KlConv2DInterface):
 	def get_config(self):
 		base_config = super(KlConv2D, self).get_config()
 		return base_config
-
+	def addlossmproj(self,xl):
+		y = self.kl_xp_kl(xl)
+		z = K.logsumexp(y,axis=1,keepdims=True)
+		self.add_loss(K.mean(K.abs(z)),xl)
 	def call(self, xl, mask=None):
 
 		if self.isrelu:
 			out = self.kl_xl_kp(xl)# + self.kl_xp_kl(x)
 		else:
 			out =  self.kl_xp_kl(xl)
-
-		out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
+		b = self.get_bias()
+		if self.use_bias is False:
+			b = b *0
+		#self.addlossmproj(xl)
+		out = K.bias_add(out, b , data_format=self.data_format)
 		return out
 
 
@@ -1253,7 +1277,10 @@ class KlConvBin2D(KlConvBin2DInterface):
 			out = self.kl_xl_kp(x)# + self.kl_xp_kl(x)
 		else:
 			out = self.kl_xp_kl(x)
-		out = K.bias_add(out, self.get_bias(), data_format=self.data_format)
+		b = self.get_bias()
+		if self.use_bias is False:
+			b = b *0
+		out = K.bias_add(out,b, data_format=self.data_format)
 		return out
 
 	def get_config(self):

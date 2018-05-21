@@ -45,7 +45,26 @@ def cifar100_nin(index):
 	lr_s = lr[int(i)]
 	print(('LearningRate:', lr_s))
 	return lr_s
+''' KL VGG'''
+def cifar10_klvgglog(index):
 
+	lr_val = 1*(.5**(index//25))
+	return lr_val
+
+
+def cifar100_klvgglog(index):
+	lr_val = 1 * (.5 ** (index // 25))
+	return lr_val
+
+def cifar10_klvggsq(index):
+
+	lr_val = .1*(.5**(index//25))
+	return lr_val
+
+
+def cifar100_klvggsq(index):
+	lr_val = .1 * (.5 ** (index // 25))
+	return lr_val
 
 def get(identifier):
 	return globals()[identifier]

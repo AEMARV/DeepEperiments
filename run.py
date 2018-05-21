@@ -26,10 +26,10 @@ def check_model_list(model_list, datasets):
 if __name__ == '__main__':
 	for total_params in [0]:
 		# total_params=1;
-		models = ['helloKl_loginit_dirichlet']
-		datasets = ['cifar10']
+		models = ['kl_nin_baseline_sqnat_Final','kl_nin_baseline_logsimp_Final']
+		datasets = ['cifar100']
 		experiment_name = get_experiment_name_prompt()
-		check_model_list(models, datasets)
+		# check_model_list(models, datasets)
 		print(keras.__version__)
 		for dataset_str in datasets:
 			for model_str in models:
@@ -55,12 +55,12 @@ if __name__ == '__main__':
 						                           nesterov=opts['optimizer_opts']['nestrov'])
 					model = model_dict['model']
 					model_total_params = (model.count_params() // 100000) / 10
-					if (not total_params == 0) and (not model_total_params== total_params):
-						set_expand_rate(opts, np.sqrt(total_params/model_total_params)*get_expand_rate(opts));
-						print('Expand Rate Changed')
-						model_dict = get_model_from_db(model_str, opts)
-						model = model_dict['model']
-					if total_params==0: total_params = model_total_params;
+					# if (not total_params == 0) and (not model_total_params== total_params):
+					# 	set_expand_rate(opts, np.sqrt(total_params/model_total_params)*get_expand_rate(opts));
+					# 	print('Expand Rate Changed')
+					# 	model_dict = get_model_from_db(model_str, opts)
+					# 	model = model_dict['model']
+					# if total_params==0: total_params = model_total_params;
 
 					opts['experiment_tag'] = experiment_name + '/' + dataset_str + '/' + model_str + '/' + str((model.count_params()//100000)/10)+'M'
 					# out_tensor_list  = model_dict['out']

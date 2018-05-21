@@ -11,11 +11,11 @@ LOW_COMPUTATION = 'low_comp'
 
 class TensorboardVisualizer(Callback):
 	def __init__(self, log_dir='./logs', histogram_freq=0, write_graph=True, write_images=True, layer_list=[], images_num=4,
-	             distribution_sample_size=128):
+				 distribution_sample_size=128):
 		super(TensorboardVisualizer, self).__init__()
 		if K.backend() != 'tensorflow':
 			raise RuntimeError('TensorBoard callback only works '
-			                   'with the TensorFlow backend.')
+							   'with the TensorFlow backend.')
 		global tf
 		import tensorflow as tf
 		self.log_dir = log_dir
@@ -28,8 +28,8 @@ class TensorboardVisualizer(Callback):
 		self.write_images = True
 		self.write_grads = True
 		self.collections = ['high_comp', 'low_comp']
-		self.batch_size =8
-		self.val_size  = 64
+		self.batch_size =256
+		self.val_size  = 256
 	def set_model(self, model):
 		self.model = model
 		self.sess = K.get_session()
@@ -41,25 +41,34 @@ class TensorboardVisualizer(Callback):
 			for layer in self.model.layers:
 				if isinstance(layer, KlConv2DInterface):
 					scalar_summary_list += [tf.summary.scalar(name='Entropy_{}'.format(layer.name),
-					                                          tensor=layer.avg_entropy())]
+															  tensor=layer.avg_entropy())]
 					scalar_summary_list += [tf.summary.scalar(name='Bias_Conc{}'.format(layer.name),
-					                                          tensor=layer.bias_concentration())]
+															  tensor=layer.bias_concentration())]
 					scalar_summary_list += [tf.summary.scalar(name='Bias_Entropy_{}'.format(layer.name),
-					                                          tensor=layer.bias_entropy())]
+															  tensor=layer.bias_entropy())]
 					scalar_summary_list += [tf.summary.scalar(name='Avg_Conc{}'.format(layer.name),
-					                                          tensor=layer.avg_concentration())]
+															  tensor=layer.avg_concentration())]
+
+
 				elif isinstance(layer, KlConvBin2DInterface):
 					scalar_summary_list += [tf.summary.scalar(name='Entropy_{}'.format(layer.name),
-					                                          tensor=layer.avg_entropy())]
+															  tensor=layer.avg_entropy())]
 					scalar_summary_list += [tf.summary.scalar(name='Bias_Entropy_{}'.format(layer.name),
-					                                          tensor=layer.bias_entropy())]
+															  tensor=layer.bias_entropy())]
 					scalar_summary_list += [tf.summary.scalar(name='Bias_Conc{}'.format(layer.name),
-					                                          tensor=layer.bias_concentration())]
+															  tensor=layer.bias_concentration())]
 					scalar_summary_list += [tf.summary.scalar(name='Avg_Conc{}'.format(layer.name),
-					                                          tensor=layer.avg_concentration())]
+															  tensor=layer.avg_concentration())]
 				elif isinstance(layer,ConstMul):
 					scalar_summary_list += [tf.summary.scalar(name='Concentration_All_{}'.format(layer.name),
-					                                          tensor=layer.get_conc())]
+															  tensor=layer.get_conc())]
+				elif isinstance(layer, LogSoftmax):
+					tensor_output_temp = layer.output
+					entropy_not_summed_tmp = -tensor_output_temp*K.exp(tensor_output_temp)
+					entropy_tmp = (K.sum(entropy_not_summed_tmp,axis=1))/np.log(K.int_shape(tensor_output_temp)[1])
+					hist_summary_list+=[tf.summary.histogram(name='Entropy_Output_{}'.format(layer.name),values = entropy_tmp)]
+					average_entropy_tmp = K.mean(entropy_tmp,axis=[0,1,2])
+					scalar_summary_list+=[tf.summary.scalar(name = 'Average_Entropy_Output_{}'.format(layer.name),tensor = average_entropy_tmp)]
 
 				for weight in layer.trainable_weights:
 
@@ -67,7 +76,7 @@ class TensorboardVisualizer(Callback):
 					tf.summary.histogram(mapped_weight_name, weight)
 					if self.write_grads:
 						grads = model.optimizer.get_gradients(model.total_loss,
-						                                      weight)
+															  weight)
 
 						def is_indexed_slices(grad):
 							return type(grad).__name__ == 'IndexedSlices'
@@ -130,7 +139,7 @@ class TensorboardVisualizer(Callback):
 				# 	average_entropy = K.mean(entropy, axis=0)
 				# 	scalar_summary_list += [tf.summary.scalar(name='{}_AVG_ENTROPY'.format(layer.name), tensor=average_entropy)]
 				# 	hist_summary_list += [tf.summary.histogram(name='{}_ENTROPYHIST'.format(layer.name), values=entropy)]
-			# self.image_hist_dist_merged = tf.summary.merge(hist_summary_list)
+			self.image_hist_dist_merged = tf.summary.merge(hist_summary_list)
 
 			# self.image_show_merged = tf.summary.merge(image_show_list)
 			if hasattr(tf, 'merge_all_summaries'):
@@ -155,23 +164,23 @@ class TensorboardVisualizer(Callback):
 		if self.model.uses_learning_phase:
 			tensors += [K.learning_phase()]
 
-		# 		assert len(val_data) == len(tensors)
-		# 		val_size = np.minimum(val_data[0].shape[0],self.val_size)
-		# 		i = 0
-		# 		while i < val_size:
-		# 			step = min(self.batch_size, val_size - i)
-		# 			batch_val = []
-		# 			batch_val.append(val_data[0][i:i + step])
-		# 			batch_val.append(val_data[1][i:i + step])
-		# 			batch_val.append(val_data[2][i:i + step])
-		# 			if self.model.uses_learning_phase:
-		# 				batch_val.append(val_data[3])
-		# 			feed_dict = dict(list(zip(tensors, batch_val)))
-		# 			result = self.sess.run([self.image_hist_dist_merged], feed_dict=feed_dict)
-		# 			summary_str = result[0]
-		# 			self.writer.add_summary(summary_str, epoch)
-		# 			i += self.batch_size
-				## Image Show
+			assert len(val_data) == len(tensors)
+			val_size = np.minimum(val_data[0].shape[0],self.val_size)
+			i = 0
+			while i < val_size:
+				step = min(self.batch_size, val_size - i)
+				batch_val = []
+				batch_val.append(val_data[0][i:i + step])
+				batch_val.append(val_data[1][i:i + step])
+				batch_val.append(val_data[2][i:i + step])
+				if self.model.uses_learning_phase:
+					batch_val.append(val_data[3])
+				feed_dict = dict(list(zip(tensors, batch_val)))
+				result = self.sess.run([self.image_hist_dist_merged], feed_dict=feed_dict)
+				summary_str = result[0]
+				self.writer.add_summary(summary_str, epoch)
+				i += self.batch_size
+			## Image Show
 				# batch_val = []
 				# batch_val.append(val_data[0][0:3])
 				# batch_val.append(val_data[1][0:3])

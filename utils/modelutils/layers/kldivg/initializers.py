@@ -177,7 +177,7 @@ class LogSimplexParSphericalInitBias(Initializer):
 		out = out / np.sqrt(np.sum(out**2))
 		out = out **2
 		out = np.log(out)
-		return out
+		return out*0
 
 	def get_log_bias(self,x):
 		y = self.get_prob_bias(x)
@@ -208,9 +208,10 @@ class Dirichlet_Init(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
 
-	def __init__(self, use_link_func=False, linker=None):
+	def __init__(self, use_link_func=False, linker=None, coef=1):
 		self.use_link_func = False
 		self.linker = linker
+		self.coef = coef
 
 	def __call__(self, shape, dtype=None):
 		filts = np.float(shape[3])
@@ -224,7 +225,7 @@ class Dirichlet_Init(Initializer):
 		out = np.log(out)
 		#if not self.use_link_func:
 
-		return out
+		return out * self.coef
 	def get_log_prob(self, x):
 		if self.use_link_func:
 			x = self.linker(x)
@@ -266,9 +267,10 @@ class Dirichlet_Init_Bin(Initializer):
 	"""Initializer that generates tensors Uniform on simplex.
 	"""
 
-	def __init__(self, use_link_func=False,linker=None):
+	def __init__(self, use_link_func=False,linker=None, coef =1):
 		self.use_link_func = False
 		self.linker = linker
+		self.coef = coef
 
 	def __call__(self, shape, dtype=None):
 		filts = np.float(shape[3])
@@ -277,7 +279,7 @@ class Dirichlet_Init_Bin(Initializer):
 		lncorners = ndimens * np.log(nsymbols)
 		out = np.random.uniform(low=K.epsilon(), high=1 - K.epsilon(), size=shape)
 		out = np.log(out)
-		return out
+		return out * self.coef
 
 	def get_log_prob(self, x0,x1):
 		if self.use_link_func:
@@ -335,9 +337,10 @@ class Dirichlet_Init_Bin(Initializer):
 
 
 class Dirichlet_Init_Bias(Initializer):
-	def __init__(self, use_link_func=False, linker= None):
+	def __init__(self, use_link_func=False, linker= None ,coef =1):
 		self.use_link_func = use_link_func
 		self.linker = K.exp
+		self.coef = coef
 
 	def __call__(self, shape, dtype=None):
 
@@ -345,7 +348,7 @@ class Dirichlet_Init_Bias(Initializer):
 		out = -np.log(out)
 		out = out/ np.sum(out)
 		out = np.log(out)
-		return out
+		return out * self.coef
 
 	def get_log_bias(self,x):
 		y = self.get_prob_bias(x)
@@ -373,16 +376,17 @@ class Dirichlet_Init_Bias(Initializer):
 
 '''Spherical Parameterizations'''
 class UnitSphereInit(Initializer):
-	def __init__(self, use_link_func=False, linker=K.square):
+	def __init__(self, use_link_func=False, linker=K.square, coef=1.0):
 		self.use_link_func = use_link_func
 		self.linker = K.square
-
+		self.coef = coef
 	def __call__(self, shape, dtype=None):
 		filts = np.float(shape[3])
 		ndimens = np.float(shape[1]) * np.float(shape[2]) * np.float(shape[0])
 		nsymbols = 2
 		lncorners = ndimens * np.log(nsymbols)
 		out = np.random.normal(loc=0, scale=1, size=shape)
+		out = out ** self.coef
 		out = out / np.sqrt(np.sum(out**2, axis=2, keepdims=True))
 		return out
 
@@ -411,9 +415,10 @@ class UnitSphereInit(Initializer):
 
 
 class UnitSphereInitBin(Initializer):
-	def __init__(self, use_link_func=False, linker=K.square):
+	def __init__(self, use_link_func=False, linker=K.square , coef = 1.0):
 		self.use_link_func = use_link_func
 		self.linker = K.square
+		self.coef = coef
 
 	def __call__(self, shape, dtype=None):
 		filts = np.float(shape[3])
@@ -421,7 +426,7 @@ class UnitSphereInitBin(Initializer):
 		nsymbols = 2
 		lncorners = ndimens * np.log(nsymbols)
 		out = np.random.normal(loc=0, scale=1, size=shape)
-		return out
+		return out ** self.coef
 
 	def get_log_prob(self,x0,x1):
 		y0,y1 = self.get_prob(x0, x1)
@@ -451,13 +456,15 @@ class UnitSphereInitBin(Initializer):
 
 
 class UnitSphereInitBias(Initializer):
-	def __init__(self, use_link_func=False, linker=K.square):
+	def __init__(self, use_link_func=False, linker=K.square, coef=1.0):
 		self.use_link_func = use_link_func
 		self.linker = K.square
+		self.coef = coef
 
 	def __call__(self, shape, dtype=None):
 
-		out = (np.random.normal(loc=0, scale=1, size=shape)*0.0) + 1
+		out = (np.random.normal(loc=0, scale=1, size=shape))
+		out = (out*0)+1
 		out = out / np.sqrt(np.sum(out**2))
 		return out
 
