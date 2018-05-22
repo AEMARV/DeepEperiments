@@ -108,6 +108,7 @@ class LogSoftmax(Layer):
 		#x = K.clip(x,-100000.0,None)
 		m = K.logsumexp(x, 1, True)
 		y = x - m
+		#self.add_loss(-K.mean(m),x)
 		#y = K.clip(y, -1000, None)
 		#pmix = K.mean(K.exp(y),(0,2,3),keepdims= True)
 		#hmix = -pmix * K.log(K.clip(pmix,K.epsilon(),1))
@@ -1939,7 +1940,17 @@ class KlAveragePooling2D(AveragePooling2D):
 		output = k.backend.clip(output, k.backend.epsilon(), None)
 		output = k.backend.log(output)
 		output += m
+		output = self.rm_boundery(inputs, output,pool_size,strides,padding,data_format)
+		# TESTED WORKS CORRECT
 		return output
+	def rm_boundery(self,input,output,pool_size,strides,padding,data_format):
+		ones = input[0:, 0:1, 0:, 0:]
+		ones = ones*0 + 1
+		ones = k.backend.pool2d(ones, pool_size, strides,
+		                          padding, data_format, pool_mode='avg')
+		output = output - K.log(ones)
+		return output
+
 class GlobalKlAveragePooling2D(AveragePooling2D):
 
 	def _pooling_function(self, inputs, pool_size, strides,

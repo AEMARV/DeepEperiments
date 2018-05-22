@@ -26,8 +26,8 @@ def check_model_list(model_list, datasets):
 if __name__ == '__main__':
 	for total_params in [0]:
 		# total_params=1;
-		models = ['kl_nin_baseline_sqnat_Final','kl_nin_baseline_logsimp_Final']
-		datasets = ['cifar100']
+		models = ['kl_vgg_baseline_logsimp']
+		datasets = ['cifar10']
 		experiment_name = get_experiment_name_prompt()
 		# check_model_list(models, datasets)
 		print(keras.__version__)
