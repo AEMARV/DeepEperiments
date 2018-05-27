@@ -1,11 +1,12 @@
 from matplotlib.pyplot import axes
-
+import tensorflow as tf
 from keras.layers import Layer
 from keras import initializers
 from utils.modelutils.layers.kldivg.initializers import *
 from keras.utils import conv_utils
 from keras.layers.pooling import AveragePooling2D
 from keras.layers.merge import _Merge
+from utils.modelutils.layers.kldivg.OPS import *
 import keras.backend as K
 import tensorflow as tf
 KER_CHAN_DIM = 2
@@ -122,6 +123,36 @@ class LogSoftmax(Layer):
 		return y
 	def get_config(self):
 		base_config = super(LogSoftmax, self).get_config()
+		return dict(list(base_config.items()))
+class LogSoftmaxStoch(Layer):
+	def __init__(self,reg=None, **kwargs):
+		self.supports_masking = False
+		self.reg = reg
+		super(LogSoftmaxStoch, self).__init__(**kwargs)
+
+	def compute_output_shape(self, input_shape):
+		return input_shape
+
+	def compute_mask(self, input, input_mask=None):
+		return None
+
+	def call(self, x, mask=None):
+		#x = K.clip(x,-100000.0,None)
+		y = x - logsoftstoch(x)
+		#self.add_loss(-K.mean(m),x)
+		#y = K.clip(y, -1000, None)
+		#pmix = K.mean(K.exp(y),(0,2,3),keepdims= True)
+		#hmix = -pmix * K.log(K.clip(pmix,K.epsilon(),1))
+		#hmix = K.sum(hmix)
+		#h = K.sum( -y * K.exp(y),1)
+		#h = K.mean(h)
+#		if self.reg:
+			#self.add_loss(h-hmix,x)
+
+		#self.add_loss(K.mean(K.abs(m))/45000, x)
+		return y
+	def get_config(self):
+		base_config = super(LogSoftmaxStoch, self).get_config()
 		return dict(list(base_config.items()))
 class NormalizeLog(Layer):
 	def __init__(self, **kwargs):

@@ -64,6 +64,9 @@ def model_constructor(opts, model_dict=None):
 			elif component == 'lsoft':
 				use_reg = bool(param['reg'] if 'reg' in param else 1)
 				x = Layer_on_list(LogSoftmax(reg=use_reg,name='BLOCK{}_LNORM'.format(block_index)), x)
+			elif component == 'lsofts':
+				use_reg = bool(param['reg'] if 'reg' in param else 1)
+				x = Layer_on_list(LogSoftmaxStoch(reg=use_reg,name='BLOCK{}_LNORM'.format(block_index)), x)
 
 			elif component == 'normlog':
 				x = Layer_on_list(NormalizeLog(), x)

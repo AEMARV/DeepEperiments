@@ -871,3 +871,40 @@ def helloKl_nat_sq_mixerv5(opts, input_shape, nb_classes, getstring_flag=False):
                                                    decay=0.0,
                                                    nesterov=False)
     return get_model_out_dict(opts, model_string=model_string)
+
+'''Stochastic Param'''
+'''NIPS FINAL HELLO KL'''
+def hello_kl_stoch(opts, input_shape, nb_classes, getstring_flag=False):
+    model_string = 'klconvb|f:32,r:5,l2_val:5e-4,bias:1->lsofts' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconv|f:64,r:5,l2_val:1e-4,bias:1->lsofts' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconv|f:128,r:3,l2_val:1e-4,bias:1->lsofts' \
+                   '->klavgpool|r:3,s:2' \
+                   '->klconv|f:192,r:1,l2_val:1e-4,bias:1->lsofts' \
+                   '->klconv|f:' + str(nb_classes) + ',r:1->lsofts|reg:0' \
+                                                     '->klavgpool|r:3,s:1' \
+                                                     '->flattensh' \
+                                                     '->fin'
+    use_link_func = False
+    linker = linker_square
+    initCoef = 2
+    opts['model_opts']['kl_opts'] = {}
+    opts['optimizer_opts']['loss']['method'] = kl_loss_data_centric
+    opts['model_opts']['kl_opts']['convbreg'] = None
+    opts['model_opts']['kl_opts']['convreg'] = None
+    opts['model_opts']['kl_opts']['klb_initial'] = Dirichlet_Init_Bin(use_link_func=use_link_func, linker=linker, coef=initCoef)
+    opts['model_opts']['kl_opts']['kl_initial'] = Stoch_Param(use_link_func=use_link_func, linker=linker, coef=initCoef)
+    opts['model_opts']['kl_opts']['bias_initial'] = Dirichlet_Init_Bias(use_link_func=use_link_func, linker=linker, coef=initCoef)
+    opts['model_opts']['kl_opts']['dist_measure'] = kl_both_centric
+    opts['model_opts']['kl_opts']['use_link_func'] = use_link_func
+    opts['model_opts']['kl_opts']['biasreg'] = None
+    opts['optimizer_opts']['momentum'] = 0.9
+    opts['optimizer_opts']['lrchange'] = False
+    opts['optimizer_opts']['lr'] = 1  # .1
+    opts['optimizer_opts']['optimizer'] = PolarSGD(polar_decay=0,
+                                                   lr=opts['optimizer_opts']['lr'],
+                                                   momentum=opts['optimizer_opts']['momentum'],
+                                                   decay=0.0,
+                                                   nesterov=False)
+    return get_model_out_dict(opts, model_string=model_string)

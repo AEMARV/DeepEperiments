@@ -138,8 +138,8 @@ class TensorboardVisualizer(Callback):
 				# 	entropy = -K.sum(K.log(pdf + K.epsilon()) * pdf, axis=1)
 				# 	average_entropy = K.mean(entropy, axis=0)
 				# 	scalar_summary_list += [tf.summary.scalar(name='{}_AVG_ENTROPY'.format(layer.name), tensor=average_entropy)]
-				# 	hist_summary_list += [tf.summary.histogram(name='{}_ENTROPYHIST'.format(layer.name), values=entropy)]
-			self.image_hist_dist_merged = tf.summary.merge(hist_summary_list)
+				## 	hist_summary_list += [tf.summary.histogram(name='{}_ENTROPYHIST'.format(layer.name), values=entropy)]
+			#self.image_hist_dist_merged = tf.summary.merge(hist_summary_list)
 
 			# self.image_show_merged = tf.summary.merge(image_show_list)
 			if hasattr(tf, 'merge_all_summaries'):
